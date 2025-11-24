@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  met-app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: met-app
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./data/inventory.json:/app/inventory.json
+      - ./data/logs.json:/app/logs.json
+      - ./data/employees.json:/app/employees.json
+      - ./data/verifications.json:/app/verifications.json
+      - ./data/prices.json:/app/prices.json
+    restart: unless-stopped
