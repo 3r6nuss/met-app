@@ -161,8 +161,8 @@ app.post('/api/backup', async (req, res) => {
     }
 });
 
-// Catch-all for SPA
-app.get('*', (req, res) => {
+// Catch-all for SPA (Express 5 compatible)
+app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
