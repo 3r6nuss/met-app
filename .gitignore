@@ -23,10 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
-# Data files
-inventory.json
-logs.json
-employees.json
-verifications.json
-docker/data/
+# Data files (root level only)
+/inventory.json
+/logs.json
+/employees.json
+/verifications.json
+/prices.json
 backups/

@@ -1,0 +1,23 @@
+[
+  {
+    "type": "in",
+    "category": "internal",
+    "itemId": 6,
+    "itemName": "Stahl",
+    "quantity": 2222,
+    "depositor": "Rikkard Bach",
+    "price": "80",
+    "timestamp": "2025-11-24T20:09:56.544Z"
+  },
+  {
+    "type": "in",
+    "category": "trade",
+    "itemId": 7,
+    "itemName": "Pistol Clip",
+    "quantity": 166,
+    "depositor": "Rikkard Bach",
+    "price": 1000,
+    "timestamp": "2025-11-24T20:00:51.425Z",
+    "confirmed": false
+  }
+]
