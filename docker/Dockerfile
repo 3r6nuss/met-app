@@ -7,16 +7,13 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install only production dependencies
+RUN npm install --omit=dev
 
-# Copy source code
-COPY . .
-
-# Build the frontend (disable strict mode for CI)
-ENV CI=false
-ENV DISABLE_ESLINT_PLUGIN=true
-RUN npm run build || (cat /root/.npm/_logs/*.log && exit 1)
+# Copy pre-built dist folder and server file
+COPY dist ./dist
+COPY server.js ./
+COPY src/data ./src/data
 
 # Expose the port
 EXPOSE 3001
