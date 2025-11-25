@@ -3,11 +3,6 @@ version: '3.8'
 services:
   met-app:
     build:
-version: '3.8'
-
-services:
-  met-app:
-    build:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: met-app
