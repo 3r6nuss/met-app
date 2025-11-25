@@ -20,7 +20,7 @@ export default function DebugMenu({ onReset, employees = [], onUpdateEmployees, 
     };
 
     const handleBackup = () => {
-        fetch('http://localhost:3001/api/backup', { method: 'POST' })
+        fetch('/api/backup', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
                 if (data.success) alert("Backup erfolgreich erstellt!");

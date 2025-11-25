@@ -8,7 +8,7 @@ export default function PriceListModal({ onClose }) {
     const [editedPrices, setEditedPrices] = useState([]);
 
     useEffect(() => {
-        fetch('http://localhost:3001/api/prices')
+        fetch('/api/prices')
             .then(res => res.json())
             .then(data => {
                 setPrices(data);
@@ -29,7 +29,7 @@ export default function PriceListModal({ onClose }) {
 
     const handleSave = () => {
         setIsLoading(true);
-        fetch('http://localhost:3001/api/prices', {
+        fetch('/api/prices', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(editedPrices)
@@ -155,8 +155,8 @@ export default function PriceListModal({ onClose }) {
                                                 ) : (
                                                     item.note && (
                                                         <span className={`px-2 py-1 rounded ${item.note.includes('Kein Ankauf') ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                                                                item.note.includes('Ankauf bis') ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                                                                    'bg-slate-800 text-slate-400'
+                                                            item.note.includes('Ankauf bis') ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                                                'bg-slate-800 text-slate-400'
                                                             }`}>
                                                             {item.note}
                                                         </span>

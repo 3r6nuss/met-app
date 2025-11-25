@@ -7,7 +7,7 @@ export default function ControlPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('http://localhost:3001/api/verifications')
+        fetch('/api/verifications')
             .then(res => res.json())
             .then(data => {
                 setHistory(data);
