@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initialInventory } from './src/data/initialData.js';
 import { initialPrices } from './src/data/initialPrices.js';
+import { initialEmployees } from './src/data/initialEmployees.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
