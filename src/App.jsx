@@ -13,7 +13,7 @@ import DebugMenu from './components/DebugMenu';
 import PriceListModal from './components/PriceListModal';
 import { Activity } from 'lucide-react';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = '/api';
 
 function App() {
   const [inventory, setInventory] = useState(initialInventory);
