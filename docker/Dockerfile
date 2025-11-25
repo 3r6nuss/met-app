@@ -14,6 +14,8 @@ RUN npm install --omit=dev
 COPY dist ./dist
 COPY server.js ./
 COPY src/data ./src/data
+COPY src/db ./src/db
+COPY scripts ./scripts
 
 # Expose the port
 EXPOSE 3001

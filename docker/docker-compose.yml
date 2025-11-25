@@ -9,9 +9,6 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - ./docker/data/inventory.json:/app/inventory.json
-      - ./docker/data/logs.json:/app/logs.json
-      - ./docker/data/employees.json:/app/employees.json
-      - ./docker/data/verifications.json:/app/verifications.json
-      - ./docker/data/prices.json:/app/prices.json
+      - ./docker/data:/app/data
+      - ./docker/data/database.sqlite:/app/database.sqlite
     restart: unless-stopped
