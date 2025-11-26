@@ -47,7 +47,7 @@ export default function InventoryList({ inventory, isEditMode, onUpdateStock }) 
                                             className="w-full bg-slate-900/80 border border-slate-600 rounded px-2 py-1 text-right text-sm focus:border-violet-500 outline-none"
                                         />
                                     ) : (
-                                        <span className="font-mono font-medium">{item.current.toLocaleString()}</span>
+                                        <span className="font-mono font-medium">{(item.current || 0).toLocaleString()}</span>
                                     )}
                                 </div>
 
