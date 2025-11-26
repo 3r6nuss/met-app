@@ -24,9 +24,9 @@ async function migrate() {
     // 1. Inventory
     const inventory = await readJson('inventory.json');
     if (inventory.length > 0) {
-        const stmt = await db.prepare('INSERT OR REPLACE INTO inventory (id, name, category, current, min, unit, price, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        const stmt = await db.prepare('INSERT OR REPLACE INTO inventory (id, name, category, current, target, min, unit, price, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
         for (const item of inventory) {
-            await stmt.run(item.id, item.name, item.category, item.current, item.min, item.unit, item.price, item.image);
+            await stmt.run(item.id, item.name, item.category, item.current, item.target, item.min, item.unit, item.price, item.image);
         }
         await stmt.finalize();
         console.log(`Migrated ${inventory.length} inventory items.`);

@@ -24,6 +24,7 @@ export async function getDb() {
             name TEXT NOT NULL,
             category TEXT,
             current INTEGER DEFAULT 0,
+            target INTEGER DEFAULT NULL,
             min INTEGER DEFAULT 0,
             unit TEXT,
             price REAL DEFAULT 0,

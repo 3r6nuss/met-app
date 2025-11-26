@@ -48,10 +48,10 @@ app.post('/api/inventory', async (req, res) => {
         const db = await getDb();
 
         await db.run('BEGIN TRANSACTION');
-        const stmt = await db.prepare('INSERT OR REPLACE INTO inventory (id, name, category, current, min, unit, price, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        const stmt = await db.prepare('INSERT OR REPLACE INTO inventory (id, name, category, current, target, min, unit, price, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
 
         for (const item of newData) {
-            await stmt.run(item.id, item.name, item.category, item.current, item.min, item.unit, item.price, item.image);
+            await stmt.run(item.id, item.name, item.category, item.current, item.target, item.min, item.unit, item.price, item.image);
         }
 
         await stmt.finalize();
@@ -256,9 +256,9 @@ app.post('/api/reset', async (req, res) => {
 
         // Reset Inventory
         await db.run('DELETE FROM inventory');
-        const stmtInv = await db.prepare('INSERT INTO inventory (id, name, category, current, min, unit, price, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        const stmtInv = await db.prepare('INSERT INTO inventory (id, name, category, current, target, min, unit, price, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
         for (const item of initialInventory) {
-            await stmtInv.run(item.id, item.name, item.category, item.current, item.min, item.unit, item.price, item.image);
+            await stmtInv.run(item.id, item.name, item.category, item.current, item.target, item.min, item.unit, item.price, item.image);
         }
         await stmtInv.finalize();
 

@@ -52,7 +52,7 @@ export default function InventoryList({ inventory, isEditMode, onUpdateStock }) 
                                 </div>
 
                                 <div className="text-right">
-                                    {item.target !== null ? (
+                                    {item.target != null ? (
                                         <span className="text-slate-400 text-sm">{item.target.toLocaleString()}</span>
                                     ) : (
                                         <span className="text-slate-600">-</span>
