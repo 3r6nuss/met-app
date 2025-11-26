@@ -10,5 +10,4 @@ services:
       - "3001:3001"
     volumes:
       - ./docker/data:/app/data
-      - ./docker/data/database.sqlite:/app/database.sqlite
     restart: unless-stopped
