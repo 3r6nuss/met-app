@@ -11,6 +11,7 @@ import DailyEmployeeLog from './pages/protocols/DailyEmployeeLog';
 import WeeklyProtocol from './pages/protocols/WeeklyProtocol';
 import DebugMenu from './components/DebugMenu';
 import PriceListModal from './components/PriceListModal';
+import Login from './components/Login';
 import { Activity } from 'lucide-react';
 
 const API_URL = '/api';
@@ -208,7 +209,7 @@ function App() {
     setLogs(prev => [log, ...prev].slice(0, 5));
   };
 
-  import Login from './components/Login';
+
 
   // ... (imports)
 
