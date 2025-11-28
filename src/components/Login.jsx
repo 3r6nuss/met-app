@@ -3,7 +3,7 @@ import { LogIn } from 'lucide-react';
 
 export default function Login() {
     const handleLogin = () => {
-        window.location.href = 'http://localhost:3001/auth/discord';
+        window.location.href = 'https://met.3r6nuss.de/auth/discord';
     };
 
     return (

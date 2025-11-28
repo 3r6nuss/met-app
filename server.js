@@ -54,7 +54,7 @@ passport.use(new DiscordStrategy({
 }));
 
 app.use(cors({
-    origin: 'http://localhost:5173', // Allow frontend dev server
+    origin: ['http://localhost:5173', 'https://met.3r6nuss.de'], // Allow frontend dev server and production domain
     credentials: true // Allow cookies
 }));
 app.use(express.json());
