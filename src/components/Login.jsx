@@ -1,7 +1,7 @@
 import React from 'react';
 import { LogIn } from 'lucide-react';
 
-export default function Login({ onGuestLogin }) {
+export default function Login() {
     const handleLogin = () => {
         window.location.href = 'https://met.3r6nuss.de/auth/discord';
     };
@@ -14,17 +14,10 @@ export default function Login({ onGuestLogin }) {
 
                 <button
                     onClick={handleLogin}
-                    className="w-full flex items-center justify-center gap-3 bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium py-3 px-6 rounded-xl transition-all shadow-lg shadow-[#5865F2]/20 mb-4"
+                    className="w-full flex items-center justify-center gap-3 bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium py-3 px-6 rounded-xl transition-all shadow-lg shadow-[#5865F2]/20"
                 >
                     <LogIn className="w-5 h-5" />
                     Mit Discord anmelden
-                </button>
-
-                <button
-                    onClick={onGuestLogin}
-                    className="text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors"
-                >
-                    Als Gast fortfahren
                 </button>
             </div>
         </div>

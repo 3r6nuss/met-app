@@ -218,7 +218,7 @@ function App() {
   if (loading) return <div className="flex items-center justify-center min-h-screen text-violet-400">Lade Daten...</div>;
 
   if (!user) {
-    return <Login onGuestLogin={() => setUser({ username: 'Gast', id: 'guest', avatar: null })} />;
+    return <Login />;
   }
 
   return (
