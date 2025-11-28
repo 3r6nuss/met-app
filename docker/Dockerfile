@@ -1,17 +1,21 @@
-# Use Node.js as the base image
-FROM node:18-alpine
-
-# Set working directory
+# Build stage
+FROM node:18-alpine AS builder
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
 
-# Install only production dependencies
+# Production stage
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
 RUN npm install --omit=dev
 
-# Copy pre-built dist folder and server file
-COPY dist ./dist
+# Copy pre-built dist folder from builder
+COPY --from=builder /app/dist ./dist
+
+# Copy backend files
 COPY server.js ./
 COPY src/data ./src/data
 COPY src/db ./src/db
