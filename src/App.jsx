@@ -24,6 +24,7 @@ function App() {
   const [showPriceList, setShowPriceList] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState('idle');
+  const [user, setUser] = useState(null);
 
   // Fetch data on mount
   useEffect(() => {
@@ -31,13 +32,18 @@ function App() {
       fetch(`${API_URL}/inventory`).then(res => res.json()),
       fetch(`${API_URL}/logs`).then(res => res.json()),
       fetch(`${API_URL}/employees`).then(res => res.json()),
-      fetch(`${API_URL}/prices`).then(res => res.json())
+      fetch(`${API_URL}/prices`).then(res => res.json()),
+      fetch(`${API_URL}/user`).then(res => {
+        if (res.ok) return res.json();
+        return null;
+      })
     ])
-      .then(([invData, logsData, empData, priceData]) => {
+      .then(([invData, logsData, empData, priceData, userData]) => {
         setInventory(invData);
         setTransactionLogs(logsData);
         setEmployees(empData);
         setPrices(priceData);
+        setUser(userData);
         setLoading(false);
       })
       .catch(err => {
@@ -202,7 +208,17 @@ function App() {
     setLogs(prev => [log, ...prev].slice(0, 5));
   };
 
+  import Login from './components/Login';
+
+  // ... (imports)
+
+  // ... (inside App component)
+
   if (loading) return <div className="flex items-center justify-center min-h-screen text-violet-400">Lade Daten...</div>;
+
+  if (!user) {
+    return <Login />;
+  }
 
   return (
     <Router>
@@ -228,7 +244,7 @@ function App() {
           </div>
         </header>
 
-        <Navbar onOpenPriceList={() => setShowPriceList(true)} />
+        <Navbar onOpenPriceList={() => setShowPriceList(true)} user={user} />
 
         {showPriceList && <PriceListModal onClose={() => setShowPriceList(false)} />}
 

@@ -2,10 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import session from 'express-session';
+import passport from 'passport';
+import { Strategy as DiscordStrategy } from 'passport-discord';
+import dotenv from 'dotenv';
 import { getDb } from './src/db/database.js';
 import { initialInventory } from './src/data/initialData.js';
 import { initialPrices } from './src/data/initialPrices.js';
 import { initialEmployees } from './src/data/initialEmployees.js';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,9 +19,70 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3001;
 
-app.use(cors());
+// Session Configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'keyboard cat',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: false, // Set to true if using HTTPS
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Passport Configuration
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser((user, done) => {
+    done(null, user);
+});
+
+passport.deserializeUser((obj, done) => {
+    done(null, obj);
+});
+
+passport.use(new DiscordStrategy({
+    clientID: process.env.DISCORD_CLIENT_ID,
+    clientSecret: process.env.DISCORD_CLIENT_SECRET,
+    callbackURL: process.env.DISCORD_CALLBACK_URL,
+    scope: ['identify', 'email']
+}, (accessToken, refreshToken, profile, done) => {
+    process.nextTick(() => {
+        return done(null, profile);
+    });
+}));
+
+app.use(cors({
+    origin: 'http://localhost:5173', // Allow frontend dev server
+    credentials: true // Allow cookies
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist'))); // Serve frontend files
+
+// Auth Routes
+app.get('/auth/discord', passport.authenticate('discord'));
+
+app.get('/auth/discord/callback', passport.authenticate('discord', {
+    failureRedirect: '/'
+}), (req, res) => {
+    res.redirect('/'); // Successful auth
+});
+
+app.get('/auth/logout', (req, res) => {
+    req.logout((err) => {
+        if (err) { return next(err); }
+        res.redirect('/');
+    });
+});
+
+app.get('/api/user', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.json(req.user);
+    } else {
+        res.status(401).json({ error: 'Not authenticated' });
+    }
+});
 
 // Logging Middleware
 app.use((req, res, next) => {

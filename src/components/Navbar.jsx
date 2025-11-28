@@ -1,9 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ArrowRightLeft, ShieldCheck, ShoppingCart, ChevronDown, FileText } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, ShieldCheck, ShoppingCart, ChevronDown, FileText, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export default function Navbar({ onOpenPriceList }) {
+export default function Navbar({ onOpenPriceList, user }) {
     const navLinkClass = ({ isActive }) => cn(
         "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all whitespace-nowrap flex-1",
         isActive
@@ -19,7 +19,7 @@ export default function Navbar({ onOpenPriceList }) {
     return (
         <nav className="glass-panel rounded-2xl p-2 mb-8 flex justify-between items-center sticky top-4 z-50">
             <div className="flex gap-2 w-full items-center">
-                {/* Lager (Direct Link) */}
+                {/* ... (existing links) */}
                 <NavLink to="/" className={navLinkClass}>
                     <LayoutDashboard className="w-5 h-5" />
                     Lager
@@ -72,6 +72,29 @@ export default function Navbar({ onOpenPriceList }) {
                     Kontrolle
                 </NavLink>
             </div>
+
+            {/* User Profile */}
+            {user && (
+                <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-700">
+                    <div className="flex items-center gap-2">
+                        {user.avatar && (
+                            <img
+                                src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`}
+                                alt={user.username}
+                                className="w-8 h-8 rounded-full border border-slate-600"
+                            />
+                        )}
+                        <span className="text-sm font-medium text-slate-300 hidden xl:block">{user.username}</span>
+                    </div>
+                    <a
+                        href="http://localhost:3001/auth/logout"
+                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-lg transition-colors"
+                        title="Abmelden"
+                    >
+                        <LogOut className="w-5 h-5" />
+                    </a>
+                </div>
+            )}
         </nav>
     );
 }
