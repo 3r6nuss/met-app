@@ -287,34 +287,37 @@ function App() {
         <Routes>
           <Route path="/" element={<InventoryPage inventory={inventory} onUpdateStock={handleUpdateStock} onVerify={handleVerify} user={user} />} />
 
-          {/* Buchung Routes - Restricted to Lager/Buchhaltung/Admin */}
-          {isLager && (
-            <>
-              <Route path="/buchung/einlagern" element={
-                <ActionPage
-                  inventory={inventory}
-                  employees={employees}
-                  prices={prices}
-                  onAction={(id, qty, dep, price) => handleCheckIn(id, qty, dep, price, 'in', 'internal')}
-                  type="in"
-                  title="Einlagern"
-                  label="Mitarbeiter"
-                  showPrice={true}
-                />
-              } />
-              <Route path="/buchung/auslagern" element={
-                <ActionPage
-                  inventory={inventory}
-                  employees={employees}
-                  prices={prices}
-                  onAction={(id, qty, dep, price) => handleCheckOut(id, qty, dep, price, 'out', 'internal')}
-                  type="out"
-                  title="Auslagern"
-                  label="Mitarbeiter"
-                  showPrice={false}
-                />
-              } />
-            </>
+          {/* Buchung Routes */}
+          {/* Einlagern: Only Buchhaltung/Admin (Lager removed) */}
+          {isBuchhaltung && (
+            <Route path="/buchung/einlagern" element={
+              <ActionPage
+                inventory={inventory}
+                employees={employees}
+                prices={prices}
+                onAction={(id, qty, dep, price) => handleCheckIn(id, qty, dep, price, 'in', 'internal')}
+                type="in"
+                title="Einlagern"
+                label="Mitarbeiter"
+                showPrice={true}
+              />
+            } />
+          )}
+
+          {/* Auslagern: Lager & Buchhaltung/Admin */}
+          {(isLager || isBuchhaltung) && (
+            <Route path="/buchung/auslagern" element={
+              <ActionPage
+                inventory={inventory}
+                employees={employees}
+                prices={prices}
+                onAction={(id, qty, dep, price) => handleCheckOut(id, qty, dep, price, 'out', 'internal')}
+                type="out"
+                title="Auslagern"
+                label="Mitarbeiter"
+                showPrice={false}
+              />
+            } />
           )}
 
           {/* Trade Routes - Händler/Buchhaltung/Admin */}
@@ -346,7 +349,7 @@ function App() {
           )}
 
           {/* Redirect old routes */}
-          <Route path="/buchung" element={<Navigate to={isLager ? "/buchung/einlagern" : "/"} replace />} />
+          <Route path="/buchung" element={<Navigate to={isLager ? "/buchung/auslagern" : "/"} replace />} />
           <Route path="/trade" element={<Navigate to={(isHaendler || isBuchhaltung) ? "/buchung/einkauf" : "/"} replace />} />
 
           {/* Protokolle Routes */}
@@ -354,25 +357,23 @@ function App() {
 
           {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} user={user} />} />}
 
-          {(isBuchhaltung || isLager) && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
+          {/* Weekly Protocol: Only Buchhaltung/Admin (Lager removed) */}
+          {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
           {isBuchhaltung && <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />}
           {isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 
           <Route path="/protokolle/monthly" element={<Navigate to="/protokolle/period" replace />} />
 
           {isBuchhaltung && <Route path="/kontrolle" element={<ControlPage />} />}
-        </Routes>
 
-        {(isAdmin || isBuchhaltung) && (
-          <DebugMenu
-            onReset={handleReset}
-            employees={employees}
-            onUpdateEmployees={handleUpdateEmployees}
-            logs={transactionLogs}
-            onDeleteLog={handleDeleteLog}
-            user={user}
-          />
-        )}
+          {/* System Routes */}
+          {isBuchhaltung && (
+            <>
+              <Route path="/system" element={<SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} />} />
+              <Route path="/system/employees" element={<SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} />} />
+            </>
+          )}
+        </Routes>
       </div>
     </Router>
   );
