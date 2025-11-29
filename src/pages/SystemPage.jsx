@@ -3,6 +3,7 @@ import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLef
 import UserManagement from '../components/UserManagement';
 
 export default function SystemPage({ employees = [], onUpdateEmployees, logs = [], onDeleteLog, onReset, user, inventory = [] }) {
+    console.log("SystemPage Mounted", { employees, logs, user, inventory });
     const [newEmployeeName, setNewEmployeeName] = useState('');
     const [activeTab, setActiveTab] = useState('employees'); // 'employees', 'system', 'logs', 'recipes'
     const [recipes, setRecipes] = useState({});
@@ -140,6 +141,7 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
 
     return (
         <div className="animate-fade-in max-w-4xl mx-auto">
+            <div className="bg-blue-500 text-white p-2 mb-4 rounded text-center text-xs font-mono">DEBUG: SystemPage Loaded</div>
             <h2 className="text-2xl font-bold mb-6 text-slate-200 flex items-center gap-2">
                 <ShieldAlert className="w-6 h-6 text-violet-400" />
                 Systemverwaltung
