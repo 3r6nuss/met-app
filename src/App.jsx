@@ -9,6 +9,8 @@ import ControlPage from './pages/ControlPage';
 import DailyTradeLog from './pages/protocols/DailyTradeLog';
 import DailyEmployeeLog from './pages/protocols/DailyEmployeeLog';
 import WeeklyProtocol from './pages/protocols/WeeklyProtocol';
+import PeriodProtocol from './pages/protocols/PeriodProtocol';
+import StorageProtocol from './pages/protocols/StorageProtocol';
 import DebugMenu from './components/DebugMenu';
 import PriceListModal from './components/PriceListModal';
 import Login from './components/Login';
@@ -320,7 +322,9 @@ function App() {
           <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />
           <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} />} />
           <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} />} />
-          <Route path="/protokolle/monthly" element={<div className="text-center text-slate-500 mt-10">Monatsprotokolle (Coming Soon)</div>} />
+          <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />
+          <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />
+          <Route path="/protokolle/monthly" element={<Navigate to="/protokolle/period" replace />} />
 
           <Route path="/kontrolle" element={<ControlPage />} />
         </Routes>
