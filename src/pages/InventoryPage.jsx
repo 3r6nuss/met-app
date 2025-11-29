@@ -5,11 +5,13 @@ import VerificationSection from '../components/VerificationSection';
 export default function InventoryPage({ inventory, onUpdateStock, onVerify, user }) {
     const [isEditMode, setIsEditMode] = useState(false);
 
+    const isAuthorized = user?.role === 'Buchhaltung' || user?.role === 'Administrator';
+
     return (
         <div className="animate-fade-in pb-24">
             <InventoryList
                 inventory={inventory}
-                isEditMode={isEditMode}
+                isEditMode={isEditMode && isAuthorized}
                 onUpdateStock={onUpdateStock}
             />
 
@@ -21,6 +23,7 @@ export default function InventoryPage({ inventory, onUpdateStock, onVerify, user
                 onToggleEdit={() => setIsEditMode(!isEditMode)}
                 isEditMode={isEditMode}
                 user={user}
+                isAuthorized={isAuthorized}
             />
         </div>
     );

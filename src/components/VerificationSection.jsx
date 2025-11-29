@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle, Edit3, X } from 'lucide-react';
 
-export default function VerificationSection({ onVerify, onToggleEdit, isEditMode, user }) {
+export default function VerificationSection({ onVerify, onToggleEdit, isEditMode, user, isAuthorized }) {
     const [name, setName] = useState(user?.employeeName || user?.username || '');
 
     const handleVerify = () => {
@@ -20,6 +20,8 @@ export default function VerificationSection({ onVerify, onToggleEdit, isEditMode
         }
         onToggleEdit();
     };
+
+    if (!isAuthorized) return null;
 
     return (
         <div className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-slate-900/80 backdrop-blur-xl border-t border-white/10 z-40">

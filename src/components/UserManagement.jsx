@@ -73,7 +73,9 @@ export default function UserManagement({ employees }) {
                                         onChange={(e) => handleUpdate(user.discordId, 'role', e.target.value)}
                                         className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 focus:border-violet-500 outline-none"
                                     >
+                                        <option value="Pending">Pending</option>
                                         <option value="Benutzer">Benutzer</option>
+                                        <option value="Händler">Händler</option>
                                         <option value="Lager">Lager</option>
                                         <option value="Buchhaltung">Buchhaltung</option>
                                         <option value="Administrator">Administrator</option>

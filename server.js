@@ -68,7 +68,7 @@ passport.use(new DiscordStrategy({
                 profile.username, profile.discriminator, profile.avatar, newRole, profile.id);
             return done(null, { ...existingUser, ...profile, role: newRole });
         } else {
-            const role = forcedRole || 'Benutzer';
+            const role = forcedRole || 'Pending';
             await db.run('INSERT INTO users (discordId, username, discriminator, avatar, role) VALUES (?, ?, ?, ?, ?)',
                 profile.id, profile.username, profile.discriminator, profile.avatar, role);
             return done(null, { ...profile, role, employeeName: null });

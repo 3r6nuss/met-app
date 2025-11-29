@@ -223,6 +223,24 @@ function App() {
   const isAdmin = user.role === 'Administrator';
   const isBuchhaltung = user.role === 'Buchhaltung' || isAdmin;
   const isLager = user.role === 'Lager' || isBuchhaltung;
+  const isHaendler = user.role === 'Händler' || isBuchhaltung;
+  const isPending = user.role === 'Pending';
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="glass-panel p-8 max-w-md text-center">
+          <h1 className="text-2xl font-bold text-violet-400 mb-4">Zugriff angefragt</h1>
+          <p className="text-slate-300 mb-6">
+            Deine Rechte wurden angefragt. Bitte melde dich bei der Buchhaltung, falls noch nicht geschehen, um freigeschaltet zu werden.
+          </p>
+          <div className="flex justify-center">
+            <a href="/auth/logout" className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-white transition-colors">Abmelden</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Router>
@@ -299,8 +317,8 @@ function App() {
             </>
           )}
 
-          {/* Trade Routes - Restricted to Buchhaltung/Admin? Or Lager too? Assuming Buchhaltung/Admin for Trade */}
-          {isBuchhaltung && (
+          {/* Trade Routes - Händler/Buchhaltung/Admin */}
+          {(isHaendler || isBuchhaltung) && (
             <>
               <Route path="/buchung/einkauf" element={
                 <ActionPage
@@ -329,10 +347,10 @@ function App() {
 
           {/* Redirect old routes */}
           <Route path="/buchung" element={<Navigate to={isLager ? "/buchung/einlagern" : "/"} replace />} />
-          <Route path="/trade" element={<Navigate to={isBuchhaltung ? "/buchung/einkauf" : "/"} replace />} />
+          <Route path="/trade" element={<Navigate to={(isHaendler || isBuchhaltung) ? "/buchung/einkauf" : "/"} replace />} />
 
           {/* Protokolle Routes */}
-          {isBuchhaltung && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
+          {(isHaendler || isBuchhaltung) && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
 
           <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} user={user} />} />
 
