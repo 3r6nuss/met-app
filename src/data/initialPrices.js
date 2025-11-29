@@ -20,7 +20,7 @@ export const initialPrices = [
     { name: "Aramidfaser", ek: 15, vk: 38, lohn: "15", note: "Kein Ankauf" },
     { name: "S-Pulver", ek: 15, vk: 50, lohn: "15", note: "" },
     { name: "Stahl", ek: 75, vk: 120, lohn: "80", note: "Ankauf bis 45.000" },
-    { name: "E-Schrott", ek: 10, vk: 25, lohn: "10", note: "" },
+    { name: "E-Schrott", ek: 10, vk: 25, lohn: "10", note: "Kein Ankauf" },
     { name: "Kohle", ek: 10, vk: 38, lohn: "10", note: "Nur kleine Mengen" },
     { name: "Tabak Blatt", ek: 15, vk: 40, lohn: "-", note: "Kein Ankauf" },
     { name: "Tabak", ek: 65, vk: 80, lohn: "10", note: "" },

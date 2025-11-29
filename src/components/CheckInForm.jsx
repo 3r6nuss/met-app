@@ -95,7 +95,7 @@ export default function CheckInForm({
             const priceItem = prices.find(p => p.name === selectedItem.name);
             if (priceItem && priceItem.note) {
                 const noteLower = priceItem.note.toLowerCase();
-                if (noteLower.includes("kein einkauf") || noteLower.includes("nur einkauf bis")) {
+                if (noteLower.includes("kein einkauf") || noteLower.includes("nur einkauf bis") || noteLower.includes("kein ankauf") || noteLower.includes("nur ankauf bis")) {
                     setWarningMessage(priceItem.note);
                     setPendingSubmission(submissionData);
                     setShowWarningModal(true);
