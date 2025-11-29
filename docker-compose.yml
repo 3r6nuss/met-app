@@ -1,7 +1,7 @@
 services:
   met-app:
     build:
-      context: ..
+      context: .
       dockerfile: docker/Dockerfile
     container_name: met-app
     ports:
@@ -9,5 +9,5 @@ services:
     volumes:
       - ./data:/app/data
     env_file:
-      - ../.env
+      - .env
     restart: unless-stopped
