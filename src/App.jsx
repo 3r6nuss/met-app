@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { initialInventory } from './data/initialData';
@@ -441,8 +442,16 @@ function App() {
           {/* System Routes */}
           {isBuchhaltung && (
             <>
-              <Route path="/system" element={<SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />} />
-              <Route path="/system/employees" element={<SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />} />
+              <Route path="/system" element={
+                <ErrorBoundary>
+                  <SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />
+                </ErrorBoundary>
+              } />
+              <Route path="/system/employees" element={
+                <ErrorBoundary>
+                  <SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />
+                </ErrorBoundary>
+              } />
             </>
           )}
         </Routes>
