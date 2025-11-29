@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown, Package, Users, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown, Package, Users, ArrowUpDown, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 
 export default function PeriodProtocol({ logs }) {
     const [periodType, setPeriodType] = useState('month'); // 'week', 'month', 'year'
@@ -7,8 +7,8 @@ export default function PeriodProtocol({ logs }) {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     // Filter & Sort States
-    const [filterText, setFilterText] = useState('');
-    const [employeeFilter, setEmployeeFilter] = useState('');
+    const [filterProduct, setFilterProduct] = useState('');
+    const [filterEmployee, setFilterEmployee] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
     // Helper: Get start and end of period
@@ -61,6 +61,20 @@ export default function PeriodProtocol({ logs }) {
         }
         setSortConfig({ key, direction });
     };
+
+    // Extract unique values for dropdowns
+    const { uniqueProducts, uniqueEmployees } = useMemo(() => {
+        const products = new Set();
+        const employees = new Set();
+        logs.forEach(log => {
+            if (log.itemName) products.add(log.itemName);
+            if (log.depositor) employees.add(log.depositor);
+        });
+        return {
+            uniqueProducts: Array.from(products).sort(),
+            uniqueEmployees: Array.from(employees).sort()
+        };
+    }, [logs]);
 
     const processedData = useMemo(() => {
         const { start, end } = getPeriodRange(currentDate, periodType);
@@ -131,19 +145,15 @@ export default function PeriodProtocol({ logs }) {
         });
 
         // Apply Filters
-        if (filterText) {
-            const lowerFilter = filterText.toLowerCase();
+        if (filterProduct) {
             result = result.filter(item => {
-                if (reportMode === 'employee') {
-                    return item.product.toLowerCase().includes(lowerFilter);
-                }
-                return item.name.toLowerCase().includes(lowerFilter);
+                const productName = reportMode === 'employee' ? item.product : item.name;
+                return productName === filterProduct;
             });
         }
 
-        if (reportMode === 'employee' && employeeFilter) {
-            const lowerEmpFilter = employeeFilter.toLowerCase();
-            result = result.filter(item => item.employee.toLowerCase().includes(lowerEmpFilter));
+        if (reportMode === 'employee' && filterEmployee) {
+            result = result.filter(item => item.employee === filterEmployee);
         }
 
         // Apply Sorting
@@ -156,7 +166,6 @@ export default function PeriodProtocol({ logs }) {
                 aValue = a.soldRevenue - a.boughtCost;
                 bValue = b.soldRevenue - b.boughtCost;
             } else if (sortConfig.key === 'name' && reportMode === 'employee') {
-                // For employee mode, 'name' sort might be ambiguous, default to product name
                 aValue = a.product;
                 bValue = b.product;
             }
@@ -174,7 +183,7 @@ export default function PeriodProtocol({ logs }) {
 
         return result;
 
-    }, [logs, currentDate, periodType, reportMode, filterText, employeeFilter, sortConfig]);
+    }, [logs, currentDate, periodType, reportMode, filterProduct, filterEmployee, sortConfig]);
 
     const formatMoney = (amount) => amount.toLocaleString('de-DE', { style: 'currency', currency: 'USD' }).replace('$', '$');
 
@@ -185,14 +194,34 @@ export default function PeriodProtocol({ logs }) {
             : <ArrowDown className="w-3 h-3 text-violet-400 ml-1" />;
     };
 
-    const Th = ({ label, sortKey, align = 'left', color = '' }) => (
+    const Th = ({ label, sortKey, align = 'left', color = '', isFilter = false, filterOptions = [], filterValue, onFilterChange }) => (
         <th
-            className={`px-6 py-4 cursor-pointer hover:bg-slate-800 transition-colors select-none ${align === 'right' ? 'text-right' : 'text-left'} ${color}`}
-            onClick={() => handleSort(sortKey)}
+            className={`px-6 py-4 select-none ${align === 'right' ? 'text-right' : 'text-left'} ${color}`}
         >
-            <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : 'justify-start'}`}>
-                {label}
-                <SortIcon columnKey={sortKey} />
+            <div className={`flex items-center gap-2 ${align === 'right' ? 'justify-end' : 'justify-start'}`}>
+                {isFilter ? (
+                    <div className="relative group">
+                        <select
+                            value={filterValue}
+                            onChange={(e) => onFilterChange(e.target.value)}
+                            className="bg-transparent text-slate-200 font-bold uppercase text-xs focus:outline-none cursor-pointer appearance-none pr-6 hover:text-white transition-colors"
+                        >
+                            <option value="" className="bg-slate-900 text-slate-400">{label} (Alle)</option>
+                            {filterOptions.map(opt => (
+                                <option key={opt} value={opt} className="bg-slate-900 text-slate-200">{opt}</option>
+                            ))}
+                        </select>
+                        <Filter className="w-3 h-3 text-slate-500 absolute right-0 top-0.5 pointer-events-none group-hover:text-violet-400" />
+                    </div>
+                ) : (
+                    <span
+                        className="cursor-pointer hover:text-slate-200 transition-colors flex items-center gap-1"
+                        onClick={() => handleSort(sortKey)}
+                    >
+                        {label}
+                        <SortIcon columnKey={sortKey} />
+                    </span>
+                )}
             </div>
         </th>
     );
@@ -235,67 +264,38 @@ export default function PeriodProtocol({ logs }) {
                     </div>
                 </div>
 
-                {/* Right Group: Mode & Filters */}
-                <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
-                    {/* Search Filters */}
-                    <div className="flex items-center gap-2 w-full md:w-auto">
-                        <div className="relative group w-full md:w-48">
-                            <input
-                                type="text"
-                                value={filterText}
-                                onChange={(e) => setFilterText(e.target.value)}
-                                placeholder="Produkt suchen..."
-                                className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-violet-500 transition-colors"
-                            />
-                            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5 group-focus-within:text-violet-400 transition-colors" />
-                        </div>
-                        {reportMode === 'employee' && (
-                            <div className="relative group w-full md:w-48">
-                                <input
-                                    type="text"
-                                    value={employeeFilter}
-                                    onChange={(e) => setEmployeeFilter(e.target.value)}
-                                    placeholder="Mitarbeiter suchen..."
-                                    className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-amber-500 transition-colors"
-                                />
-                                <Users className="w-4 h-4 text-slate-500 absolute left-3 top-2.5 group-focus-within:text-amber-400 transition-colors" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Mode Selector */}
-                    <div className="flex bg-slate-800 p-1.5 rounded-xl gap-1 overflow-x-auto max-w-full">
-                        <button
-                            onClick={() => setReportMode('production')}
-                            className={`px-3 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${reportMode === 'production'
-                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
-                                }`}
-                        >
-                            <Package className="w-4 h-4" />
-                            Produktion
-                        </button>
-                        <button
-                            onClick={() => setReportMode('trade')}
-                            className={`px-3 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${reportMode === 'trade'
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
-                                }`}
-                        >
-                            <TrendingUp className="w-4 h-4" />
-                            Handel
-                        </button>
-                        <button
-                            onClick={() => setReportMode('employee')}
-                            className={`px-3 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${reportMode === 'employee'
-                                ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/20'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
-                                }`}
-                        >
-                            <Users className="w-4 h-4" />
-                            Mitarbeiter
-                        </button>
-                    </div>
+                {/* Right Group: Mode Selector */}
+                <div className="flex bg-slate-800 p-1.5 rounded-xl gap-1 overflow-x-auto max-w-full">
+                    <button
+                        onClick={() => setReportMode('production')}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${reportMode === 'production'
+                            ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                            }`}
+                    >
+                        <Package className="w-4 h-4" />
+                        Produktion
+                    </button>
+                    <button
+                        onClick={() => setReportMode('trade')}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${reportMode === 'trade'
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                            }`}
+                    >
+                        <TrendingUp className="w-4 h-4" />
+                        Handel
+                    </button>
+                    <button
+                        onClick={() => setReportMode('employee')}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${reportMode === 'employee'
+                            ? 'bg-amber-600 text-white shadow-lg shadow-amber-500/20'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                            }`}
+                    >
+                        <Users className="w-4 h-4" />
+                        Mitarbeiter
+                    </button>
                 </div>
             </div>
 
@@ -307,14 +307,32 @@ export default function PeriodProtocol({ logs }) {
                             <tr>
                                 {reportMode === 'employee' ? (
                                     <>
-                                        <Th label="Mitarbeiter" sortKey="employee" />
-                                        <Th label="Produkt" sortKey="product" />
+                                        <Th
+                                            label="Mitarbeiter"
+                                            isFilter={true}
+                                            filterOptions={uniqueEmployees}
+                                            filterValue={filterEmployee}
+                                            onFilterChange={setFilterEmployee}
+                                        />
+                                        <Th
+                                            label="Produkt"
+                                            isFilter={true}
+                                            filterOptions={uniqueProducts}
+                                            filterValue={filterProduct}
+                                            onFilterChange={setFilterProduct}
+                                        />
                                         <Th label="Produziert" sortKey="producedQty" align="right" />
                                         <Th label="Wert (Lohn)" sortKey="producedValue" align="right" />
                                     </>
                                 ) : (
                                     <>
-                                        <Th label="Produkt" sortKey="name" />
+                                        <Th
+                                            label="Produkt"
+                                            isFilter={true}
+                                            filterOptions={uniqueProducts}
+                                            filterValue={filterProduct}
+                                            onFilterChange={setFilterProduct}
+                                        />
                                         {reportMode === 'production' ? (
                                             <>
                                                 <Th label="Produziert" sortKey="producedQty" align="right" />
