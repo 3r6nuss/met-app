@@ -251,7 +251,7 @@ export default function CheckInForm({
 
                                 <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-red-500/30">
                                     <img
-                                        src="https://media1.tenor.com/m/tZ2X8G1_FSAAAAAC/halt-stop-andreas.gif"
+                                        src="https://media1.tenor.com/m/lmMiZ3g_pNsAAAAC/halt-stop.gif"
                                         alt="Halt Stop"
                                         className="w-full h-full object-cover"
                                     />
