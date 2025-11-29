@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown, Package, Users } from 'lucide-react';
 
 export default function PeriodProtocol({ logs }) {
     const [periodType, setPeriodType] = useState('month'); // 'week', 'month', 'year'
-    const [reportMode, setReportMode] = useState('production'); // 'production', 'trade'
+    const [reportMode, setReportMode] = useState('production'); // 'production', 'trade', 'employee'
     const [currentDate, setCurrentDate] = useState(new Date());
 
     // Helper: Get start and end of period
@@ -61,31 +61,31 @@ export default function PeriodProtocol({ logs }) {
         const stats = {};
 
         periodLogs.forEach(log => {
-            if (!stats[log.itemName]) {
-                stats[log.itemName] = {
-                    name: log.itemName,
-                    producedQty: 0,
-                    producedValue: 0,
-                    boughtQty: 0,
-                    boughtCost: 0,
-                    soldQty: 0,
-                    soldRevenue: 0
-                };
-            }
-
             const value = (log.price || 0) * (log.quantity || 0);
 
             if (reportMode === 'production') {
-                // Production: Only count 'in' logs that are NOT trade (so internal production/collection)
-                // OR count all 'in' logs? User said "wieviel man wovon produziert / gesammelt hat"
-                // Usually 'internal' category is production/collection. 'trade' is buying.
                 if (log.type === 'in' && log.category === 'internal') {
+                    if (!stats[log.itemName]) {
+                        stats[log.itemName] = {
+                            name: log.itemName,
+                            producedQty: 0,
+                            producedValue: 0
+                        };
+                    }
                     stats[log.itemName].producedQty += log.quantity;
                     stats[log.itemName].producedValue += value;
                 }
-            } else {
-                // Trade: Count 'trade' category logs
+            } else if (reportMode === 'trade') {
                 if (log.category === 'trade') {
+                    if (!stats[log.itemName]) {
+                        stats[log.itemName] = {
+                            name: log.itemName,
+                            boughtQty: 0,
+                            boughtCost: 0,
+                            soldQty: 0,
+                            soldRevenue: 0
+                        };
+                    }
                     if (log.type === 'in') { // Buying
                         stats[log.itemName].boughtQty += log.quantity;
                         stats[log.itemName].boughtCost += value;
@@ -94,14 +94,34 @@ export default function PeriodProtocol({ logs }) {
                         stats[log.itemName].soldRevenue += value;
                     }
                 }
+            } else if (reportMode === 'employee') {
+                if (log.type === 'in' && log.category === 'internal') {
+                    const key = `${log.depositor}-${log.itemName}`;
+                    if (!stats[key]) {
+                        stats[key] = {
+                            employee: log.depositor,
+                            product: log.itemName,
+                            producedQty: 0,
+                            producedValue: 0
+                        };
+                    }
+                    stats[key].producedQty += log.quantity;
+                    stats[key].producedValue += value;
+                }
             }
         });
 
         // Convert to array and filter out empty entries
         return Object.values(stats).filter(item => {
             if (reportMode === 'production') return item.producedQty > 0;
+            if (reportMode === 'employee') return item.producedQty > 0;
             return item.boughtQty > 0 || item.soldQty > 0;
-        }).sort((a, b) => a.name.localeCompare(b.name));
+        }).sort((a, b) => {
+            if (reportMode === 'employee') {
+                return a.employee.localeCompare(b.employee) || a.product.localeCompare(b.product);
+            }
+            return a.name.localeCompare(b.name);
+        });
 
     }, [logs, currentDate, periodType, reportMode]);
 
@@ -118,8 +138,8 @@ export default function PeriodProtocol({ logs }) {
                             key={type}
                             onClick={() => setPeriodType(type)}
                             className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${periodType === type
-                                    ? 'bg-violet-600 text-white shadow-lg'
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                                ? 'bg-violet-600 text-white shadow-lg'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
                                 }`}
                         >
                             {type === 'week' ? 'Woche' : type === 'month' ? 'Monat' : 'Jahr'}
@@ -146,8 +166,8 @@ export default function PeriodProtocol({ logs }) {
                     <button
                         onClick={() => setReportMode('production')}
                         className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${reportMode === 'production'
-                                ? 'bg-emerald-600 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                            ? 'bg-emerald-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
                             }`}
                     >
                         <Package className="w-4 h-4" />
@@ -156,12 +176,22 @@ export default function PeriodProtocol({ logs }) {
                     <button
                         onClick={() => setReportMode('trade')}
                         className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${reportMode === 'trade'
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                            ? 'bg-blue-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
                             }`}
                     >
                         <TrendingUp className="w-4 h-4" />
                         Handel
+                    </button>
+                    <button
+                        onClick={() => setReportMode('employee')}
+                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${reportMode === 'employee'
+                            ? 'bg-amber-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                            }`}
+                    >
+                        <Users className="w-4 h-4" />
+                        Mitarbeiter
                     </button>
                 </div>
             </div>
@@ -172,19 +202,30 @@ export default function PeriodProtocol({ logs }) {
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs uppercase bg-slate-900 text-slate-400 font-bold">
                             <tr>
-                                <th className="px-6 py-4">Produkt</th>
-                                {reportMode === 'production' ? (
+                                {reportMode === 'employee' ? (
                                     <>
+                                        <th className="px-6 py-4">Mitarbeiter</th>
+                                        <th className="px-6 py-4">Produkt</th>
                                         <th className="px-6 py-4 text-right">Produziert / Gesammelt</th>
                                         <th className="px-6 py-4 text-right">Wert (Lohn)</th>
                                     </>
                                 ) : (
                                     <>
-                                        <th className="px-6 py-4 text-right text-red-400">Eingekauft (Menge)</th>
-                                        <th className="px-6 py-4 text-right text-red-400">Ausgaben</th>
-                                        <th className="px-6 py-4 text-right text-emerald-400">Verkauft (Menge)</th>
-                                        <th className="px-6 py-4 text-right text-emerald-400">Einnahmen</th>
-                                        <th className="px-6 py-4 text-right">Gewinn / Verlust</th>
+                                        <th className="px-6 py-4">Produkt</th>
+                                        {reportMode === 'production' ? (
+                                            <>
+                                                <th className="px-6 py-4 text-right">Produziert / Gesammelt</th>
+                                                <th className="px-6 py-4 text-right">Wert (Lohn)</th>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <th className="px-6 py-4 text-right text-red-400">Eingekauft (Menge)</th>
+                                                <th className="px-6 py-4 text-right text-red-400">Ausgaben</th>
+                                                <th className="px-6 py-4 text-right text-emerald-400">Verkauft (Menge)</th>
+                                                <th className="px-6 py-4 text-right text-emerald-400">Einnahmen</th>
+                                                <th className="px-6 py-4 text-right">Gewinn / Verlust</th>
+                                            </>
+                                        )}
                                     </>
                                 )}
                             </tr>
@@ -192,22 +233,32 @@ export default function PeriodProtocol({ logs }) {
                         <tbody className="divide-y divide-slate-700">
                             {processedData.map((item, idx) => (
                                 <tr key={idx} className="hover:bg-slate-700/30 transition-colors">
-                                    <td className="px-6 py-4 font-medium text-slate-200">{item.name}</td>
-
-                                    {reportMode === 'production' ? (
+                                    {reportMode === 'employee' ? (
                                         <>
+                                            <td className="px-6 py-4 font-medium text-amber-400">{item.employee}</td>
+                                            <td className="px-6 py-4 text-slate-200">{item.product}</td>
                                             <td className="px-6 py-4 text-right text-slate-300">{item.producedQty}</td>
                                             <td className="px-6 py-4 text-right font-bold text-emerald-400">{formatMoney(item.producedValue)}</td>
                                         </>
                                     ) : (
                                         <>
-                                            <td className="px-6 py-4 text-right text-slate-300">{item.boughtQty}</td>
-                                            <td className="px-6 py-4 text-right text-red-400">{formatMoney(item.boughtCost)}</td>
-                                            <td className="px-6 py-4 text-right text-slate-300">{item.soldQty}</td>
-                                            <td className="px-6 py-4 text-right text-emerald-400">{formatMoney(item.soldRevenue)}</td>
-                                            <td className={`px-6 py-4 text-right font-bold ${item.soldRevenue - item.boughtCost >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                {formatMoney(item.soldRevenue - item.boughtCost)}
-                                            </td>
+                                            <td className="px-6 py-4 font-medium text-slate-200">{item.name}</td>
+                                            {reportMode === 'production' ? (
+                                                <>
+                                                    <td className="px-6 py-4 text-right text-slate-300">{item.producedQty}</td>
+                                                    <td className="px-6 py-4 text-right font-bold text-emerald-400">{formatMoney(item.producedValue)}</td>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <td className="px-6 py-4 text-right text-slate-300">{item.boughtQty}</td>
+                                                    <td className="px-6 py-4 text-right text-red-400">{formatMoney(item.boughtCost)}</td>
+                                                    <td className="px-6 py-4 text-right text-slate-300">{item.soldQty}</td>
+                                                    <td className="px-6 py-4 text-right text-emerald-400">{formatMoney(item.soldRevenue)}</td>
+                                                    <td className={`px-6 py-4 text-right font-bold ${item.soldRevenue - item.boughtCost >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                        {formatMoney(item.soldRevenue - item.boughtCost)}
+                                                    </td>
+                                                </>
+                                            )}
                                         </>
                                     )}
                                 </tr>
@@ -215,7 +266,7 @@ export default function PeriodProtocol({ logs }) {
 
                             {processedData.length === 0 && (
                                 <tr>
-                                    <td colSpan={reportMode === 'production' ? 3 : 6} className="px-6 py-12 text-center text-slate-500 italic">
+                                    <td colSpan={reportMode === 'trade' ? 6 : (reportMode === 'employee' ? 4 : 3)} className="px-6 py-12 text-center text-slate-500 italic">
                                         Keine Daten für diesen Zeitraum gefunden.
                                     </td>
                                 </tr>
@@ -226,8 +277,8 @@ export default function PeriodProtocol({ logs }) {
                         {processedData.length > 0 && (
                             <tfoot className="bg-slate-900/80 font-bold text-slate-200 border-t-2 border-slate-600">
                                 <tr>
-                                    <td className="px-6 py-4 uppercase tracking-wider text-xs text-slate-400">Gesamt</td>
-                                    {reportMode === 'production' ? (
+                                    <td className="px-6 py-4 uppercase tracking-wider text-xs text-slate-400" colSpan={reportMode === 'employee' ? 2 : 1}>Gesamt</td>
+                                    {reportMode === 'production' || reportMode === 'employee' ? (
                                         <>
                                             <td className="px-6 py-4 text-right">{processedData.reduce((a, b) => a + b.producedQty, 0)}</td>
                                             <td className="px-6 py-4 text-right text-emerald-400">
