@@ -28,49 +28,50 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
         { label: 'Mittwoch', offset: 4 },
         { label: 'Donnerstag', offset: 5 },
         { label: 'Freitag', offset: 6 },
+    ];
 
     // Group logs by Employee -> Day
     const groupedData = useMemo(() => {
-            const groups = {};
+        const groups = {};
 
-            logs.filter(log => log.category !== 'trade').forEach(log => {
-                // Filter by user permissions
-                const isPrivileged = ['Administrator', 'Buchhaltung', 'Lager'].includes(user?.role);
-                if (!isPrivileged && log.depositor !== user.employeeName) {
-                    return;
-                }
-
-                const date = new Date(log.timestamp);
-                // Native: 0=Sun, 1=Mon, ... 5=Fri, 6=Sat.
-                // We want 0=Sat, 1=Sun, ... 6=Fri.
-                const satIndex = (date.getDay() + 1) % 7;
-
-                if (!groups[log.depositor]) {
-                    groups[log.depositor] = {
-                        name: log.depositor,
-                        days: Array(7).fill().map(() => ({ logs: [], total: 0, confirmed: true })),
-                        total: 0
-                    };
-                }
-
-                const dayGroup = groups[log.depositor].days[satIndex];
-                dayGroup.logs.push(log);
-                const value = (log.price || 0) * (log.quantity || 0);
-                dayGroup.total += value;
-
-                if (!log.confirmed) dayGroup.confirmed = false;
-            });
-
-            const result = Object.values(groups);
-            if (user?.employeeName) {
-                result.sort((a, b) => {
-                    if (a.name === user.employeeName) return -1;
-                    if (b.name === user.employeeName) return 1;
-                    return 0;
-                });
+        logs.filter(log => log.category !== 'trade').forEach(log => {
+            // Filter by user permissions
+            const isPrivileged = ['Administrator', 'Buchhaltung', 'Lager'].includes(user?.role);
+            if (!isPrivileged && log.depositor !== user.employeeName) {
+                return;
             }
-            return result;
-        }, [logs, user]);
+
+            const date = new Date(log.timestamp);
+            // Native: 0=Sun, 1=Mon, ... 5=Fri, 6=Sat.
+            // We want 0=Sat, 1=Sun, ... 6=Fri.
+            const satIndex = (date.getDay() + 1) % 7;
+
+            if (!groups[log.depositor]) {
+                groups[log.depositor] = {
+                    name: log.depositor,
+                    days: Array(7).fill().map(() => ({ logs: [], total: 0, confirmed: true })),
+                    total: 0
+                };
+            }
+
+            const dayGroup = groups[log.depositor].days[satIndex];
+            dayGroup.logs.push(log);
+            const value = (log.price || 0) * (log.quantity || 0);
+            dayGroup.total += value;
+
+            if (!log.confirmed) dayGroup.confirmed = false;
+        });
+
+        const result = Object.values(groups);
+        if (user?.employeeName) {
+            result.sort((a, b) => {
+                if (a.name === user.employeeName) return -1;
+                if (b.name === user.employeeName) return 1;
+                return 0;
+            });
+        }
+        return result;
+    }, [logs, user]);
 
     const toggleDayConfirmation = (employeeName, dayIndex) => {
         const updatedLogs = logs.map(log => {
