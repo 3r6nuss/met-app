@@ -28,56 +28,49 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
         { label: 'Mittwoch', offset: 4 },
         { label: 'Donnerstag', offset: 5 },
         { label: 'Freitag', offset: 6 },
-    ];
 
     // Group logs by Employee -> Day
     const groupedData = useMemo(() => {
-        const groups = {};
+            const groups = {};
 
-        logs.filter(log => log.category !== 'trade').forEach(log => {
-            // Filter by user permissions
-            if (user?.role === 'Benutzer' && log.depositor !== user.employeeName) {
-                return;
-            }
-            const date = new Date(log.timestamp);
-            const dateKey = date.toLocaleDateString();
-            const dayIndex = (date.getDay() + 1) % 7; // Shift so 0=Sat, 6=Fri? No.
-            // Native: 0=Sun, 1=Mon, ... 5=Fri, 6=Sat.
-            // We want 0=Sat, 1=Sun, ... 6=Fri.
-            const satIndex = (date.getDay() + 1) % 7;
+            logs.filter(log => log.category !== 'trade').forEach(log => {
+                // Filter by user permissions
+                const isPrivileged = ['Administrator', 'Buchhaltung', 'Lager'].includes(user?.role);
+                if (!isPrivileged && log.depositor !== user.employeeName) {
+                    return;
+                }
 
-            if (!groups[log.depositor]) {
-                groups[log.depositor] = {
-                    name: log.depositor,
-                    days: Array(7).fill().map(() => ({ logs: [], total: 0, confirmed: true })), // Default confirmed true if all logs confirmed?
-                    total: 0
-                };
-            }
+                const date = new Date(log.timestamp);
+                // Native: 0=Sun, 1=Mon, ... 5=Fri, 6=Sat.
+                // We want 0=Sat, 1=Sun, ... 6=Fri.
+                const satIndex = (date.getDay() + 1) % 7;
 
-            const dayGroup = groups[log.depositor].days[satIndex];
-            dayGroup.logs.push(log);
-            // Calculate earnings (only for check-ins/sales that generate money?)
-            // Or is it "Lohn" based on what they did? 
-            // Assuming "Price" is what they get paid for "Einlagern"?
-            // Let's assume Price * Quantity is the value.
-            const value = (log.price || 0) * (log.quantity || 0);
-            dayGroup.total += value;
+                if (!groups[log.depositor]) {
+                    groups[log.depositor] = {
+                        name: log.depositor,
+                        days: Array(7).fill().map(() => ({ logs: [], total: 0, confirmed: true })),
+                        total: 0
+                    };
+                }
 
-            // If ANY log in the day is NOT confirmed, the day is not confirmed.
-            // But we need to store confirmation on the log itself.
-            if (!log.confirmed) dayGroup.confirmed = false;
-        });
+                const dayGroup = groups[log.depositor].days[satIndex];
+                dayGroup.logs.push(log);
+                const value = (log.price || 0) * (log.quantity || 0);
+                dayGroup.total += value;
 
-        const result = Object.values(groups);
-        if (user?.employeeName) {
-            result.sort((a, b) => {
-                if (a.name === user.employeeName) return -1;
-                if (b.name === user.employeeName) return 1;
-                return 0;
+                if (!log.confirmed) dayGroup.confirmed = false;
             });
-        }
-        return result;
-    }, [logs]);
+
+            const result = Object.values(groups);
+            if (user?.employeeName) {
+                result.sort((a, b) => {
+                    if (a.name === user.employeeName) return -1;
+                    if (b.name === user.employeeName) return 1;
+                    return 0;
+                });
+            }
+            return result;
+        }, [logs, user]);
 
     const toggleDayConfirmation = (employeeName, dayIndex) => {
         const updatedLogs = logs.map(log => {
