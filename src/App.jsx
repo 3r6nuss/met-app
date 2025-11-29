@@ -11,7 +11,7 @@ import DailyEmployeeLog from './pages/protocols/DailyEmployeeLog';
 import WeeklyProtocol from './pages/protocols/WeeklyProtocol';
 import PeriodProtocol from './pages/protocols/PeriodProtocol';
 import StorageProtocol from './pages/protocols/StorageProtocol';
-import DebugMenu from './components/DebugMenu';
+import SystemPage from './pages/SystemPage';
 import PriceListModal from './components/PriceListModal';
 import Login from './components/Login';
 import { Activity } from 'lucide-react';
