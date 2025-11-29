@@ -1,11 +1,33 @@
 import React, { useState } from 'react';
-import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert } from 'lucide-react';
+import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X } from 'lucide-react';
 
 export default function SystemPage({ employees, onUpdateEmployees, logs, onDeleteLog, onReset, user }) {
     const [newEmployeeName, setNewEmployeeName] = useState('');
     const [activeTab, setActiveTab] = useState('employees'); // 'employees', 'system', 'logs'
 
     const isAdmin = user?.role === 'Administrator';
+
+    const [editingIndex, setEditingIndex] = useState(null);
+    const [editName, setEditName] = useState('');
+
+    const startEdit = (index, currentName) => {
+        setEditingIndex(index);
+        setEditName(currentName);
+    };
+
+    const saveEdit = (index) => {
+        if (editName.trim()) {
+            const updatedEmployees = [...employees];
+            updatedEmployees[index] = editName.trim();
+            onUpdateEmployees(updatedEmployees);
+            setEditingIndex(null);
+        }
+    };
+
+    const cancelEdit = () => {
+        setEditingIndex(null);
+        setEditName('');
+    };
 
     const handleAddEmployee = () => {
         if (newEmployeeName.trim()) {
@@ -94,17 +116,44 @@ export default function SystemPage({ employees, onUpdateEmployees, logs, onDelet
                             </button>
                         </div>
 
+
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {employees.map((emp, idx) => (
                                 <div key={idx} className="flex justify-between items-center bg-slate-800/50 px-4 py-3 rounded-lg border border-slate-700/50">
-                                    <span className="text-slate-300">{emp}</span>
-                                    <button
-                                        onClick={() => handleDeleteEmployee(idx)}
-                                        className="text-slate-500 hover:text-red-400 p-2 transition-colors"
-                                        title="Löschen"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    {editingIndex === idx ? (
+                                        <div className="flex gap-2 flex-1 mr-2">
+                                            <input
+                                                type="text"
+                                                value={editName}
+                                                onChange={(e) => setEditName(e.target.value)}
+                                                className="flex-1 bg-slate-950 border border-slate-600 rounded px-2 py-1 text-sm text-white"
+                                                autoFocus
+                                            />
+                                            <button onClick={() => saveEdit(idx)} className="text-emerald-400 hover:text-emerald-300"><Save className="w-4 h-4" /></button>
+                                            <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-300"><X className="w-4 h-4" /></button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <span className="text-slate-300">{emp}</span>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => startEdit(idx, emp)}
+                                                    className="text-slate-500 hover:text-violet-400 p-2 transition-colors"
+                                                    title="Umbenennen"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteEmployee(idx)}
+                                                    className="text-slate-500 hover:text-red-400 p-2 transition-colors"
+                                                    title="Löschen"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             ))}
                             {employees.length === 0 && (

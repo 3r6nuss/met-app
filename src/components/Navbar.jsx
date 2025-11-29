@@ -105,8 +105,7 @@ export default function Navbar({ onOpenPriceList, user }) {
                             </button>
                             <NavLink to="/kontrolle" className={dropdownItemClass}>Kontrolle</NavLink>
                             <div className="h-px bg-slate-800 my-1"></div>
-                            <NavLink to="/system/employees" className={dropdownItemClass}>Mitarbeiter</NavLink>
-                            {isAdmin && <NavLink to="/system" className={dropdownItemClass}>System & Backup</NavLink>}
+                            <NavLink to="/system" className={dropdownItemClass}>System</NavLink>
                         </div>
                     </div>
                 )}
