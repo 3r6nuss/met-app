@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus } from 'lucide-react';
 import UserManagement from '../components/UserManagement';
 
-export default function SystemPage({ employees, onUpdateEmployees, logs, onDeleteLog, onReset, user, inventory = [] }) {
+export default function SystemPage({ employees = [], onUpdateEmployees, logs = [], onDeleteLog, onReset, user, inventory = [] }) {
     const [newEmployeeName, setNewEmployeeName] = useState('');
     const [activeTab, setActiveTab] = useState('employees'); // 'employees', 'system', 'logs', 'recipes'
     const [recipes, setRecipes] = useState({});
@@ -209,7 +209,7 @@ export default function SystemPage({ employees, onUpdateEmployees, logs, onDelet
 
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {employees.map((emp, idx) => (
+                            {Array.isArray(employees) && employees.map((emp, idx) => (
                                 <div key={idx} className="flex justify-between items-center bg-slate-800/50 px-4 py-3 rounded-lg border border-slate-700/50">
                                     {editingIndex === idx ? (
                                         <div className="flex gap-2 flex-1 mr-2">
@@ -246,7 +246,7 @@ export default function SystemPage({ employees, onUpdateEmployees, logs, onDelet
                                     )}
                                 </div>
                             ))}
-                            {employees.length === 0 && (
+                            {(!employees || employees.length === 0) && (
                                 <div className="text-slate-500 italic col-span-2 text-center py-4">Keine Mitarbeiter angelegt.</div>
                             )}
                         </div>

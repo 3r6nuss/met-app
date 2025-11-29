@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Trash2 } from 'lucide-react';
 
-export default function UserManagement({ employees }) {
+export default function UserManagement({ employees = [] }) {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -113,7 +113,7 @@ export default function UserManagement({ employees }) {
                                         className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 w-full focus:border-violet-500 outline-none"
                                     >
                                         <option value="">-- Keine Verknüpfung --</option>
-                                        {employees.map(emp => (
+                                        {Array.isArray(employees) && employees.map(emp => (
                                             <option key={emp} value={emp}>{emp}</option>
                                         ))}
                                     </select>
