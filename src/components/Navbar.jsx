@@ -87,7 +87,7 @@ export default function Navbar({ onOpenPriceList, user }) {
                         <span className="text-sm font-medium text-slate-300 hidden xl:block">{user.username}</span>
                     </div>
                     <a
-                        href="https://met.3r6nuss.de/auth/logout"
+                        href="/auth/logout"
                         className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-lg transition-colors"
                         title="Abmelden"
                     >
