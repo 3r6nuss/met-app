@@ -42,7 +42,7 @@ passport.deserializeUser(async (id, done) => {
     try {
         const db = await getDb();
         const user = await db.get('SELECT * FROM users WHERE discordId = ?', id);
-        done(null, user);
+        done(null, user || null);
     } catch (err) {
         done(err, null);
     }

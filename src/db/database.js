@@ -75,5 +75,17 @@ export async function getDb() {
         );
     `);
 
+    // Migration: Add isHaendler column if it doesn't exist
+    try {
+        const tableInfo = await dbInstance.all("PRAGMA table_info(users)");
+        const hasIsHaendler = tableInfo.some(col => col.name === 'isHaendler');
+        if (!hasIsHaendler) {
+            await dbInstance.run("ALTER TABLE users ADD COLUMN isHaendler BOOLEAN DEFAULT 0");
+            console.log("Migrated database: Added isHaendler column to users table.");
+        }
+    } catch (error) {
+        console.error("Migration error:", error);
+    }
+
     return dbInstance;
 }
