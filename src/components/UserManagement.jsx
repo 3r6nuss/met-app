@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Trash2 } from 'lucide-react';
 
 export default function UserManagement({ employees }) {
     const [users, setUsers] = useState([]);
@@ -34,6 +34,19 @@ export default function UserManagement({ employees }) {
             .then(res => res.json())
             .then(() => alert('Gespeichert!'))
             .catch(err => console.error(err));
+    };
+
+    const deleteUser = (discordId) => {
+        if (window.confirm('Möchtest du diesen Benutzer wirklich löschen? Er muss sich neu anmelden, um wieder Zugriff zu erhalten.')) {
+            fetch(`/api/users/${discordId}`, {
+                method: 'DELETE'
+            })
+                .then(res => res.json())
+                .then(() => {
+                    setUsers(users.filter(u => u.discordId !== discordId));
+                })
+                .catch(err => console.error(err));
+        }
     };
 
     if (loading) return <div className="text-violet-400 p-4">Lade Benutzer...</div>;
@@ -96,10 +109,17 @@ export default function UserManagement({ employees }) {
                                 <td className="p-3">
                                     <button
                                         onClick={() => saveUser(user)}
-                                        className="p-2 bg-violet-600 hover:bg-violet-700 text-white rounded transition-colors"
+                                        className="p-2 bg-violet-600 hover:bg-violet-700 text-white rounded transition-colors mr-2"
                                         title="Speichern"
                                     >
                                         <Save size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => deleteUser(user.discordId)}
+                                        className="p-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                                        title="Benutzer löschen"
+                                    >
+                                        <Trash2 size={16} />
                                     </button>
                                 </td>
                             </tr>

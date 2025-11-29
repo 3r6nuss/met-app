@@ -68,7 +68,15 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
             if (!log.confirmed) dayGroup.confirmed = false;
         });
 
-        return Object.values(groups);
+        const result = Object.values(groups);
+        if (user?.employeeName) {
+            result.sort((a, b) => {
+                if (a.name === user.employeeName) return -1;
+                if (b.name === user.employeeName) return 1;
+                return 0;
+            });
+        }
+        return result;
     }, [logs]);
 
     const toggleDayConfirmation = (employeeName, dayIndex) => {

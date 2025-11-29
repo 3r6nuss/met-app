@@ -143,6 +143,23 @@ app.put('/api/users/:discordId', async (req, res) => {
     }
 });
 
+// DELETE User
+app.delete('/api/users/:discordId', async (req, res) => {
+    if (req.isAuthenticated() && req.user.role === 'Administrator') {
+        try {
+            const { discordId } = req.params;
+            const db = await getDb();
+            await db.run('DELETE FROM users WHERE discordId = ?', discordId);
+            res.json({ success: true });
+        } catch (error) {
+            console.error("Error deleting user:", error);
+            res.status(500).json({ error: "Database error" });
+        }
+    } else {
+        res.status(403).json({ error: 'Unauthorized' });
+    }
+});
+
 // Logging Middleware
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);

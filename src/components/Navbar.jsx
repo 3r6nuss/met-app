@@ -29,8 +29,8 @@ export default function Navbar({ onOpenPriceList, user }) {
                     Lager
                 </NavLink>
 
-                {/* Buchung Dropdown - Lager/Buchhaltung/Admin */}
-                {isLager && (
+                {/* Buchung Dropdown - Lager/Buchhaltung/Admin/Händler */}
+                {(isLager || isHaendler) && (
                     <div className="relative group flex-1">
                         <button className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
                             <ArrowRightLeft className="w-5 h-5" />
