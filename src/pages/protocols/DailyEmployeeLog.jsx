@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight, CheckSquare, Square } from 'lucide-react';
 
-export default function DailyEmployeeLog({ logs, onUpdateLogs }) {
+export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
     // 1. Determine "Current Week" (Sat-Fri)
     // For simplicity, we'll group ALL logs by week, but initially show the latest week.
     // A "week" starts on Saturday and ends on Friday.
@@ -35,6 +35,10 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs }) {
         const groups = {};
 
         logs.filter(log => log.category !== 'trade').forEach(log => {
+            // Filter by user permissions
+            if (user?.role === 'Benutzer' && log.depositor !== user.employeeName) {
+                return;
+            }
             const date = new Date(log.timestamp);
             const dateKey = date.toLocaleDateString();
             const dayIndex = (date.getDay() + 1) % 7; // Shift so 0=Sat, 6=Fri? No.

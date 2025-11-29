@@ -15,6 +15,7 @@ import DebugMenu from './components/DebugMenu';
 import PriceListModal from './components/PriceListModal';
 import Login from './components/Login';
 import { Activity } from 'lucide-react';
+import UserManagement from './components/UserManagement';
 
 const API_URL = '/api';
 
@@ -213,15 +214,15 @@ function App() {
 
 
 
-  // ... (imports)
-
-  // ... (inside App component)
-
   if (loading) return <div className="flex items-center justify-center min-h-screen text-violet-400">Lade Daten...</div>;
 
   if (!user) {
     return <Login />;
   }
+
+  const isAdmin = user.role === 'Administrator';
+  const isBuchhaltung = user.role === 'Buchhaltung' || isAdmin;
+  const isLager = user.role === 'Lager' || isBuchhaltung;
 
   return (
     <Router>
@@ -251,6 +252,8 @@ function App() {
 
         {showPriceList && <PriceListModal onClose={() => setShowPriceList(false)} />}
 
+        {isAdmin && <UserManagement employees={employees} />}
+
         {logs.length > 0 && (
           <div className="mb-6 flex gap-4 overflow-x-auto pb-2">
             {logs.map(log => (
@@ -264,78 +267,94 @@ function App() {
         )}
 
         <Routes>
-          <Route path="/" element={<InventoryPage inventory={inventory} onUpdateStock={handleUpdateStock} onVerify={handleVerify} />} />
+          <Route path="/" element={<InventoryPage inventory={inventory} onUpdateStock={handleUpdateStock} onVerify={handleVerify} user={user} />} />
 
-          {/* Buchung Routes */}
-          <Route path="/buchung/einlagern" element={
-            <ActionPage
-              inventory={inventory}
-              employees={employees}
-              prices={prices}
-              onAction={(id, qty, dep, price) => handleCheckIn(id, qty, dep, price, 'in', 'internal')}
-              type="in"
-              title="Einlagern"
-              label="Mitarbeiter"
-              showPrice={true}
-            />
-          } />
-          <Route path="/buchung/auslagern" element={
-            <ActionPage
-              inventory={inventory}
-              employees={employees}
-              prices={prices}
-              onAction={(id, qty, dep, price) => handleCheckOut(id, qty, dep, price, 'out', 'internal')}
-              type="out"
-              title="Auslagern"
-              label="Mitarbeiter"
-              showPrice={false}
-            />
-          } />
-          <Route path="/buchung/einkauf" element={
-            <ActionPage
-              inventory={inventory}
-              employees={employees}
-              prices={prices}
-              onAction={(id, qty, dep, price) => handleCheckIn(id, qty, dep, price, 'in', 'trade')}
-              type="in"
-              title="Einkauf (Ankauf)"
-              label="Verkäufer"
-            />
-          } />
-          <Route path="/buchung/verkauf" element={
-            <ActionPage
-              inventory={inventory}
-              employees={employees}
-              prices={prices}
-              onAction={(id, qty, dep, price) => handleCheckOut(id, qty, dep, price, 'out', 'trade')}
-              type="out"
-              title="Verkauf (Abverkauf)"
-              label="Käufer"
-            />
-          } />
+          {/* Buchung Routes - Restricted to Lager/Buchhaltung/Admin */}
+          {isLager && (
+            <>
+              <Route path="/buchung/einlagern" element={
+                <ActionPage
+                  inventory={inventory}
+                  employees={employees}
+                  prices={prices}
+                  onAction={(id, qty, dep, price) => handleCheckIn(id, qty, dep, price, 'in', 'internal')}
+                  type="in"
+                  title="Einlagern"
+                  label="Mitarbeiter"
+                  showPrice={true}
+                />
+              } />
+              <Route path="/buchung/auslagern" element={
+                <ActionPage
+                  inventory={inventory}
+                  employees={employees}
+                  prices={prices}
+                  onAction={(id, qty, dep, price) => handleCheckOut(id, qty, dep, price, 'out', 'internal')}
+                  type="out"
+                  title="Auslagern"
+                  label="Mitarbeiter"
+                  showPrice={false}
+                />
+              } />
+            </>
+          )}
+
+          {/* Trade Routes - Restricted to Buchhaltung/Admin? Or Lager too? Assuming Buchhaltung/Admin for Trade */}
+          {isBuchhaltung && (
+            <>
+              <Route path="/buchung/einkauf" element={
+                <ActionPage
+                  inventory={inventory}
+                  employees={employees}
+                  prices={prices}
+                  onAction={(id, qty, dep, price) => handleCheckIn(id, qty, dep, price, 'in', 'trade')}
+                  type="in"
+                  title="Einkauf (Ankauf)"
+                  label="Verkäufer"
+                />
+              } />
+              <Route path="/buchung/verkauf" element={
+                <ActionPage
+                  inventory={inventory}
+                  employees={employees}
+                  prices={prices}
+                  onAction={(id, qty, dep, price) => handleCheckOut(id, qty, dep, price, 'out', 'trade')}
+                  type="out"
+                  title="Verkauf (Abverkauf)"
+                  label="Käufer"
+                />
+              } />
+            </>
+          )}
 
           {/* Redirect old routes */}
-          <Route path="/buchung" element={<Navigate to="/buchung/einlagern" replace />} />
-          <Route path="/trade" element={<Navigate to="/buchung/einkauf" replace />} />
+          <Route path="/buchung" element={<Navigate to={isLager ? "/buchung/einlagern" : "/"} replace />} />
+          <Route path="/trade" element={<Navigate to={isBuchhaltung ? "/buchung/einkauf" : "/"} replace />} />
 
           {/* Protokolle Routes */}
-          <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />
-          <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} />} />
-          <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} />} />
-          <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />
-          <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />
+          {isBuchhaltung && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
+
+          <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} user={user} />} />
+
+          {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} />} />}
+          {isBuchhaltung && <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />}
+          {isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
+
           <Route path="/protokolle/monthly" element={<Navigate to="/protokolle/period" replace />} />
 
-          <Route path="/kontrolle" element={<ControlPage />} />
+          {isBuchhaltung && <Route path="/kontrolle" element={<ControlPage />} />}
         </Routes>
 
-        <DebugMenu
-          onReset={handleReset}
-          employees={employees}
-          onUpdateEmployees={handleUpdateEmployees}
-          logs={transactionLogs}
-          onDeleteLog={handleDeleteLog}
-        />
+        {(isAdmin || isLager) && (
+          <DebugMenu
+            onReset={handleReset}
+            employees={employees}
+            onUpdateEmployees={handleUpdateEmployees}
+            logs={transactionLogs}
+            onDeleteLog={handleDeleteLog}
+            user={user}
+          />
+        )}
       </div>
     </Router>
   );

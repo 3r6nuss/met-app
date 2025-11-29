@@ -63,6 +63,15 @@ export async function getDb() {
             verifier TEXT,
             snapshot TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS users (
+            discordId TEXT PRIMARY KEY,
+            username TEXT,
+            discriminator TEXT,
+            avatar TEXT,
+            role TEXT DEFAULT 'Benutzer',
+            employeeName TEXT
+        );
     `);
 
     return dbInstance;

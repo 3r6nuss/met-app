@@ -35,11 +35,17 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 passport.serializeUser((user, done) => {
-    done(null, user);
+    done(null, user.id || user.discordId);
 });
 
-passport.deserializeUser((obj, done) => {
-    done(null, obj);
+passport.deserializeUser(async (id, done) => {
+    try {
+        const db = await getDb();
+        const user = await db.get('SELECT * FROM users WHERE discordId = ?', id);
+        done(null, user);
+    } catch (err) {
+        done(err, null);
+    }
 });
 
 passport.use(new DiscordStrategy({
@@ -47,10 +53,23 @@ passport.use(new DiscordStrategy({
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
     callbackURL: process.env.DISCORD_CALLBACK_URL,
     scope: ['identify', 'email']
-}, (accessToken, refreshToken, profile, done) => {
-    process.nextTick(() => {
-        return done(null, profile);
-    });
+}, async (accessToken, refreshToken, profile, done) => {
+    try {
+        const db = await getDb();
+        const existingUser = await db.get('SELECT * FROM users WHERE discordId = ?', profile.id);
+
+        if (existingUser) {
+            await db.run('UPDATE users SET username = ?, discriminator = ?, avatar = ? WHERE discordId = ?',
+                profile.username, profile.discriminator, profile.avatar, profile.id);
+            return done(null, { ...existingUser, ...profile }); // Merge DB info with profile
+        } else {
+            await db.run('INSERT INTO users (discordId, username, discriminator, avatar) VALUES (?, ?, ?, ?)',
+                profile.id, profile.username, profile.discriminator, profile.avatar);
+            return done(null, { ...profile, role: 'Benutzer', employeeName: null });
+        }
+    } catch (err) {
+        return done(err, null);
+    }
 }));
 
 app.use(cors({
@@ -81,6 +100,40 @@ app.get('/api/user', (req, res) => {
         res.json(req.user);
     } else {
         res.status(401).json({ error: 'Not authenticated' });
+    }
+});
+
+// GET All Users (Admin only)
+app.get('/api/users', async (req, res) => {
+    if (req.isAuthenticated() && req.user.role === 'Administrator') {
+        try {
+            const db = await getDb();
+            const users = await db.all('SELECT * FROM users');
+            res.json(users);
+        } catch (error) {
+            console.error("Error fetching users:", error);
+            res.status(500).json({ error: "Database error" });
+        }
+    } else {
+        res.status(403).json({ error: 'Unauthorized' });
+    }
+});
+
+// PUT User (Update role/employee mapping)
+app.put('/api/users/:discordId', async (req, res) => {
+    if (req.isAuthenticated() && req.user.role === 'Administrator') {
+        try {
+            const { role, employeeName } = req.body;
+            const { discordId } = req.params;
+            const db = await getDb();
+            await db.run('UPDATE users SET role = ?, employeeName = ? WHERE discordId = ?', role, employeeName, discordId);
+            res.json({ success: true });
+        } catch (error) {
+            console.error("Error updating user:", error);
+            res.status(500).json({ error: "Database error" });
+        }
+    } else {
+        res.status(403).json({ error: 'Unauthorized' });
     }
 });
 
