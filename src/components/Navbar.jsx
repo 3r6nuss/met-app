@@ -7,7 +7,7 @@ export default function Navbar({ onOpenPriceList, user }) {
     const isAdmin = user?.role === 'Administrator';
     const isBuchhaltung = user?.role === 'Buchhaltung' || isAdmin;
     const isLager = user?.role === 'Lager' || isBuchhaltung;
-    const isHaendler = user?.role === 'Händler' || isBuchhaltung;
+    const isHaendler = (user?.isHaendler === 1 || user?.isHaendler === true) || user?.role === 'Händler' || isBuchhaltung;
 
     const navLinkClass = ({ isActive }) => cn(
         "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all whitespace-nowrap flex-1",

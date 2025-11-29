@@ -29,7 +29,7 @@ export default function UserManagement({ employees }) {
         fetch(`/api/users/${user.discordId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role: user.role, employeeName: user.employeeName })
+            body: JSON.stringify({ role: user.role, employeeName: user.employeeName, isHaendler: user.isHaendler })
         })
             .then(res => res.json())
             .then(() => alert('Gespeichert!'))
@@ -60,6 +60,7 @@ export default function UserManagement({ employees }) {
                         <tr>
                             <th className="p-3">Discord User</th>
                             <th className="p-3">Rolle</th>
+                            <th className="p-3">Zusatz</th>
                             <th className="p-3">Mitarbeiter Verknüpfung</th>
                             <th className="p-3">Aktion</th>
                         </tr>
@@ -93,6 +94,17 @@ export default function UserManagement({ employees }) {
                                         <option value="Buchhaltung">Buchhaltung</option>
                                         <option value="Administrator">Administrator</option>
                                     </select>
+                                </td>
+                                <td className="p-3">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={user.isHaendler === 1 || user.isHaendler === true}
+                                            onChange={(e) => handleUpdate(user.discordId, 'isHaendler', e.target.checked ? 1 : 0)}
+                                            className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-violet-600 focus:ring-violet-500"
+                                        />
+                                        <span className="text-sm">Händler</span>
+                                    </label>
                                 </td>
                                 <td className="p-3">
                                     <select

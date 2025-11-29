@@ -70,7 +70,8 @@ export async function getDb() {
             discriminator TEXT,
             avatar TEXT,
             role TEXT DEFAULT 'Benutzer',
-            employeeName TEXT
+            employeeName TEXT,
+            isHaendler BOOLEAN DEFAULT 0
         );
     `);
 

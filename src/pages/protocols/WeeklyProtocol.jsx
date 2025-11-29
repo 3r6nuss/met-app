@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 
-export default function WeeklyProtocol({ logs }) {
+export default function WeeklyProtocol({ logs, user }) {
     // Helper to get the Saturday that starts the week for a given date
     const getWeekStart = (date) => {
         const d = new Date(date);
@@ -70,6 +70,9 @@ export default function WeeklyProtocol({ logs }) {
 
     const weekDays = ['Samstag', 'Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'];
 
+    // Permission Check
+    const isRestrictedView = user?.role === 'Lager' && user?.role !== 'Buchhaltung' && user?.role !== 'Administrator';
+
     return (
         <div className="animate-fade-in overflow-x-auto pb-12">
             <h2 className="text-2xl font-bold mb-6 text-slate-200">Wochenprotokolle (Übersicht)</h2>
@@ -93,28 +96,35 @@ export default function WeeklyProtocol({ logs }) {
                 <div className="divide-y divide-slate-700">
                     {processedData.map((week, idx) => (
                         <div key={idx} className="group">
-                            {/* Kunden Row */}
-                            <div className="grid grid-cols-[200px_120px_repeat(7,1fr)_120px] bg-slate-800/20 hover:bg-slate-800/40 transition-colors border-b border-slate-700/50">
-                                <div className="p-3 text-slate-300 font-medium border-r border-slate-700 flex items-center row-span-2 bg-slate-900/30">
-                                    {week.label}
-                                </div>
-                                <div className="p-2 border-r border-slate-700 flex items-center justify-center bg-blue-900/20 text-blue-400 font-bold text-xs uppercase tracking-wider">
-                                    Kunden
-                                </div>
-                                {week.kunden.map((val, i) => (
-                                    <div key={i} className="p-2 border-r border-slate-700 text-right text-slate-300 text-sm flex items-center justify-end">
-                                        {formatMoney(val)}
+                            {/* Kunden Row - Hidden for Restricted View */}
+                            {!isRestrictedView && (
+                                <div className="grid grid-cols-[200px_120px_repeat(7,1fr)_120px] bg-slate-800/20 hover:bg-slate-800/40 transition-colors border-b border-slate-700/50">
+                                    <div className="p-3 text-slate-300 font-medium border-r border-slate-700 flex items-center row-span-2 bg-slate-900/30">
+                                        {week.label}
                                     </div>
-                                ))}
-                                <div className="p-2 font-bold text-blue-400 text-right flex items-center justify-end bg-blue-900/10">
-                                    {formatMoney(week.totalKunden)}
+                                    <div className="p-2 border-r border-slate-700 flex items-center justify-center bg-blue-900/20 text-blue-400 font-bold text-xs uppercase tracking-wider">
+                                        Kunden
+                                    </div>
+                                    {week.kunden.map((val, i) => (
+                                        <div key={i} className="p-2 border-r border-slate-700 text-right text-slate-300 text-sm flex items-center justify-end">
+                                            {formatMoney(val)}
+                                        </div>
+                                    ))}
+                                    <div className="p-2 font-bold text-blue-400 text-right flex items-center justify-end bg-blue-900/10">
+                                        {formatMoney(week.totalKunden)}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Angestellte Row */}
                             <div className="grid grid-cols-[200px_120px_repeat(7,1fr)_120px] bg-slate-800/20 hover:bg-slate-800/40 transition-colors">
-                                {/* Date column is spanned */}
-                                <div className="col-start-2 p-2 border-r border-slate-700 flex items-center justify-center bg-emerald-900/20 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                                {/* Date column is spanned or shown if restricted */}
+                                {isRestrictedView && (
+                                    <div className="p-3 text-slate-300 font-medium border-r border-slate-700 flex items-center bg-slate-900/30">
+                                        {week.label}
+                                    </div>
+                                )}
+                                <div className={`p-2 border-r border-slate-700 flex items-center justify-center bg-emerald-900/20 text-emerald-400 font-bold text-xs uppercase tracking-wider ${!isRestrictedView ? 'col-start-2' : ''}`}>
                                     Angestellte
                                 </div>
                                 {week.angestellte.map((val, i) => (
@@ -136,15 +146,17 @@ export default function WeeklyProtocol({ logs }) {
                     )}
                 </div>
 
-                {/* Footer Total */}
-                <div className="grid grid-cols-[200px_120px_repeat(7,1fr)_120px] bg-slate-900 border-t-2 border-slate-600">
-                    <div className="col-span-10 p-3 text-right font-bold text-slate-400 uppercase tracking-wider">
-                        Gesamtbilanz
+                {/* Footer Total - Hidden for Restricted View */}
+                {!isRestrictedView && (
+                    <div className="grid grid-cols-[200px_120px_repeat(7,1fr)_120px] bg-slate-900 border-t-2 border-slate-600">
+                        <div className="col-span-10 p-3 text-right font-bold text-slate-400 uppercase tracking-wider">
+                            Gesamtbilanz
+                        </div>
+                        <div className="p-3 text-right font-bold text-white bg-violet-600/20">
+                            {formatMoney(totalAllTime)}
+                        </div>
                     </div>
-                    <div className="p-3 text-right font-bold text-white bg-violet-600/20">
-                        {formatMoney(totalAllTime)}
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );

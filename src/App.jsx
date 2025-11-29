@@ -223,7 +223,7 @@ function App() {
   const isAdmin = user.role === 'Administrator';
   const isBuchhaltung = user.role === 'Buchhaltung' || isAdmin;
   const isLager = user.role === 'Lager' || isBuchhaltung;
-  const isHaendler = user.role === 'Händler' || isBuchhaltung;
+  const isHaendler = (user?.isHaendler === 1 || user?.isHaendler === true) || user?.role === 'Händler' || isBuchhaltung;
   const isPending = user.role === 'Pending';
 
   if (isPending) {
@@ -354,7 +354,7 @@ function App() {
 
           {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} user={user} />} />}
 
-          {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} />} />}
+          {(isBuchhaltung || isLager) && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
           {isBuchhaltung && <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />}
           {isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 
