@@ -350,9 +350,9 @@ function App() {
           <Route path="/trade" element={<Navigate to={(isHaendler || isBuchhaltung) ? "/buchung/einkauf" : "/"} replace />} />
 
           {/* Protokolle Routes */}
-          {(isHaendler || isBuchhaltung) && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
+          {isBuchhaltung && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
 
-          <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} user={user} />} />
+          {isLager && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} user={user} />} />}
 
           {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} />} />}
           {isBuchhaltung && <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />}
@@ -363,7 +363,7 @@ function App() {
           {isBuchhaltung && <Route path="/kontrolle" element={<ControlPage />} />}
         </Routes>
 
-        {(isAdmin || isLager) && (
+        {(isAdmin || isBuchhaltung) && (
           <DebugMenu
             onReset={handleReset}
             employees={employees}
