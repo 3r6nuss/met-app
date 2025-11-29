@@ -17,6 +17,9 @@ export default function CheckInForm({
     const [quantity, setQuantity] = useState('');
     const [price, setPrice] = useState('');
     const [isReturn, setIsReturn] = useState(false);
+    const [showWarningModal, setShowWarningModal] = useState(false);
+    const [warningMessage, setWarningMessage] = useState('');
+    const [pendingSubmission, setPendingSubmission] = useState(null);
 
 
     const selectedItem = useMemo(() => inventory.find(i => i.id === parseInt(selectedId)), [selectedId, inventory]);
@@ -54,18 +57,13 @@ export default function CheckInForm({
         }
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!selectedId || !quantity) return;
-
-        const finalDepositor = showCustomInput ? customName : depositor;
-        const finalPrice = showPrice ? price : 0; // Keep as string to support ranges like "50/80"
-
+    const processSubmission = (submissionData) => {
+        const { selectedId, quantity, depositor, price } = submissionData;
         onCheckIn(
             parseInt(selectedId),
             parseInt(quantity),
-            finalDepositor,
-            finalPrice
+            depositor,
+            price
         );
 
         setQuantity('');
@@ -74,7 +72,39 @@ export default function CheckInForm({
         setPrice('');
         setSelectedId('');
         setShowCustomInput(false);
-        setShowCustomInput(false);
+        setShowWarningModal(false);
+        setPendingSubmission(null);
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!selectedId || !quantity) return;
+
+        const finalDepositor = showCustomInput ? customName : depositor;
+        const finalPrice = showPrice ? price : 0;
+
+        const submissionData = {
+            selectedId,
+            quantity,
+            depositor: finalDepositor,
+            price: finalPrice
+        };
+
+        // Check for notes
+        if (selectedItem) {
+            const priceItem = prices.find(p => p.name === selectedItem.name);
+            if (priceItem && priceItem.note) {
+                const noteLower = priceItem.note.toLowerCase();
+                if (noteLower.includes("kein einkauf") || noteLower.includes("nur einkauf bis")) {
+                    setWarningMessage(priceItem.note);
+                    setPendingSubmission(submissionData);
+                    setShowWarningModal(true);
+                    return;
+                }
+            }
+        }
+
+        processSubmission(submissionData);
     };
 
     const sortedInventory = [...inventory].sort((a, b) => a.name.localeCompare(b.name));
@@ -210,6 +240,52 @@ export default function CheckInForm({
                     Bestätigen
                 </button>
             </form>
-        </section>
+
+            {/* Warning Modal */}
+            {
+                showWarningModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-slate-900 border border-red-500/50 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in">
+                            <div className="text-center space-y-4">
+                                <h3 className="text-2xl font-bold text-red-500 uppercase tracking-wider">Halt Stop!</h3>
+
+                                <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-red-500/30">
+                                    <img
+                                        src="https://media1.tenor.com/m/tZ2X8G1_FSAAAAAC/halt-stop-andreas.gif"
+                                        alt="Halt Stop"
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                                    <p className="text-red-200 font-medium text-lg">
+                                        {warningMessage}
+                                    </p>
+                                </div>
+
+                                <p className="text-slate-400 text-sm">
+                                    Bist du sicher, dass du fortfahren möchtest?
+                                </p>
+
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        onClick={() => setShowWarningModal(false)}
+                                        className="flex-1 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors font-medium"
+                                    >
+                                        Abbrechen
+                                    </button>
+                                    <button
+                                        onClick={() => processSubmission(pendingSubmission)}
+                                        className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-bold"
+                                    >
+                                        Trotzdem bestätigen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </section >
     );
 }
