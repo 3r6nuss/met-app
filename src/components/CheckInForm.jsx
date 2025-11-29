@@ -16,12 +16,17 @@ export default function CheckInForm({
     const [showCustomInput, setShowCustomInput] = useState(false);
     const [quantity, setQuantity] = useState('');
     const [price, setPrice] = useState('');
+    const [isReturn, setIsReturn] = useState(false);
 
 
     const selectedItem = useMemo(() => inventory.find(i => i.id === parseInt(selectedId)), [selectedId, inventory]);
 
     // Pre-fill price based on item and transaction type
     useEffect(() => {
+        if (isReturn) {
+            setPrice(0);
+            return;
+        }
         setPrice('');
         if (selectedItem) {
             const priceItem = prices.find(p => p.name === selectedItem.name);
@@ -33,7 +38,7 @@ export default function CheckInForm({
                 }
             }
         }
-    }, [selectedId, selectedItem, prices, title]);
+    }, [selectedId, selectedItem, prices, title, isReturn]);
 
 
 
@@ -155,16 +160,30 @@ export default function CheckInForm({
                     </div>
                     {showPrice && (
                         <div className="space-y-1">
-                            <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                                {title.includes("Einkauf") ? "Preis (Stk)" : "Lohn (Stk)"}
-                            </label>
+                            <div className="flex justify-between items-center">
+                                <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+                                    {title.includes("Einkauf") ? "Preis (Stk)" : "Lohn (Stk)"}
+                                </label>
+                                {title.includes("Einlagern") && (
+                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                        <input
+                                            type="checkbox"
+                                            checked={isReturn}
+                                            onChange={(e) => setIsReturn(e.target.checked)}
+                                            className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500 focus:ring-violet-500 focus:ring-offset-slate-900"
+                                        />
+                                        <span className="text-xs text-slate-400 group-hover:text-violet-300 transition-colors">Rückgabe (0$)</span>
+                                    </label>
+                                )}
+                            </div>
                             <div className="relative">
                                 <input
                                     type="text" // Changed to text to support ranges like "50/80"
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
                                     placeholder="0"
-                                    className="w-full glass-input rounded-lg px-4 py-2.5 pl-8"
+                                    className={`w-full glass-input rounded-lg px-4 py-2.5 pl-8 ${isReturn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={isReturn}
                                 />
                                 <DollarSign className="w-4 h-4 text-slate-500 absolute left-2.5 top-3" />
                             </div>

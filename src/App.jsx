@@ -24,6 +24,7 @@ function App() {
   const [logs, setLogs] = useState([]); // Activity logs (short term)
   const [transactionLogs, setTransactionLogs] = useState([]); // Full history from logs.json
   const [employees, setEmployees] = useState([]); // Employee list
+  const [employeeInventory, setEmployeeInventory] = useState([]); // Employee inventory
   const [prices, setPrices] = useState([]); // Price list
   const [showPriceList, setShowPriceList] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,16 +40,18 @@ function App() {
       fetch(`${API_URL}/inventory`).then(res => res.json()),
       fetch(`${API_URL}/logs`).then(res => res.json()),
       fetch(`${API_URL}/employees`).then(res => res.json()),
+      fetch(`${API_URL}/employee-inventory`).then(res => res.json()),
       fetch(`${API_URL}/prices`).then(res => res.json()),
       fetch(`${API_URL}/user`).then(res => {
         if (res.ok) return res.json();
         return null;
       })
     ])
-      .then(([invData, logsData, empData, priceData, userData]) => {
+      .then(([invData, logsData, empData, empInvData, priceData, userData]) => {
         setInventory(invData);
         setTransactionLogs(logsData);
         setEmployees(empData);
+        setEmployeeInventory(empInvData);
         setPrices(priceData);
         if (userData) setUser(userData); // Only update user if fetched successfully
         setLoading(false);
@@ -152,53 +155,65 @@ function App() {
     const item = inventory.find(i => i.id === id);
     if (!item) return;
 
-    const newData = inventory.map(i => {
-      // Add quantity to the target item
-      if (i.id === id) {
-        return { ...i, current: i.current + quantity };
-      }
-      return i;
-    });
-    saveInventory(newData);
-
-    const actionLabel = category === 'trade' ? 'Gekauft' : 'Eingelagert';
-    addLog(`${actionLabel}: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
-
-    saveLogEntry({
-      type: 'in',
-      category, // 'internal' or 'trade'
-      itemId: id,
-      itemName: item.name,
-      quantity,
-      depositor: depositor || 'Unbekannt',
-      price
-    });
+    fetch(`${API_URL}/transaction`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'in',
+        category,
+        itemId: id,
+        quantity,
+        depositor: depositor || 'Unbekannt',
+        price
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Refetch data to ensure everything is in sync (inventory, logs, employee inventory)
+          fetchData();
+          addLog(`Eingelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+        } else {
+          console.error("Transaction failed:", data.error);
+          alert("Fehler bei der Transaktion: " + data.error);
+        }
+      })
+      .catch(err => {
+        console.error("Transaction error:", err);
+        alert("Netzwerkfehler bei der Transaktion");
+      });
   };
 
   const handleCheckOut = (id, quantity, depositor, price = 0, type = 'out', category = 'internal') => {
     const item = inventory.find(i => i.id === id);
     if (!item) return;
 
-    const newData = inventory.map(i => {
-      if (i.id === id) {
-        return { ...i, current: Math.max(0, i.current - quantity) };
-      }
-      return i;
-    });
-    saveInventory(newData);
-
-    const actionLabel = category === 'trade' ? 'Verkauft' : 'Ausgelagert';
-    addLog(`${actionLabel}: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
-
-    saveLogEntry({
-      type: 'out',
-      category,
-      itemId: id,
-      itemName: item.name,
-      quantity,
-      depositor: depositor || 'Unbekannt',
-      price
-    });
+    fetch(`${API_URL}/transaction`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'out',
+        category,
+        itemId: id,
+        quantity,
+        depositor: depositor || 'Unbekannt',
+        price
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          fetchData();
+          addLog(`Ausgelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+        } else {
+          console.error("Transaction failed:", data.error);
+          alert("Fehler bei der Transaktion: " + data.error);
+        }
+      })
+      .catch(err => {
+        console.error("Transaction error:", err);
+        alert("Netzwerkfehler bei der Transaktion");
+      });
   };
 
   const handleUpdateStock = (id, newQuantity) => {
@@ -421,13 +436,13 @@ function App() {
 
           <Route path="/protokolle/monthly" element={<Navigate to="/protokolle/period" replace />} />
 
-          {isBuchhaltung && <Route path="/kontrolle" element={<ControlPage />} />}
+          {isBuchhaltung && <Route path="/kontrolle" element={<ControlPage employeeInventory={employeeInventory} employees={employees} inventory={inventory} />} />}
 
           {/* System Routes */}
           {isBuchhaltung && (
             <>
-              <Route path="/system" element={<SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} />} />
-              <Route path="/system/employees" element={<SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} />} />
+              <Route path="/system" element={<SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />} />
+              <Route path="/system/employees" element={<SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />} />
             </>
           )}
         </Routes>

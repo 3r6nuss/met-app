@@ -12,6 +12,7 @@ import { initialPrices } from './src/data/initialPrices.js';
 import { initialEmployees } from './src/data/initialEmployees.js';
 import { WebSocketServer } from 'ws';
 import http from 'http';
+import { recipes as initialRecipes } from './src/data/recipes.js';
 
 dotenv.config();
 
@@ -439,6 +440,245 @@ app.post('/api/reset', async (req, res) => {
     } catch (error) {
         console.error("Error resetting database:", error);
         res.status(500).json({ error: "Database error" });
+    }
+});
+
+// --- NEW FEATURES: Employee Inventory & Recipes ---
+
+// Initialize new tables
+const initNewTables = async () => {
+    const db = await getDb();
+
+    // Employee Inventory
+    await db.run(`CREATE TABLE IF NOT EXISTS employee_inventory (
+        employee_name TEXT,
+        item_id INTEGER,
+        quantity INTEGER,
+        PRIMARY KEY (employee_name, item_id)
+    )`);
+
+    // Recipes
+    await db.run(`CREATE TABLE IF NOT EXISTS recipes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER,
+        ingredient_id INTEGER,
+        quantity INTEGER
+    )`);
+
+    // Check if recipes exist, if not populate
+    const recipeCount = await db.get('SELECT COUNT(*) as count FROM recipes');
+    if (recipeCount.count === 0) {
+        console.log("Populating initial recipes...");
+        const stmt = await db.prepare('INSERT INTO recipes (product_id, ingredient_id, quantity) VALUES (?, ?, ?)');
+        for (const [productId, recipe] of Object.entries(initialRecipes)) {
+            for (const input of recipe.inputs) {
+                // We need to find the ID of the ingredient by name since recipes.js uses names
+                // This is a bit tricky since we only have names in recipes.js. 
+                // Ideally recipes.js should use IDs. 
+                // For now, let's try to look up the ID from initialInventory.
+                const ingredientItem = initialInventory.find(i => i.name === input.name);
+                if (ingredientItem) {
+                    await stmt.run(productId, ingredientItem.id, input.quantity);
+                } else {
+                    console.warn(`Ingredient ${input.name} not found in inventory for product ID ${productId}`);
+                }
+            }
+        }
+        await stmt.finalize();
+    }
+};
+
+// Call init
+initNewTables().catch(console.error);
+
+// GET Employee Inventory
+app.get('/api/employee-inventory', async (req, res) => {
+    try {
+        const db = await getDb();
+        const inventory = await db.all('SELECT * FROM employee_inventory');
+        res.json(inventory);
+    } catch (error) {
+        console.error("Error fetching employee inventory:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Employee Inventory (Manual Update)
+app.post('/api/employee-inventory/manual', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { employeeName, itemId, quantity } = req.body;
+        const db = await getDb();
+
+        if (quantity <= 0) {
+            await db.run('DELETE FROM employee_inventory WHERE employee_name = ? AND item_id = ?', employeeName, itemId);
+        } else {
+            await db.run('INSERT OR REPLACE INTO employee_inventory (employee_name, item_id, quantity) VALUES (?, ?, ?)', employeeName, itemId, quantity);
+        }
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error updating employee inventory:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// GET Recipes
+app.get('/api/recipes', async (req, res) => {
+    try {
+        const db = await getDb();
+        const recipes = await db.all('SELECT * FROM recipes');
+
+        // Group by product_id to match frontend expectation if needed, 
+        // or send flat list. Let's send a structured object: { productId: { inputs: [{ id, quantity }] } }
+        // Actually, let's stick to a flat list for the API and process on frontend, or structured.
+        // Let's send structured to match existing recipes.js format somewhat.
+
+        const structuredRecipes = {};
+        for (const r of recipes) {
+            if (!structuredRecipes[r.product_id]) {
+                structuredRecipes[r.product_id] = { inputs: [] };
+            }
+            structuredRecipes[r.product_id].inputs.push({ id: r.ingredient_id, quantity: r.quantity });
+        }
+
+        res.json(structuredRecipes);
+    } catch (error) {
+        console.error("Error fetching recipes:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Recipe (Add/Update)
+app.post('/api/recipes', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { productId, inputs } = req.body; // inputs: [{ id, quantity }]
+        const db = await getDb();
+
+        await db.run('BEGIN TRANSACTION');
+        await db.run('DELETE FROM recipes WHERE product_id = ?', productId);
+
+        const stmt = await db.prepare('INSERT INTO recipes (product_id, ingredient_id, quantity) VALUES (?, ?, ?)');
+        for (const input of inputs) {
+            await stmt.run(productId, input.id, input.quantity);
+        }
+        await stmt.finalize();
+        await db.run('COMMIT');
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error saving recipe:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// DELETE Recipe
+app.delete('/api/recipes/:productId', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { productId } = req.params;
+        const db = await getDb();
+        await db.run('DELETE FROM recipes WHERE product_id = ?', productId);
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting recipe:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// UNIFIED TRANSACTION HANDLER
+app.post('/api/transaction', async (req, res) => {
+    try {
+        const { type, itemId, quantity, depositor, price, category } = req.body;
+        // type: 'in' (Einlagern) or 'out' (Auslagern)
+        // category: 'internal' or 'trade'
+
+        const db = await getDb();
+        await db.run('BEGIN TRANSACTION');
+
+        // 1. Update Main Inventory
+        const item = await db.get('SELECT * FROM inventory WHERE id = ?', itemId);
+        if (!item) throw new Error("Item not found");
+
+        let newCurrent = item.current;
+        if (type === 'in') {
+            newCurrent += quantity;
+        } else {
+            newCurrent = Math.max(0, newCurrent - quantity);
+        }
+        await db.run('UPDATE inventory SET current = ? WHERE id = ?', newCurrent, itemId);
+
+        // 2. Update Employee Inventory (Only for internal transactions)
+        if (category === 'internal' && depositor !== 'Unbekannt') {
+            if (type === 'out') {
+                // Auslagern: Warehouse -> Employee (Employee GAINS item)
+                await db.run(`INSERT INTO employee_inventory (employee_name, item_id, quantity) 
+                    VALUES (?, ?, ?) 
+                    ON CONFLICT(employee_name, item_id) 
+                    DO UPDATE SET quantity = quantity + ?`,
+                    depositor, itemId, quantity, quantity);
+            } else if (type === 'in') {
+                // Einlagern: Employee -> Warehouse (Employee LOSES item OR ingredients)
+
+                // Check for recipe
+                const recipeIngredients = await db.all('SELECT * FROM recipes WHERE product_id = ?', itemId);
+
+                if (recipeIngredients.length > 0) {
+                    // It's a crafted item, deduct ingredients
+                    for (const ing of recipeIngredients) {
+                        const deductQty = ing.quantity * quantity;
+                        await db.run(`UPDATE employee_inventory 
+                            SET quantity = MAX(0, quantity - ?) 
+                            WHERE employee_name = ? AND item_id = ?`,
+                            deductQty, depositor, ing.ingredient_id);
+                    }
+                } else {
+                    // Normal item, deduct item itself
+                    await db.run(`UPDATE employee_inventory 
+                        SET quantity = MAX(0, quantity - ?) 
+                        WHERE employee_name = ? AND item_id = ?`,
+                        quantity, depositor, itemId);
+                }
+            }
+        }
+
+        // 3. Log Transaction
+        const logEntry = {
+            timestamp: new Date().toISOString(),
+            type,
+            category,
+            itemId,
+            itemName: item.name,
+            quantity,
+            depositor,
+            price,
+            msg: `${type === 'in' ? (category === 'trade' ? 'Gekauft' : 'Eingelagert') : (category === 'trade' ? 'Verkauft' : 'Ausgelagert')}: ${quantity}x ${item.name} (${depositor})`,
+            time: new Date().toLocaleTimeString()
+        };
+
+        await db.run(
+            'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            logEntry.timestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time
+        );
+
+        await db.run('COMMIT');
+        broadcastUpdate();
+        res.json({ success: true, log: logEntry });
+
+    } catch (error) {
+        await db.run('ROLLBACK');
+        console.error("Transaction error:", error);
+        res.status(500).json({ error: error.message || "Transaction failed" });
     }
 });
 
