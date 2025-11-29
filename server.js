@@ -58,14 +58,20 @@ passport.use(new DiscordStrategy({
         const db = await getDb();
         const existingUser = await db.get('SELECT * FROM users WHERE discordId = ?', profile.id);
 
+        // Hardcoded Admin Override
+        const isSuperAdmin = profile.id === '823276402320998450';
+        const forcedRole = isSuperAdmin ? 'Administrator' : undefined;
+
         if (existingUser) {
-            await db.run('UPDATE users SET username = ?, discriminator = ?, avatar = ? WHERE discordId = ?',
-                profile.username, profile.discriminator, profile.avatar, profile.id);
-            return done(null, { ...existingUser, ...profile }); // Merge DB info with profile
+            const newRole = forcedRole || existingUser.role;
+            await db.run('UPDATE users SET username = ?, discriminator = ?, avatar = ?, role = ? WHERE discordId = ?',
+                profile.username, profile.discriminator, profile.avatar, newRole, profile.id);
+            return done(null, { ...existingUser, ...profile, role: newRole });
         } else {
-            await db.run('INSERT INTO users (discordId, username, discriminator, avatar) VALUES (?, ?, ?, ?)',
-                profile.id, profile.username, profile.discriminator, profile.avatar);
-            return done(null, { ...profile, role: 'Benutzer', employeeName: null });
+            const role = forcedRole || 'Benutzer';
+            await db.run('INSERT INTO users (discordId, username, discriminator, avatar, role) VALUES (?, ?, ?, ?, ?)',
+                profile.id, profile.username, profile.discriminator, profile.avatar, role);
+            return done(null, { ...profile, role, employeeName: null });
         }
     } catch (err) {
         return done(err, null);

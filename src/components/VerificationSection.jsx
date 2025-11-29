@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { CheckCircle, Edit3, X } from 'lucide-react';
 
-export default function VerificationSection({ onVerify, onToggleEdit, isEditMode }) {
-    const [name, setName] = useState('');
+export default function VerificationSection({ onVerify, onToggleEdit, isEditMode, user }) {
+    const [name, setName] = useState(user?.employeeName || user?.username || '');
 
     const handleVerify = () => {
         if (!name.trim()) {
@@ -41,8 +41,8 @@ export default function VerificationSection({ onVerify, onToggleEdit, isEditMode
                     <button
                         onClick={handleToggleEdit}
                         className={`flex-1 md:flex-none px-6 py-2 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${isEditMode
-                                ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/20'
-                                : 'bg-slate-700 hover:bg-slate-600 text-white border border-slate-600'
+                            ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/20'
+                            : 'bg-slate-700 hover:bg-slate-600 text-white border border-slate-600'
                             }`}
                     >
                         {isEditMode ? <><CheckCircle className="w-4 h-4" /> Fertig</> : <><Edit3 className="w-4 h-4" /> Liste Anpassen</>}

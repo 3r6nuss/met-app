@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import InventoryList from '../components/InventoryList';
 import VerificationSection from '../components/VerificationSection';
 
-export default function InventoryPage({ inventory, onUpdateStock, onVerify }) {
+export default function InventoryPage({ inventory, onUpdateStock, onVerify, user }) {
     const [isEditMode, setIsEditMode] = useState(false);
 
     return (
@@ -20,6 +20,7 @@ export default function InventoryPage({ inventory, onUpdateStock, onVerify }) {
                 }}
                 onToggleEdit={() => setIsEditMode(!isEditMode)}
                 isEditMode={isEditMode}
+                user={user}
             />
         </div>
     );
