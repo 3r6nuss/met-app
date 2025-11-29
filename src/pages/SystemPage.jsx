@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Scroll, Plus } from 'lucide-react';
+import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus } from 'lucide-react';
 import UserManagement from '../components/UserManagement';
 
 export default function SystemPage({ employees, onUpdateEmployees, logs, onDeleteLog, onReset, user, inventory = [] }) {
@@ -277,7 +277,8 @@ export default function SystemPage({ employees, onUpdateEmployees, logs, onDelet
                                         className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white"
                                     >
                                         <option value="">Produkt wählen...</option>
-                                        {inventory.map(item => (
+                                        <option value="">Produkt wählen...</option>
+                                        {Array.isArray(inventory) && inventory.map(item => (
                                             <option key={item.id} value={item.id}>{item.name}</option>
                                         ))}
                                     </select>
@@ -293,7 +294,8 @@ export default function SystemPage({ employees, onUpdateEmployees, logs, onDelet
                                                 className="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white"
                                             >
                                                 <option value="">Zutat wählen...</option>
-                                                {inventory.map(item => (
+                                                <option value="">Zutat wählen...</option>
+                                                {Array.isArray(inventory) && inventory.map(item => (
                                                     <option key={item.id} value={item.id}>{item.name}</option>
                                                 ))}
                                             </select>
@@ -326,12 +328,12 @@ export default function SystemPage({ employees, onUpdateEmployees, logs, onDelet
                         {/* Existing Recipes List */}
                         <div>
                             <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
-                                <Scroll className="w-5 h-5 text-emerald-400" />
+                                <FileText className="w-5 h-5 text-emerald-400" />
                                 Vorhandene Rezepte
                             </h3>
                             <div className="grid grid-cols-1 gap-3">
-                                {Object.entries(recipes).map(([productId, recipe]) => {
-                                    const product = inventory.find(i => i.id === parseInt(productId));
+                                {recipes && Object.entries(recipes).map(([productId, recipe]) => {
+                                    const product = Array.isArray(inventory) ? inventory.find(i => i.id === parseInt(productId)) : null;
                                     if (!product) return null;
 
                                     return (
@@ -340,7 +342,7 @@ export default function SystemPage({ employees, onUpdateEmployees, logs, onDelet
                                                 <div className="font-bold text-white mb-2">{product.name}</div>
                                                 <div className="space-y-1">
                                                     {recipe.inputs.map((input, idx) => {
-                                                        const ingredient = inventory.find(i => i.id === input.id);
+                                                        const ingredient = Array.isArray(inventory) ? inventory.find(i => i.id === input.id) : null;
                                                         return (
                                                             <div key={idx} className="text-sm text-slate-400 flex items-center gap-2">
                                                                 <span className="w-1 h-1 bg-slate-500 rounded-full"></span>
