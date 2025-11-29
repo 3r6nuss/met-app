@@ -140,8 +140,8 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                                             ))}
                                         </div>
 
-                                        {/* Daily Total */}
-                                        {day.total > 0 && (
+                                        {/* Daily Total - Visible to Admin, Buchhaltung, or Owner */}
+                                        {day.total > 0 && (user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) && (
                                             <div className="text-xs font-bold text-emerald-400 text-right mt-1 pt-1 border-t border-slate-700/50">
                                                 {formatMoney(day.total)}
                                             </div>
@@ -150,7 +150,9 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                                 ))}
 
                                 <div className="p-3 font-bold text-emerald-400 text-right flex items-center justify-end bg-emerald-900/10">
-                                    {formatMoney(emp.days.reduce((acc, d) => acc + d.total, 0))}
+                                    {(user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) &&
+                                        formatMoney(emp.days.reduce((acc, d) => acc + d.total, 0))
+                                    }
                                 </div>
                             </div>
                         </div>

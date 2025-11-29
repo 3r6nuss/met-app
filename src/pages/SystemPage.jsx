@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X } from 'lucide-react';
+import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users } from 'lucide-react';
+import UserManagement from '../components/UserManagement';
 
 export default function SystemPage({ employees, onUpdateEmployees, logs, onDeleteLog, onReset, user }) {
     const [newEmployeeName, setNewEmployeeName] = useState('');
@@ -77,6 +78,12 @@ export default function SystemPage({ employees, onUpdateEmployees, logs, onDelet
                 </button>
                 {isAdmin && (
                     <>
+                        <button
+                            onClick={() => setActiveTab('users')}
+                            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'users' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            Benutzer
+                        </button>
                         <button
                             onClick={() => setActiveTab('system')}
                             className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'system' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
@@ -161,6 +168,11 @@ export default function SystemPage({ employees, onUpdateEmployees, logs, onDelet
                             )}
                         </div>
                     </div>
+                )}
+
+                {/* User Management (Admin Only) */}
+                {activeTab === 'users' && isAdmin && (
+                    <UserManagement employees={employees} />
                 )}
 
                 {/* System Actions (Admin Only) */}

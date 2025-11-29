@@ -270,7 +270,7 @@ function App() {
 
         {showPriceList && <PriceListModal onClose={() => setShowPriceList(false)} />}
 
-        {isAdmin && <UserManagement employees={employees} />}
+
 
         {logs.length > 0 && (
           <div className="mb-6 flex gap-4 overflow-x-auto pb-2">
@@ -315,7 +315,7 @@ function App() {
                 type="out"
                 title="Auslagern"
                 label="Mitarbeiter"
-                showPrice={false}
+                showPrice={isBuchhaltung}
               />
             } />
           )}
