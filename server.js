@@ -10,6 +10,8 @@ import { getDb } from './src/db/database.js';
 import { initialInventory } from './src/data/initialData.js';
 import { initialPrices } from './src/data/initialPrices.js';
 import { initialEmployees } from './src/data/initialEmployees.js';
+import { WebSocketServer } from 'ws';
+import http from 'http';
 
 dotenv.config();
 
@@ -133,6 +135,7 @@ app.put('/api/users/:discordId', async (req, res) => {
             const { discordId } = req.params;
             const db = await getDb();
             await db.run('UPDATE users SET role = ?, employeeName = ?, isHaendler = ? WHERE discordId = ?', role, employeeName, isHaendler, discordId);
+            broadcastUpdate();
             res.json({ success: true });
         } catch (error) {
             console.error("Error updating user:", error);
@@ -150,6 +153,7 @@ app.delete('/api/users/:discordId', async (req, res) => {
             const { discordId } = req.params;
             const db = await getDb();
             await db.run('DELETE FROM users WHERE discordId = ?', discordId);
+            broadcastUpdate();
             res.json({ success: true });
         } catch (error) {
             console.error("Error deleting user:", error);
@@ -200,6 +204,7 @@ app.post('/api/inventory', async (req, res) => {
         await stmt.finalize();
         await db.run('COMMIT');
 
+        broadcastUpdate();
         res.json({ success: true });
     } catch (error) {
         console.error("Error updating inventory:", error);
@@ -235,6 +240,7 @@ app.post('/api/verifications', async (req, res) => {
             verifier,
             JSON.stringify(snapshot)
         );
+        broadcastUpdate();
         res.json({ success: true });
     } catch (error) {
         console.error("Error saving verification:", error);
@@ -272,6 +278,7 @@ app.post('/api/logs', async (req, res) => {
             log.msg,
             log.time
         );
+        broadcastUpdate();
         res.json({ success: true });
     } catch (error) {
         console.error("Error saving log:", error);
@@ -308,6 +315,7 @@ app.put('/api/logs', async (req, res) => {
         await stmt.finalize();
         await db.run('COMMIT');
 
+        broadcastUpdate();
         res.json({ success: true });
     } catch (error) {
         console.error("Error updating logs:", error);
@@ -346,6 +354,7 @@ app.post('/api/employees', async (req, res) => {
         await stmt.finalize();
         await db.run('COMMIT');
 
+        broadcastUpdate();
         res.json({ success: true });
     } catch (error) {
         console.error("Error updating employees:", error);
@@ -384,6 +393,7 @@ app.post('/api/prices', async (req, res) => {
         await stmt.finalize();
         await db.run('COMMIT');
 
+        broadcastUpdate();
         res.json({ success: true });
     } catch (error) {
         console.error("Error updating prices:", error);
@@ -424,6 +434,7 @@ app.post('/api/reset', async (req, res) => {
         await stmtPrice.finalize();
 
         await db.run('COMMIT');
+        broadcastUpdate();
         res.json(initialInventory);
     } catch (error) {
         console.error("Error resetting database:", error);
@@ -460,6 +471,27 @@ app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+// Create HTTP server
+const server = http.createServer(app);
+
+// Setup WebSocket Server
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (ws) => {
+    console.log('New client connected');
+    ws.on('close', () => console.log('Client disconnected'));
+});
+
+// Broadcast update to all connected clients
+const broadcastUpdate = () => {
+    wss.clients.forEach((client) => {
+        if (client.readyState === 1) { // WebSocket.OPEN
+            client.send(JSON.stringify({ type: 'UPDATE' }));
+        }
+    });
+    console.log('Broadcasted update to all clients');
+};
+
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
 });

@@ -30,8 +30,11 @@ function App() {
   const [saveStatus, setSaveStatus] = useState('idle');
   const [user, setUser] = useState(null);
 
-  // Fetch data on mount
-  useEffect(() => {
+  // Fetch data helper
+  const fetchData = () => {
+    // Don't set loading to true on background updates to avoid flickering
+    // setLoading(true); 
+
     Promise.all([
       fetch(`${API_URL}/inventory`).then(res => res.json()),
       fetch(`${API_URL}/logs`).then(res => res.json()),
@@ -47,17 +50,71 @@ function App() {
         setTransactionLogs(logsData);
         setEmployees(empData);
         setPrices(priceData);
-        setUser(userData);
+        if (userData) setUser(userData); // Only update user if fetched successfully
         setLoading(false);
       })
       .catch(err => {
         console.error("Failed to fetch data:", err);
-        // Fallback to initial data if server fails
-        setInventory(initialInventory);
-        setPrices(initialPrices);
         setLoading(false);
-        setSaveStatus('error');
       });
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // WebSocket Connection
+  useEffect(() => {
+    let ws;
+    let reconnectTimer;
+
+    const connect = () => {
+      // Determine WS URL (wss if https, ws if http)
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      // If dev (port 5173), connect to 3001. If prod (same port), use window.location.host
+      const host = window.location.port === '5173'
+        ? 'localhost:3001'
+        : window.location.host;
+
+      const wsUrl = `${protocol}//${host}`;
+
+      console.log("Connecting to WebSocket:", wsUrl);
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log("WebSocket connected");
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'UPDATE') {
+            console.log("Received update signal, refreshing data...");
+            fetchData();
+          }
+        } catch (e) {
+          console.error("Error parsing WS message:", e);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log("WebSocket disconnected, reconnecting in 3s...");
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error("WebSocket error:", err);
+        ws.close();
+      };
+    };
+
+    connect();
+
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
   }, []);
 
   // Save data helper
