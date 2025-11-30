@@ -62,6 +62,9 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
             dayGroup.logs.push(log);
             const value = (log.price || 0) * (log.quantity || 0);
             dayGroup.total += value;
+            if (log.status !== 'paid') {
+                dayGroup.unpaidTotal = (dayGroup.unpaidTotal || 0) + value;
+            }
 
             if (!log.confirmed) dayGroup.confirmed = false;
         });
@@ -153,7 +156,7 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                         </div>
                     ))}
                     <div className="p-3 text-right flex items-center justify-end bg-emerald-900/20 text-emerald-400">
-                        Gesamt
+                        Offen
                     </div>
                 </div>
 
@@ -224,6 +227,7 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                                 {emp.days.map((day, dayIdx) => {
                                     const isPaid = day.logs.length > 0 && day.logs.every(l => l.status === 'paid');
                                     const hasOutstanding = day.logs.some(l => l.status === 'outstanding');
+                                    const unpaidAmount = day.unpaidTotal || 0;
 
                                     return (
                                         <div key={dayIdx} className={`p-2 border-r border-slate-700 flex flex-col justify-between min-h-[60px] relative ${isPaid ? 'bg-emerald-900/10' : ''} ${hasOutstanding ? 'bg-amber-900/10' : ''}`}>
@@ -245,8 +249,8 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                                             <div className="mt-4 space-y-1">
                                                 {day.logs.map((log, lIdx) => (
                                                     <div key={lIdx} className={`text-[10px] flex justify-between px-1 rounded ${log.status === 'paid' ? 'text-emerald-400/70 bg-emerald-900/20' :
-                                                        log.status === 'outstanding' ? 'text-amber-400/70 bg-amber-900/20' :
-                                                            'text-slate-400 bg-slate-900/50'
+                                                            log.status === 'outstanding' ? 'text-amber-400/70 bg-amber-900/20' :
+                                                                'text-slate-400 bg-slate-900/50'
                                                         }`}>
                                                         <span className="truncate max-w-[60px]">{log.itemName}</span>
                                                         <span>{log.quantity}</span>
@@ -254,13 +258,20 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                                                 ))}
                                             </div>
 
-                                            {/* Daily Total */}
+                                            {/* Daily Total (Unpaid) */}
                                             {day.total > 0 && (user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) && (
                                                 <div className={`text-xs font-bold text-right mt-1 pt-1 border-t border-slate-700/50 ${isPaid ? 'text-emerald-500' :
-                                                    hasOutstanding ? 'text-amber-500' :
-                                                        'text-emerald-400'
+                                                        hasOutstanding ? 'text-amber-500' :
+                                                            'text-emerald-400'
                                                     }`}>
-                                                    {formatMoney(day.total)}
+                                                    {isPaid ? (
+                                                        <span className="flex justify-end items-center gap-1">
+                                                            <CheckSquare className="w-3 h-3" />
+                                                            Bez.
+                                                        </span>
+                                                    ) : (
+                                                        formatMoney(unpaidAmount)
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -269,7 +280,7 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
 
                                 <div className="p-3 font-bold text-emerald-400 text-right flex items-center justify-end bg-emerald-900/10">
                                     {(user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) &&
-                                        formatMoney(emp.days.reduce((acc, d) => acc + d.total, 0))
+                                        formatMoney(emp.days.reduce((acc, d) => acc + (d.unpaidTotal || 0), 0))
                                     }
                                 </div>
                             </div>
