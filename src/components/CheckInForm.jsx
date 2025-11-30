@@ -70,8 +70,8 @@ export default function CheckInForm({
         onCheckIn(
             parseInt(selectedId),
             parseInt(quantity),
-            finalDepositor,
-            finalPrice,
+            depositor,
+            price,
             submissionData.date // Pass date
         );
 
