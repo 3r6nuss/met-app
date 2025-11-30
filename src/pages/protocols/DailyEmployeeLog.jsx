@@ -47,7 +47,59 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         return groups;
     }, [pastLogs, user]);
 
+    const outstandingTotal = Object.values(outstandingData).reduce((acc, val) => acc + val, 0);
+
     const formatMoney = (amount) => `$${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+    // 1. Determine "Current Week" (Sat-Fri)
+    const weekDays = [
+        { label: 'Samstag', offset: 0 },
+        { label: 'Sonntag', offset: 1 },
+        { label: 'Montag', offset: 2 },
+        { label: 'Dienstag', offset: 3 },
+        { label: 'Mittwoch', offset: 4 },
+        { label: 'Donnerstag', offset: 5 },
+        { label: 'Freitag', offset: 6 },
+    ];
+
+    // Group logs by Employee -> Day (Current Week)
+    const groupedData = useMemo(() => {
+        const groups = {};
+
+        currentLogs.filter(log => log.category !== 'trade').forEach(log => {
+            // Filter by user permissions
+            const isPrivileged = ['Administrator', 'Buchhaltung', 'Lager'].includes(user?.role);
+            if (!isPrivileged && log.depositor !== user.employeeName) {
+                return;
+            }
+
+            const date = new Date(log.timestamp);
+            const satIndex = (date.getDay() + 1) % 7;
+
+            if (!groups[log.depositor]) {
+                groups[log.depositor] = {
+                    name: log.depositor,
+                    days: Array(7).fill().map(() => ({ logs: [], total: 0 })),
+                    total: 0
+                };
+            }
+
+            const dayGroup = groups[log.depositor].days[satIndex];
+            dayGroup.logs.push(log);
+            const value = (log.price || 0) * (log.quantity || 0);
+            dayGroup.total += value;
+        });
+
+        const result = Object.values(groups);
+        if (user?.employeeName) {
+            result.sort((a, b) => {
+                if (a.name === user.employeeName) return -1;
+                if (b.name === user.employeeName) return 1;
+                return 0;
+            });
+        }
+        return result;
+    }, [currentLogs, user]);
 
     return (
         <div className="animate-fade-in overflow-x-auto pb-12">
