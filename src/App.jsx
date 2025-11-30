@@ -404,7 +404,7 @@ function App() {
                   inventory={inventory}
                   employees={employees}
                   prices={prices}
-                  onAction={(id, qty, dep, price) => handleCheckIn(id, qty, dep, price, 'in', 'trade')}
+                  onAction={(id, qty, dep, price, date) => handleCheckIn(id, qty, dep, price, date, 'in', 'trade')}
                   type="in"
                   title="Einkauf (Ankauf)"
                   label="Verkäufer"
@@ -415,7 +415,7 @@ function App() {
                   inventory={inventory}
                   employees={employees}
                   prices={prices}
-                  onAction={(id, qty, dep, price) => handleCheckOut(id, qty, dep, price, 'out', 'trade')}
+                  onAction={(id, qty, dep, price, date) => handleCheckOut(id, qty, dep, price, date, 'out', 'trade')}
                   type="out"
                   title="Verkauf (Abverkauf)"
                   label="Käufer"
