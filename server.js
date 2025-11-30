@@ -768,12 +768,13 @@ app.delete('/api/recipes/:productId', async (req, res) => {
 
 // UNIFIED TRANSACTION HANDLER
 app.post('/api/transaction', async (req, res) => {
+    let db;
     try {
         const { type, itemId, quantity, depositor, price, category, timestamp } = req.body;
         // type: 'in' (Einlagern) or 'out' (Auslagern)
         // category: 'internal' or 'trade'
 
-        const db = await getDb();
+        db = await getDb();
         await db.run('BEGIN TRANSACTION');
 
         // 1. Update Main Inventory
@@ -846,7 +847,7 @@ app.post('/api/transaction', async (req, res) => {
         res.json({ success: true, log: logEntry });
 
     } catch (error) {
-        await db.run('ROLLBACK');
+        if (db) await db.run('ROLLBACK');
         console.error("Transaction error:", error);
         res.status(500).json({ error: error.message || "Transaction failed" });
     }
