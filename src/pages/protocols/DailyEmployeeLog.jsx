@@ -167,37 +167,56 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                                     <span>{emp.name}</span>
                                     {(user?.role === 'Buchhaltung' || user?.role === 'Administrator') && (
                                         <div className="flex flex-col gap-1">
-                                            {/* Outstanding Balance & Pay Button */}
-                                            {balances[emp.name] > 0 && (
-                                                <div className="flex items-center justify-between bg-amber-900/20 p-1 rounded border border-amber-900/30">
-                                                    <span className="text-[10px] text-amber-400">{formatMoney(balances[emp.name])}</span>
+                                            {/* Outstanding Balance */}
+                                            <div className="flex items-center justify-between bg-amber-900/20 p-1 rounded border border-amber-900/30">
+                                                <span className="text-[10px] text-amber-400">Reste: {formatMoney(balances[emp.name] || 0)}</span>
+                                                {balances[emp.name] > 0 ? (
                                                     <button
                                                         onClick={() => handlePayOutstanding(emp.name)}
                                                         className="text-[9px] bg-amber-700 hover:bg-amber-600 px-1.5 py-0.5 rounded text-white transition-colors"
                                                         title="Reste ausbezahlt"
                                                     >
-                                                        Reste bez.
+                                                        Bez.
                                                     </button>
-                                                </div>
-                                            )}
-
-                                            {/* Close Week / Pay Week Buttons */}
-                                            <div className="flex gap-1">
-                                                <button
-                                                    onClick={() => handleCloseWeek(emp.name, getWeekKey(new Date()))}
-                                                    className="text-[9px] bg-slate-700 hover:bg-slate-600 px-1.5 py-1 rounded text-slate-300 transition-colors flex-1"
-                                                    title="Woche abschließen (zu Ausstehend)"
-                                                >
-                                                    Abschl.
-                                                </button>
-                                                <button
-                                                    onClick={() => handlePayWeek(emp.name, getWeekKey(new Date()))}
-                                                    className="text-[9px] bg-emerald-700 hover:bg-emerald-600 px-1.5 py-1 rounded text-white transition-colors flex-1"
-                                                    title="Woche ausbezahlt"
-                                                >
-                                                    Woche bez.
-                                                </button>
+                                                ) : (
+                                                    <span className="text-[9px] text-amber-500/50">0</span>
+                                                )}
                                             </div>
+
+                                            {/* Current Week Unpaid */}
+                                            {(() => {
+                                                const currentWeekUnpaid = emp.days.reduce((acc, day) => {
+                                                    return acc + day.logs
+                                                        .filter(l => l.status !== 'paid')
+                                                        .reduce((sum, l) => sum + ((l.price || 0) * (l.quantity || 0)), 0);
+                                                }, 0);
+
+                                                return (
+                                                    <div className="flex items-center justify-between bg-emerald-900/20 p-1 rounded border border-emerald-900/30">
+                                                        <span className="text-[10px] text-emerald-400">Woche: {formatMoney(currentWeekUnpaid)}</span>
+                                                        {currentWeekUnpaid > 0 ? (
+                                                            <button
+                                                                onClick={() => handlePayWeek(emp.name, getWeekKey(new Date()))}
+                                                                className="text-[9px] bg-emerald-700 hover:bg-emerald-600 px-1.5 py-0.5 rounded text-white transition-colors"
+                                                                title="Woche ausbezahlt"
+                                                            >
+                                                                Bez.
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-[9px] text-emerald-500/50">0</span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* Close Week Button */}
+                                            <button
+                                                onClick={() => handleCloseWeek(emp.name, getWeekKey(new Date()))}
+                                                className="text-[9px] bg-slate-700 hover:bg-slate-600 px-1.5 py-1 rounded text-slate-300 transition-colors w-full mt-1"
+                                                title="Woche abschließen (zu Ausstehend)"
+                                            >
+                                                Woche Abschl.
+                                            </button>
                                         </div>
                                     )}
                                 </div>
