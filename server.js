@@ -766,6 +766,39 @@ app.delete('/api/recipes/:productId', async (req, res) => {
     }
 });
 
+// POST Logs (Generic logging)
+app.post('/api/logs', async (req, res) => {
+    try {
+        const logEntry = req.body;
+        const db = await getDb();
+
+        const entry = {
+            timestamp: logEntry.timestamp || new Date().toISOString(),
+            type: logEntry.type || 'info',
+            category: logEntry.category || 'general',
+            itemId: logEntry.itemId || null,
+            itemName: logEntry.itemName || null,
+            quantity: logEntry.quantity || 0,
+            depositor: logEntry.depositor || 'System',
+            price: logEntry.price || 0,
+            msg: logEntry.msg || '',
+            time: logEntry.time || new Date().toLocaleTimeString(),
+            status: 'pending'
+        };
+
+        await db.run(
+            'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            entry.timestamp, entry.type, entry.category, entry.itemId, entry.itemName, entry.quantity, entry.depositor, entry.price, entry.msg, entry.time, entry.status
+        );
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error saving log:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
 // UNIFIED TRANSACTION HANDLER
 app.post('/api/transaction', async (req, res) => {
     let db;
@@ -847,7 +880,13 @@ app.post('/api/transaction', async (req, res) => {
         res.json({ success: true, log: logEntry });
 
     } catch (error) {
-        if (db) await db.run('ROLLBACK');
+        if (db) {
+            try {
+                await db.run('ROLLBACK');
+            } catch (rollbackError) {
+                console.error("Rollback failed:", rollbackError);
+            }
+        }
         console.error("Transaction error:", error);
         res.status(500).json({ error: error.message || "Transaction failed" });
     }
