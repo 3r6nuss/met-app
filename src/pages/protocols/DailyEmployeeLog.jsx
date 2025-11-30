@@ -66,7 +66,24 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         const groups = {};
 
         // 1. Process Current Week Logs
-        currentLogs.filter(log => log.category !== 'trade').forEach(log => {
+        // First, find the last payout timestamp for each employee
+        const lastPayouts = {};
+        currentLogs.forEach(log => {
+            if (log.itemName === 'Auszahlung' || (log.category === 'internal' && log.price < 0)) {
+                if (!lastPayouts[log.depositor] || log.timestamp > lastPayouts[log.depositor]) {
+                    lastPayouts[log.depositor] = log.timestamp;
+                }
+            }
+        });
+
+        // Filter logs to only show those AFTER the last payout
+        const filteredLogs = currentLogs.filter(log => {
+            const lastPayout = lastPayouts[log.depositor];
+            if (!lastPayout) return true; // No payout, show all
+            return log.timestamp > lastPayout; // Show only if newer than last payout
+        });
+
+        filteredLogs.filter(log => log.category !== 'trade').forEach(log => {
             if (!groups[log.depositor]) {
                 groups[log.depositor] = {
                     name: log.depositor,
