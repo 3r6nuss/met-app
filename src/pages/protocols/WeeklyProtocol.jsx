@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
+import { Check } from 'lucide-react';
 
-export default function WeeklyProtocol({ logs, user }) {
+export default function WeeklyProtocol({ logs, user, onPayout }) {
     // Helper to get the Saturday that starts the week for a given date
     const getWeekStart = (date) => {
         const d = new Date(date);
@@ -73,9 +74,50 @@ export default function WeeklyProtocol({ logs, user }) {
     // Permission Check
     const isRestrictedView = user?.role === 'Lager' && user?.role !== 'Buchhaltung' && user?.role !== 'Administrator';
 
+    // Calculate Outstanding Wages (Past Weeks)
+    const now = new Date();
+    const outstandingWeeks = processedData.filter(week => {
+        const weekEnd = new Date(week.startDate);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        weekEnd.setHours(23, 59, 59);
+        return weekEnd < now && week.totalAngestellte > 0;
+    });
+
+    const outstandingTotal = outstandingWeeks.reduce((acc, week) => acc + week.totalAngestellte, 0);
+
     return (
         <div className="animate-fade-in overflow-x-auto pb-12">
-            <h2 className="text-2xl font-bold mb-6 text-slate-200">Wochenprotokolle (Übersicht)</h2>
+            <div className="flex justify-between items-end mb-6">
+                <h2 className="text-2xl font-bold text-slate-200">Wochenprotokolle (Übersicht)</h2>
+
+                {!isRestrictedView && outstandingTotal > 0 && (
+                    <div className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                        <div className="text-right">
+                            <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">Offene Lohnzahlung</div>
+                            <div className="text-xl font-bold text-emerald-400">{formatMoney(outstandingTotal)}</div>
+                        </div>
+                        {onPayout && (
+                            <button
+                                onClick={() => {
+                                    if (confirm(`Alle offenen Löhne (${formatMoney(outstandingTotal)}) jetzt auszahlen?`)) {
+                                        const batch = outstandingWeeks.map(week => {
+                                            const payoutDate = new Date(week.startDate);
+                                            payoutDate.setDate(payoutDate.getDate() + 6);
+                                            payoutDate.setHours(23, 59, 59);
+                                            return { amount: week.totalAngestellte, date: payoutDate };
+                                        });
+                                        onPayout(batch);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center gap-2"
+                            >
+                                <Check size={18} />
+                                Alles Auszahlen
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
 
             <div className="min-w-[1000px] border border-slate-700 rounded-lg bg-slate-900/50 overflow-hidden">
                 {/* Header */}
@@ -132,8 +174,24 @@ export default function WeeklyProtocol({ logs, user }) {
                                         {formatMoney(val)}
                                     </div>
                                 ))}
-                                <div className="p-2 font-bold text-emerald-400 text-right flex items-center justify-end bg-emerald-900/10">
+                                <div className="p-2 font-bold text-emerald-400 text-right flex items-center justify-end bg-emerald-900/10 gap-2">
                                     {formatMoney(week.totalAngestellte)}
+                                    {onPayout && week.totalAngestellte > 0 && (
+                                        <button
+                                            onClick={() => {
+                                                if (confirm(`Wochenlohn von ${week.totalAngestellte.toLocaleString()}€ wirklich als ausgezahlt markieren?`)) {
+                                                    const payoutDate = new Date(week.startDate);
+                                                    payoutDate.setDate(payoutDate.getDate() + 6); // Set to Friday
+                                                    payoutDate.setHours(23, 59, 59);
+                                                    onPayout(week.totalAngestellte, payoutDate);
+                                                }
+                                            }}
+                                            className="p-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded shadow-sm transition-colors"
+                                            title="Als ausgezahlt markieren"
+                                        >
+                                            <Check size={14} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -432,7 +432,35 @@ function App() {
           {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} user={user} />} />}
 
           {/* Weekly Protocol: Only Buchhaltung/Admin (Lager removed) */}
-          {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
+          {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} onPayout={(amountOrBatch, date) => {
+            if (Array.isArray(amountOrBatch)) {
+              // Batch mode
+              amountOrBatch.forEach(({ amount, date }) => {
+                const entry = {
+                  msg: 'Wochenlohn Auszahlung (Offen)',
+                  price: -amount,
+                  quantity: 1,
+                  category: 'internal',
+                  timestamp: date.toISOString(),
+                  depositor: user?.username || 'Buchhaltung'
+                };
+                saveLogEntry(entry);
+              });
+              addLog(`${amountOrBatch.length} offene Wochenlöhne ausgezahlt`);
+            } else {
+              // Single mode
+              const entry = {
+                msg: 'Wochenlohn Auszahlung',
+                price: -amountOrBatch,
+                quantity: 1,
+                category: 'internal',
+                timestamp: date.toISOString(),
+                depositor: user?.username || 'Buchhaltung'
+              };
+              saveLogEntry(entry);
+              addLog(`Wochenlohn ausgezahlt: ${amountOrBatch}€`);
+            }
+          }} />} />}
           {isBuchhaltung && <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />}
           {isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 
