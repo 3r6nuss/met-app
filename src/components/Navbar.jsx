@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, ArrowRightLeft, ShieldCheck, ShoppingCart, ChevronDown, FileText, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
+import OutstandingBalance from './OutstandingBalance';
 
 export default function Navbar({ onOpenPriceList, user }) {
     const isAdmin = user?.role === 'Administrator';
@@ -114,6 +115,7 @@ export default function Navbar({ onOpenPriceList, user }) {
             {/* User Profile */}
             {user && (
                 <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-700">
+                    <OutstandingBalance user={user} />
                     <div className="flex items-center gap-2">
                         {user.avatar && (
                             <img

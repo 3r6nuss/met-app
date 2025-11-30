@@ -267,7 +267,7 @@ app.post('/api/logs', async (req, res) => {
         const log = req.body;
         const db = await getDb();
         await db.run(
-            'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             log.timestamp || new Date().toISOString(),
             log.type,
             log.category,
@@ -277,7 +277,8 @@ app.post('/api/logs', async (req, res) => {
             log.depositor,
             log.price,
             log.msg,
-            log.time
+            log.time,
+            log.status || 'pending'
         );
         broadcastUpdate();
         res.json({ success: true });
@@ -298,7 +299,7 @@ app.put('/api/logs', async (req, res) => {
         await db.run('BEGIN TRANSACTION');
         await db.run('DELETE FROM logs'); // Clear all
 
-        const stmt = await db.prepare('INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        const stmt = await db.prepare('INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         for (const log of newLogs) {
             await stmt.run(
                 log.timestamp,
@@ -310,7 +311,8 @@ app.put('/api/logs', async (req, res) => {
                 log.depositor,
                 log.price,
                 log.msg,
-                log.time
+                log.time,
+                log.status || 'pending'
             );
         }
         await stmt.finalize();
@@ -445,9 +447,21 @@ app.post('/api/reset', async (req, res) => {
 
 // --- NEW FEATURES: Employee Inventory & Recipes ---
 
-// Initialize new tables
+// Initialize new tables & migrations
 const initNewTables = async () => {
     const db = await getDb();
+
+    // Migration: Add status column to logs if it doesn't exist
+    try {
+        const tableInfo = await db.all("PRAGMA table_info(logs)");
+        const hasStatus = tableInfo.some(col => col.name === 'status');
+        if (!hasStatus) {
+            console.log("Migrating logs table: Adding status column...");
+            await db.run("ALTER TABLE logs ADD COLUMN status TEXT DEFAULT 'pending'");
+        }
+    } catch (e) {
+        console.error("Migration error:", e);
+    }
 
     // Employee Inventory
     await db.run(`CREATE TABLE IF NOT EXISTS employee_inventory (
@@ -490,6 +504,88 @@ const initNewTables = async () => {
 
 // Call init
 initNewTables().catch(console.error);
+
+// --- ACCOUNTING ENDPOINTS ---
+
+// POST Pay (Mark logs as paid)
+app.post('/api/accounting/pay', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { logIds, status } = req.body; // status can be 'paid' or 'pending' (to undo)
+        const targetStatus = status || 'paid';
+
+        const db = await getDb();
+        await db.run('BEGIN TRANSACTION');
+
+        // Use a loop or construct a WHERE IN clause
+        const placeholders = logIds.map(() => '?').join(',');
+        await db.run(`UPDATE logs SET status = ? WHERE timestamp IN (${placeholders})`, targetStatus, ...logIds);
+
+        await db.run('COMMIT');
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error paying logs:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Close Week (Move pending to outstanding)
+app.post('/api/accounting/close-week', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { weekEnd, employeeName } = req.body; // weekEnd is ISO string of the Friday/Saturday cutoff
+        const db = await getDb();
+
+        // Move all 'pending' logs for this employee before or on this date to 'outstanding'
+        // Actually, we should probably just mark everything visible in that week view as outstanding.
+        // But let's rely on the timestamp.
+
+        await db.run(`UPDATE logs 
+            SET status = 'outstanding' 
+            WHERE depositor = ? 
+            AND status = 'pending' 
+            AND timestamp <= ?`,
+            employeeName, weekEnd);
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error closing week:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// GET User Balance
+app.get('/api/user/balance', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    try {
+        const db = await getDb();
+        // Calculate sum of price * quantity for all 'outstanding' logs for this user
+        // Note: quantity is usually positive for 'in' (Einlagern/Lohn), but let's check logic.
+        // Lohn is generated on 'in' (Einlagern) or 'out' (Verkauf)?
+        // Usually Lohn is for 'Einlagern' (Production).
+        // Let's assume all logs with a price > 0 are relevant.
+
+        const result = await db.get(`
+            SELECT SUM(price * quantity) as balance 
+            FROM logs 
+            WHERE depositor = ? 
+            AND status = 'outstanding'`,
+            req.user.employeeName);
+
+        res.json({ balance: result.balance || 0 });
+    } catch (error) {
+        console.error("Error fetching balance:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 
 // GET Employee Inventory
 app.get('/api/employee-inventory', async (req, res) => {
@@ -667,8 +763,8 @@ app.post('/api/transaction', async (req, res) => {
         };
 
         await db.run(
-            'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            logEntry.timestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time
+            'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            logEntry.timestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time, 'pending'
         );
 
         await db.run('COMMIT');

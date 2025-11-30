@@ -73,17 +73,46 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
         return result;
     }, [logs, user]);
 
-    const toggleDayConfirmation = (employeeName, dayIndex) => {
-        const updatedLogs = logs.map(log => {
-            const date = new Date(log.timestamp);
-            const satIndex = (date.getDay() + 1) % 7;
+    const toggleDayConfirmation = async (employeeName, dayIndex) => {
+        // Find logs for this employee and day
+        // We need to know which logs are in this day group
+        const empGroup = groupedData.find(g => g.name === employeeName);
+        if (!empGroup) return;
+        const dayGroup = empGroup.days[dayIndex];
+        const logIds = dayGroup.logs.map(l => l.timestamp); // timestamp is unique ID here? Ideally use ID if available, but timestamp is used as key often.
+        // In server.js we use timestamp as ID for updates? No, we use it for DELETE.
+        // Let's check server.js... UPDATE logs SET status = ? WHERE timestamp IN ...
+        // Yes, timestamp is used.
 
-            if (log.depositor === employeeName && satIndex === dayIndex) {
-                return { ...log, confirmed: !log.confirmed };
-            }
-            return log;
-        });
-        onUpdateLogs(updatedLogs);
+        // Determine new status
+        // If all are paid, set to pending (undo). If any is pending/outstanding, set to paid.
+        const allPaid = dayGroup.logs.every(l => l.status === 'paid');
+        const newStatus = allPaid ? 'pending' : 'paid';
+
+        try {
+            await fetch('/api/accounting/pay', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ logIds, status: newStatus })
+            });
+            // WebSocket will trigger refresh
+        } catch (err) {
+            console.error("Failed to update status:", err);
+        }
+    };
+
+    const handleCloseWeek = async (employeeName, weekEnd) => {
+        if (!confirm(`Woche für ${employeeName} abschließen? Alle offenen Einträge werden auf "Ausstehend" gesetzt.`)) return;
+
+        try {
+            await fetch('/api/accounting/close-week', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeName, weekEnd })
+            });
+        } catch (err) {
+            console.error("Failed to close week:", err);
+        }
     };
 
     const formatMoney = (amount) => `$${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -112,42 +141,63 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                         <div key={idx} className="group">
                             {/* Summary Row */}
                             <div className="grid grid-cols-[200px_repeat(7,1fr)_100px] bg-slate-800/30 hover:bg-slate-800/80 transition-colors">
-                                <div className="p-3 font-bold text-slate-200 border-r border-slate-700 flex items-center gap-2">
-                                    {emp.name}
+                                <div className="p-3 font-bold text-slate-200 border-r border-slate-700 flex flex-col justify-center gap-2">
+                                    <span>{emp.name}</span>
+                                    {(user?.role === 'Buchhaltung' || user?.role === 'Administrator') && (
+                                        <button
+                                            onClick={() => handleCloseWeek(emp.name, getWeekKey(new Date()))} // Use current week key or the one being viewed
+                                            className="text-[10px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-slate-300 transition-colors w-fit"
+                                        >
+                                            Woche abschließen
+                                        </button>
+                                    )}
                                 </div>
 
-                                {emp.days.map((day, dayIdx) => (
-                                    <div key={dayIdx} className="p-2 border-r border-slate-700 flex flex-col justify-between min-h-[60px] relative">
-                                        {/* Checkbox Top Right */}
-                                        <button
-                                            onClick={() => toggleDayConfirmation(emp.name, dayIdx)}
-                                            className="absolute top-1 right-1 text-slate-500 hover:text-emerald-400 transition-colors"
-                                        >
-                                            {day.logs.length > 0 && (
-                                                day.confirmed
-                                                    ? <CheckSquare className="w-4 h-4 text-emerald-500" />
-                                                    : <Square className="w-4 h-4" />
+                                {emp.days.map((day, dayIdx) => {
+                                    const isPaid = day.logs.length > 0 && day.logs.every(l => l.status === 'paid');
+                                    const hasOutstanding = day.logs.some(l => l.status === 'outstanding');
+
+                                    return (
+                                        <div key={dayIdx} className={`p-2 border-r border-slate-700 flex flex-col justify-between min-h-[60px] relative ${isPaid ? 'bg-emerald-900/10' : ''} ${hasOutstanding ? 'bg-amber-900/10' : ''}`}>
+                                            {/* Checkbox Top Right - Only for Buchhaltung/Admin */}
+                                            {(user?.role === 'Buchhaltung' || user?.role === 'Administrator') && day.logs.length > 0 && (
+                                                <button
+                                                    onClick={() => toggleDayConfirmation(emp.name, dayIdx)}
+                                                    className="absolute top-1 right-1 text-slate-500 hover:text-emerald-400 transition-colors"
+                                                    title={isPaid ? "Als unbezahlt markieren" : "Als bezahlt markieren"}
+                                                >
+                                                    {isPaid
+                                                        ? <CheckSquare className="w-4 h-4 text-emerald-500" />
+                                                        : <Square className="w-4 h-4" />
+                                                    }
+                                                </button>
                                             )}
-                                        </button>
 
-                                        {/* Content */}
-                                        <div className="mt-4 space-y-1">
-                                            {day.logs.map((log, lIdx) => (
-                                                <div key={lIdx} className="text-[10px] flex justify-between text-slate-400 bg-slate-900/50 px-1 rounded">
-                                                    <span className="truncate max-w-[60px]">{log.itemName}</span>
-                                                    <span>{log.quantity}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Daily Total - Visible to Admin, Buchhaltung, or Owner */}
-                                        {day.total > 0 && (user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) && (
-                                            <div className="text-xs font-bold text-emerald-400 text-right mt-1 pt-1 border-t border-slate-700/50">
-                                                {formatMoney(day.total)}
+                                            {/* Content */}
+                                            <div className="mt-4 space-y-1">
+                                                {day.logs.map((log, lIdx) => (
+                                                    <div key={lIdx} className={`text-[10px] flex justify-between px-1 rounded ${log.status === 'paid' ? 'text-emerald-400/70 bg-emerald-900/20' :
+                                                            log.status === 'outstanding' ? 'text-amber-400/70 bg-amber-900/20' :
+                                                                'text-slate-400 bg-slate-900/50'
+                                                        }`}>
+                                                        <span className="truncate max-w-[60px]">{log.itemName}</span>
+                                                        <span>{log.quantity}</span>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        )}
-                                    </div>
-                                ))}
+
+                                            {/* Daily Total */}
+                                            {day.total > 0 && (user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) && (
+                                                <div className={`text-xs font-bold text-right mt-1 pt-1 border-t border-slate-700/50 ${isPaid ? 'text-emerald-500' :
+                                                        hasOutstanding ? 'text-amber-500' :
+                                                            'text-emerald-400'
+                                                    }`}>
+                                                    {formatMoney(day.total)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
 
                                 <div className="p-3 font-bold text-emerald-400 text-right flex items-center justify-end bg-emerald-900/10">
                                     {(user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) &&
