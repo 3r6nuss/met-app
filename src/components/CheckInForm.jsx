@@ -247,15 +247,7 @@ export default function CheckInForm({
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                         <div className="bg-slate-900 border border-red-500/50 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in">
                             <div className="text-center space-y-4">
-                                <h3 className="text-2xl font-bold text-red-500 uppercase tracking-wider">Halt Stop!</h3>
-
-                                <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-red-500/30">
-                                    <img
-                                        src="https://media1.tenor.com/m/lmMiZ3g_pNsAAAAC/halt-stop.gif"
-                                        alt="Halt Stop"
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
+                                <h3 className="text-2xl font-bold text-red-500 uppercase tracking-wider">Achtung</h3>
 
                                 <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
                                     <p className="text-red-200 font-medium text-lg">
