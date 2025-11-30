@@ -30,24 +30,16 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         return { currentLogs: current, pastLogs: past };
     }, [logs, currentWeekStart]);
 
-    // Calculate Outstanding Wages (Past Weeks)
+    // Calculate Outstanding Wages (Past Weeks) per Employee
     const outstandingData = useMemo(() => {
         const groups = {};
         pastLogs.filter(log => log.category !== 'trade').forEach(log => {
-            // Filter by user permissions
-            const isPrivileged = ['Administrator', 'Buchhaltung', 'Lager'].includes(user?.role);
-            if (!isPrivileged && log.depositor !== user.employeeName) {
-                return;
-            }
-
             if (!groups[log.depositor]) groups[log.depositor] = 0;
             const value = (log.price || 0) * (log.quantity || 0);
             groups[log.depositor] += value;
         });
         return groups;
-    }, [pastLogs, user]);
-
-    const outstandingTotal = Object.values(outstandingData).reduce((acc, val) => acc + val, 0);
+    }, [pastLogs]);
 
     const formatMoney = (amount) => `$${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -62,83 +54,77 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         { label: 'Freitag', offset: 6 },
     ];
 
-    // Group logs by Employee -> Day (Current Week)
-    const groupedData = useMemo(() => {
+    // Group logs by Employee -> Day (Current Week) AND Merge with Outstanding
+    const employeeData = useMemo(() => {
         const groups = {};
 
+        // 1. Process Current Week Logs
         currentLogs.filter(log => log.category !== 'trade').forEach(log => {
-            // Filter by user permissions
-            const isPrivileged = ['Administrator', 'Buchhaltung', 'Lager'].includes(user?.role);
-            if (!isPrivileged && log.depositor !== user.employeeName) {
-                return;
-            }
-
-            const date = new Date(log.timestamp);
-            const satIndex = (date.getDay() + 1) % 7;
-
             if (!groups[log.depositor]) {
                 groups[log.depositor] = {
                     name: log.depositor,
                     days: Array(7).fill().map(() => ({ logs: [], total: 0 })),
-                    total: 0
+                    currentTotal: 0,
+                    outstandingTotal: 0
                 };
             }
 
+            const date = new Date(log.timestamp);
+            const satIndex = (date.getDay() + 1) % 7;
             const dayGroup = groups[log.depositor].days[satIndex];
+
             dayGroup.logs.push(log);
             const value = (log.price || 0) * (log.quantity || 0);
             dayGroup.total += value;
+            groups[log.depositor].currentTotal += value;
         });
 
-        const result = Object.values(groups);
+        // 2. Merge Outstanding Data
+        Object.entries(outstandingData).forEach(([name, amount]) => {
+            if (amount === 0) return; // Skip if balanced
+            if (!groups[name]) {
+                groups[name] = {
+                    name: name,
+                    days: Array(7).fill().map(() => ({ logs: [], total: 0 })),
+                    currentTotal: 0,
+                    outstandingTotal: 0
+                };
+            }
+            groups[name].outstandingTotal = amount;
+        });
+
+        // 3. Filter by Permissions & Sort
+        let result = Object.values(groups);
+
+        // Permission Filter
+        const isPrivileged = ['Administrator', 'Buchhaltung', 'Lager'].includes(user?.role);
+        if (!isPrivileged) {
+            result = result.filter(g => g.name === user?.employeeName);
+        }
+
+        // Sort: Current User first, then alphabetical
         if (user?.employeeName) {
             result.sort((a, b) => {
                 if (a.name === user.employeeName) return -1;
                 if (b.name === user.employeeName) return 1;
-                return 0;
+                return a.name.localeCompare(b.name);
             });
+        } else {
+            result.sort((a, b) => a.name.localeCompare(b.name));
         }
+
         return result;
-    }, [currentLogs, user]);
+    }, [currentLogs, outstandingData, user]);
 
     return (
         <div className="animate-fade-in overflow-x-auto pb-12">
             <div className="flex justify-between items-end mb-6">
                 <h2 className="text-2xl font-bold text-slate-200">Wochenprotokoll Mitarbeiter (Lohn)</h2>
-
-                {outstandingTotal > 0 && (user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
-                    <div className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-lg border border-slate-700">
-                        <div className="text-right">
-                            <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">Offene Lohnzahlung (Vergangen)</div>
-                            <div className="text-xl font-bold text-emerald-400">{formatMoney(outstandingTotal)}</div>
-                        </div>
-                        {onPayout && (
-                            <button
-                                onClick={() => {
-                                    if (confirm(`Alle offenen Löhne aus der Vergangenheit (${formatMoney(outstandingTotal)}) jetzt auszahlen?`)) {
-                                        // Create batch payout for each employee with outstanding balance
-                                        const batch = Object.entries(outstandingData).map(([name, amount]) => {
-                                            // Date it to just before current week start to keep it in "Past"
-                                            const payoutDate = new Date(currentWeekStart);
-                                            payoutDate.setSeconds(payoutDate.getSeconds() - 1);
-                                            return { amount, date: payoutDate, depositor: name };
-                                        });
-                                        onPayout(batch);
-                                    }
-                                }}
-                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center gap-2"
-                            >
-                                <Check size={18} />
-                                Alles Auszahlen
-                            </button>
-                        )}
-                    </div>
-                )}
             </div>
 
             <div className="min-w-[1000px] border border-slate-700 rounded-lg bg-slate-900/50">
                 {/* Header */}
-                <div className="grid grid-cols-[200px_repeat(7,1fr)_100px] bg-slate-900 text-slate-400 font-bold text-xs uppercase border-b border-slate-700 sticky top-0 z-10">
+                <div className="grid grid-cols-[200px_repeat(7,1fr)_150px] bg-slate-900 text-slate-400 font-bold text-xs uppercase border-b border-slate-700 sticky top-0 z-10">
                     <div className="p-3 border-r border-slate-700 flex items-center">Mitarbeiter</div>
                     {weekDays.map((day, i) => (
                         <div key={i} className="p-3 border-r border-slate-700 text-center bg-slate-800/50">
@@ -146,75 +132,104 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                         </div>
                     ))}
                     <div className="p-3 text-right flex items-center justify-end bg-emerald-900/20 text-emerald-400">
-                        Gesamt
+                        Status / Offen
                     </div>
                 </div>
 
                 {/* Rows */}
                 <div className="divide-y divide-slate-700">
-                    {groupedData.map((emp, idx) => (
-                        <div key={idx} className="group">
-                            {/* Summary Row */}
-                            <div className="grid grid-cols-[200px_repeat(7,1fr)_100px] bg-slate-800/30 hover:bg-slate-800/80 transition-colors">
-                                <div className="p-3 font-bold text-slate-200 border-r border-slate-700 flex flex-col justify-center gap-2">
-                                    <span>{emp.name}</span>
-                                </div>
+                    {employeeData.map((emp, idx) => {
+                        const totalBalance = emp.currentTotal + emp.outstandingTotal;
+                        const isPaid = totalBalance <= 0;
 
-                                {emp.days.map((day, dayIdx) => {
-                                    return (
+                        return (
+                            <div key={idx} className="group">
+                                <div className="grid grid-cols-[200px_repeat(7,1fr)_150px] bg-slate-800/30 hover:bg-slate-800/80 transition-colors">
+                                    {/* Name */}
+                                    <div className="p-3 font-bold text-slate-200 border-r border-slate-700 flex flex-col justify-center gap-2">
+                                        <span>{emp.name}</span>
+                                    </div>
+
+                                    {/* Days */}
+                                    {emp.days.map((day, dayIdx) => (
                                         <div key={dayIdx} className="p-2 border-r border-slate-700 flex flex-col justify-between min-h-[60px] relative">
-                                            {/* Content */}
-                                            <div className="mt-1 space-y-1">
-                                                {day.logs.map((log, lIdx) => (
-                                                    <div key={lIdx} className="text-[10px] flex justify-between px-1 rounded text-slate-400 bg-slate-900/50">
-                                                        <span className="truncate max-w-[60px]">{log.itemName}</span>
-                                                        <span>{log.quantity}</span>
+                                            {!isPaid && (
+                                                <>
+                                                    <div className="mt-1 space-y-1">
+                                                        {day.logs.map((log, lIdx) => (
+                                                            <div key={lIdx} className="text-[10px] flex justify-between px-1 rounded text-slate-400 bg-slate-900/50">
+                                                                <span className="truncate max-w-[60px]">{log.itemName}</span>
+                                                                <span>{log.quantity}</span>
+                                                            </div>
+                                                        ))}
                                                     </div>
-                                                ))}
+                                                    {day.total > 0 && (
+                                                        <div className="text-xs font-bold text-right mt-1 pt-1 border-t border-slate-700/50 text-emerald-400">
+                                                            {formatMoney(day.total)}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+
+                                    {/* Status / Checkbox */}
+                                    <div className="p-3 font-bold text-emerald-400 text-right flex flex-col items-end justify-center gap-2 bg-emerald-900/10">
+                                        {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
+                                            <div className="flex items-center gap-2">
+                                                {emp.outstandingTotal > 0 && !isPaid && (
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-[10px] text-slate-400 uppercase">Offen</span>
+                                                        <span className="text-red-400">{formatMoney(emp.outstandingTotal)}</span>
+                                                    </div>
+                                                )}
+
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isPaid}
+                                                        onChange={() => {
+                                                            if (!isPaid && onPayout) {
+                                                                if (confirm(`${emp.name}: Gesamten offenen Betrag von ${formatMoney(totalBalance)} auszahlen?`)) {
+                                                                    const batch = [];
+                                                                    // 1. Pay Outstanding (Past)
+                                                                    if (emp.outstandingTotal > 0) {
+                                                                        const payoutDate = new Date(currentWeekStart);
+                                                                        payoutDate.setSeconds(payoutDate.getSeconds() - 1);
+                                                                        batch.push({ amount: emp.outstandingTotal, date: payoutDate, depositor: emp.name });
+                                                                    }
+                                                                    // 2. Pay Current
+                                                                    if (emp.currentTotal > 0) {
+                                                                        batch.push({ amount: emp.currentTotal, date: new Date(), depositor: emp.name });
+                                                                    }
+                                                                    onPayout(batch);
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+                                                        disabled={isPaid} // Disable if already paid (for now, unless undo is needed)
+                                                    />
+                                                </label>
                                             </div>
-
-                                            {/* Daily Total */}
-                                            {day.total > 0 && (user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) && (
-                                                <div className="text-xs font-bold text-right mt-1 pt-1 border-t border-slate-700/50 text-emerald-400">
-                                                    {formatMoney(day.total)}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-
-                                <div className="p-3 font-bold text-emerald-400 text-right flex items-center justify-end bg-emerald-900/10">
-                                    {(user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) && (
-                                        <div className="flex items-center justify-end gap-2">
-                                            {formatMoney(emp.days.reduce((acc, d) => acc + d.total, 0))}
-                                            {onPayout && (user?.role === 'Administrator' || user?.role === 'Buchhaltung') && emp.days.reduce((acc, d) => acc + d.total, 0) > 0 && (
-                                                <button
-                                                    onClick={() => {
-                                                        const total = emp.days.reduce((acc, d) => acc + d.total, 0);
-                                                        if (confirm(`${emp.name}: Wochenlohn von ${formatMoney(total)} auszahlen?`)) {
-                                                            onPayout(total, new Date(), emp.name);
-                                                        }
-                                                    }}
-                                                    className="p-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded shadow-sm transition-colors"
-                                                    title="Wochenlohn auszahlen"
-                                                >
-                                                    <Check size={14} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
+                                        )}
+                                        {!isPaid && (
+                                            <div className="text-sm">
+                                                Summe: {formatMoney(totalBalance)}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
 
-                    {groupedData.length === 0 && (
+                    {employeeData.length === 0 && (
                         <div className="p-8 text-center text-slate-500">
                             Keine Daten für diese Woche vorhanden.
                         </div>
                     )}
                 </div>
             </div>
-        </div >
+        </div>
     );
 }
