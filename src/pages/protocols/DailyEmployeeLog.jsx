@@ -1,18 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronDown, ChevronRight, CheckSquare, Square } from 'lucide-react';
 
 export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
-    // 1. Determine "Current Week" (Sat-Fri)
-    // For simplicity, we'll group ALL logs by week, but initially show the latest week.
-    // A "week" starts on Saturday and ends on Friday.
+    const [balances, setBalances] = useState({});
 
+    // 1. Determine "Current Week" (Sat-Fri)
     const getWeekKey = (date) => {
         const d = new Date(date);
         const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
         // Adjust to Sat-Fri cycle
-        // If day is Sat (6), it's the start of a new week.
-        // If day is Fri (5), it's the end.
-        // We'll use the Saturday's date as the key.
         const diff = day === 6 ? 0 : -(day + 1);
         const saturday = new Date(d);
         saturday.setDate(d.getDate() + diff);
@@ -30,6 +26,16 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
         { label: 'Freitag', offset: 6 },
     ];
 
+    // Fetch balances on mount and when logs change
+    useEffect(() => {
+        if (user?.role === 'Buchhaltung' || user?.role === 'Administrator') {
+            fetch('/api/accounting/balances')
+                .then(res => res.json())
+                .then(setBalances)
+                .catch(err => console.error("Failed to fetch balances:", err));
+        }
+    }, [logs, user]);
+
     // Group logs by Employee -> Day
     const groupedData = useMemo(() => {
         const groups = {};
@@ -42,8 +48,6 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
             }
 
             const date = new Date(log.timestamp);
-            // Native: 0=Sun, 1=Mon, ... 5=Fri, 6=Sat.
-            // We want 0=Sat, 1=Sun, ... 6=Fri.
             const satIndex = (date.getDay() + 1) % 7;
 
             if (!groups[log.depositor]) {
@@ -74,18 +78,11 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
     }, [logs, user]);
 
     const toggleDayConfirmation = async (employeeName, dayIndex) => {
-        // Find logs for this employee and day
-        // We need to know which logs are in this day group
         const empGroup = groupedData.find(g => g.name === employeeName);
         if (!empGroup) return;
         const dayGroup = empGroup.days[dayIndex];
-        const logIds = dayGroup.logs.map(l => l.timestamp); // timestamp is unique ID here? Ideally use ID if available, but timestamp is used as key often.
-        // In server.js we use timestamp as ID for updates? No, we use it for DELETE.
-        // Let's check server.js... UPDATE logs SET status = ? WHERE timestamp IN ...
-        // Yes, timestamp is used.
+        const logIds = dayGroup.logs.map(l => l.timestamp);
 
-        // Determine new status
-        // If all are paid, set to pending (undo). If any is pending/outstanding, set to paid.
         const allPaid = dayGroup.logs.every(l => l.status === 'paid');
         const newStatus = allPaid ? 'pending' : 'paid';
 
@@ -95,7 +92,6 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ logIds, status: newStatus })
             });
-            // WebSocket will trigger refresh
         } catch (err) {
             console.error("Failed to update status:", err);
         }
@@ -112,6 +108,32 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
             });
         } catch (err) {
             console.error("Failed to close week:", err);
+        }
+    };
+
+    const handlePayOutstanding = async (employeeName) => {
+        if (!confirm(`Reste für ${employeeName} als ausbezahlt markieren?`)) return;
+        try {
+            await fetch('/api/accounting/pay-outstanding', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeName })
+            });
+        } catch (err) {
+            console.error("Failed to pay outstanding:", err);
+        }
+    };
+
+    const handlePayWeek = async (employeeName, weekEnd) => {
+        if (!confirm(`Aktuelle Woche für ${employeeName} als ausbezahlt markieren?`)) return;
+        try {
+            await fetch('/api/accounting/pay-week', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeName, weekEnd })
+            });
+        } catch (err) {
+            console.error("Failed to pay week:", err);
         }
     };
 
@@ -144,12 +166,39 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                                 <div className="p-3 font-bold text-slate-200 border-r border-slate-700 flex flex-col justify-center gap-2">
                                     <span>{emp.name}</span>
                                     {(user?.role === 'Buchhaltung' || user?.role === 'Administrator') && (
-                                        <button
-                                            onClick={() => handleCloseWeek(emp.name, getWeekKey(new Date()))} // Use current week key or the one being viewed
-                                            className="text-[10px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-slate-300 transition-colors w-fit"
-                                        >
-                                            Woche abschließen
-                                        </button>
+                                        <div className="flex flex-col gap-1">
+                                            {/* Outstanding Balance & Pay Button */}
+                                            {balances[emp.name] > 0 && (
+                                                <div className="flex items-center justify-between bg-amber-900/20 p-1 rounded border border-amber-900/30">
+                                                    <span className="text-[10px] text-amber-400">{formatMoney(balances[emp.name])}</span>
+                                                    <button
+                                                        onClick={() => handlePayOutstanding(emp.name)}
+                                                        className="text-[9px] bg-amber-700 hover:bg-amber-600 px-1.5 py-0.5 rounded text-white transition-colors"
+                                                        title="Reste ausbezahlt"
+                                                    >
+                                                        Reste bez.
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Close Week / Pay Week Buttons */}
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => handleCloseWeek(emp.name, getWeekKey(new Date()))}
+                                                    className="text-[9px] bg-slate-700 hover:bg-slate-600 px-1.5 py-1 rounded text-slate-300 transition-colors flex-1"
+                                                    title="Woche abschließen (zu Ausstehend)"
+                                                >
+                                                    Abschl.
+                                                </button>
+                                                <button
+                                                    onClick={() => handlePayWeek(emp.name, getWeekKey(new Date()))}
+                                                    className="text-[9px] bg-emerald-700 hover:bg-emerald-600 px-1.5 py-1 rounded text-white transition-colors flex-1"
+                                                    title="Woche ausbezahlt"
+                                                >
+                                                    Woche bez.
+                                                </button>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
 

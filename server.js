@@ -560,6 +560,80 @@ app.post('/api/accounting/close-week', async (req, res) => {
     }
 });
 
+// POST Pay Outstanding (Mark all outstanding as paid)
+app.post('/api/accounting/pay-outstanding', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { employeeName } = req.body;
+        const db = await getDb();
+
+        await db.run(`UPDATE logs 
+            SET status = 'paid' 
+            WHERE depositor = ? 
+            AND status = 'outstanding'`,
+            employeeName);
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error paying outstanding:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Pay Week (Mark pending logs in week as paid)
+app.post('/api/accounting/pay-week', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { employeeName, weekEnd } = req.body;
+        const db = await getDb();
+
+        // Mark 'pending' logs <= weekEnd as 'paid'
+        await db.run(`UPDATE logs 
+            SET status = 'paid' 
+            WHERE depositor = ? 
+            AND status = 'pending' 
+            AND timestamp <= ?`,
+            employeeName, weekEnd);
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error paying week:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// GET All Balances (for Buchhaltung view)
+app.get('/api/accounting/balances', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const db = await getDb();
+        const rows = await db.all(`
+            SELECT depositor, SUM(price * quantity) as balance 
+            FROM logs 
+            WHERE status = 'outstanding' 
+            GROUP BY depositor
+        `);
+
+        const balances = {};
+        rows.forEach(row => {
+            balances[row.depositor] = row.balance;
+        });
+
+        res.json(balances);
+    } catch (error) {
+        console.error("Error fetching balances:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
 // GET User Balance
 app.get('/api/user/balance', async (req, res) => {
     if (!req.isAuthenticated()) {
