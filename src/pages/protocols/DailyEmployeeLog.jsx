@@ -187,7 +187,7 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                                             {(() => {
                                                 const currentWeekUnpaid = emp.days.reduce((acc, day) => {
                                                     return acc + day.logs
-                                                        .filter(l => l.status !== 'paid')
+                                                        .filter(l => l.status !== 'paid' && l.status !== 'outstanding')
                                                         .reduce((sum, l) => sum + ((l.price || 0) * (l.quantity || 0)), 0);
                                                 }, 0);
 
@@ -245,8 +245,8 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                                             <div className="mt-4 space-y-1">
                                                 {day.logs.map((log, lIdx) => (
                                                     <div key={lIdx} className={`text-[10px] flex justify-between px-1 rounded ${log.status === 'paid' ? 'text-emerald-400/70 bg-emerald-900/20' :
-                                                            log.status === 'outstanding' ? 'text-amber-400/70 bg-amber-900/20' :
-                                                                'text-slate-400 bg-slate-900/50'
+                                                        log.status === 'outstanding' ? 'text-amber-400/70 bg-amber-900/20' :
+                                                            'text-slate-400 bg-slate-900/50'
                                                         }`}>
                                                         <span className="truncate max-w-[60px]">{log.itemName}</span>
                                                         <span>{log.quantity}</span>
@@ -257,8 +257,8 @@ export default function DailyEmployeeLog({ logs, onUpdateLogs, user }) {
                                             {/* Daily Total */}
                                             {day.total > 0 && (user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) && (
                                                 <div className={`text-xs font-bold text-right mt-1 pt-1 border-t border-slate-700/50 ${isPaid ? 'text-emerald-500' :
-                                                        hasOutstanding ? 'text-amber-500' :
-                                                            'text-emerald-400'
+                                                    hasOutstanding ? 'text-amber-500' :
+                                                        'text-emerald-400'
                                                     }`}>
                                                     {formatMoney(day.total)}
                                                 </div>
