@@ -442,7 +442,8 @@ function App() {
                   quantity: 1,
                   category: 'internal',
                   timestamp: date.toISOString(),
-                  depositor: depositor || 'Buchhaltung'
+                  depositor: depositor || 'Buchhaltung',
+                  itemName: 'Auszahlung'
                 };
                 saveLogEntry(entry);
               });
@@ -455,7 +456,8 @@ function App() {
                 quantity: 1,
                 category: 'internal',
                 timestamp: date.toISOString(),
-                depositor: depositor || user?.username || 'Buchhaltung'
+                depositor: depositor || user?.username || 'Buchhaltung',
+                itemName: 'Auszahlung'
               };
               saveLogEntry(entry);
               addLog(`Wochenlohn ausgezahlt: ${amountOrBatch}€ (${depositor})`);

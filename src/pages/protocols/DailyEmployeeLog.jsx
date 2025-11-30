@@ -165,7 +165,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                                                     <div className="mt-1 space-y-1">
                                                         {day.logs.map((log, lIdx) => (
                                                             <div key={lIdx} className="text-[10px] flex justify-between px-1 rounded text-slate-400 bg-slate-900/50">
-                                                                <span className="truncate max-w-[60px]">{log.itemName}</span>
+                                                                <span className="truncate max-w-[60px]">{log.itemName || 'Auszahlung'}</span>
                                                                 <span>{log.quantity}</span>
                                                             </div>
                                                         ))}
