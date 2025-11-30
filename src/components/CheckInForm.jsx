@@ -100,8 +100,8 @@ export default function CheckInForm({
             date: selectedDate ? new Date(selectedDate).toISOString() : null
         };
 
-        // Check for notes
-        if (selectedItem) {
+        // Check for notes (only for Einkauf, not Einlagern)
+        if (selectedItem && !title.includes("Einlagern")) {
             const priceItem = prices.find(p => p.name === selectedItem.name);
             if (priceItem && priceItem.note) {
                 const noteLower = priceItem.note.toLowerCase();
