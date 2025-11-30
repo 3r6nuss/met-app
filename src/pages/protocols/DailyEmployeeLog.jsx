@@ -30,16 +30,23 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         return { currentLogs: current, pastLogs: past };
     }, [logs, currentWeekStart]);
 
-    // Calculate Outstanding Wages (Past Weeks) per Employee
+    // Calculate Outstanding Wages (Past Weeks) per Employee - LIMITED TO LAST 7 DAYS
     const outstandingData = useMemo(() => {
         const groups = {};
-        pastLogs.filter(log => log.category !== 'trade').forEach(log => {
+        // Calculate 7 days before current week start
+        const lastWeekStart = new Date(currentWeekStart);
+        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+        pastLogs.filter(log => {
+            const logDate = new Date(log.timestamp);
+            return log.category !== 'trade' && logDate >= lastWeekStart;
+        }).forEach(log => {
             if (!groups[log.depositor]) groups[log.depositor] = 0;
             const value = (log.price || 0) * (log.quantity || 0);
             groups[log.depositor] += value;
         });
         return groups;
-    }, [pastLogs]);
+    }, [pastLogs, currentWeekStart]);
 
     const formatMoney = (amount) => `$${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
