@@ -39,6 +39,13 @@ export default function Navbar({ onOpenPriceList, user }) {
                             <ChevronDown className="w-4 h-4 ml-1" />
                         </button>
                         <div className="absolute left-0 mt-2 w-full min-w-[200px] bg-slate-900 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2">
+                            {/* Einlagern: Buchhaltung/Admin */}
+                            {isBuchhaltung && (
+                                <>
+                                    <NavLink to="/buchung/einlagern" className={dropdownItemClass}>Einlagern</NavLink>
+                                    <div className="h-px bg-slate-800 my-1"></div>
+                                </>
+                            )}
                             {isLager && (
                                 <>
                                     {/* Lager darf NICHT einlagern, nur Auslagern */}
@@ -50,13 +57,6 @@ export default function Navbar({ onOpenPriceList, user }) {
                                     {isLager && <div className="h-px bg-slate-800 my-1"></div>}
                                     <NavLink to="/buchung/einkauf" className={dropdownItemClass}>Einkauf (Ankauf)</NavLink>
                                     <NavLink to="/buchung/verkauf" className={dropdownItemClass}>Verkauf (Abverkauf)</NavLink>
-                                </>
-                            )}
-                            {/* Admin/Buchhaltung can Einlagern? If needed, add here. Assuming only they can now. */}
-                            {isBuchhaltung && (
-                                <>
-                                    <div className="h-px bg-slate-800 my-1"></div>
-                                    <NavLink to="/buchung/einlagern" className={dropdownItemClass}>Einlagern</NavLink>
                                 </>
                             )}
                         </div>

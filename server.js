@@ -769,7 +769,7 @@ app.delete('/api/recipes/:productId', async (req, res) => {
 // UNIFIED TRANSACTION HANDLER
 app.post('/api/transaction', async (req, res) => {
     try {
-        const { type, itemId, quantity, depositor, price, category } = req.body;
+        const { type, itemId, quantity, depositor, price, category, timestamp } = req.body;
         // type: 'in' (Einlagern) or 'out' (Auslagern)
         // category: 'internal' or 'trade'
 
@@ -824,7 +824,7 @@ app.post('/api/transaction', async (req, res) => {
 
         // 3. Log Transaction
         const logEntry = {
-            timestamp: new Date().toISOString(),
+            timestamp: timestamp || new Date().toISOString(),
             type,
             category,
             itemId,

@@ -10,7 +10,7 @@ export default function ActionPage({ inventory, employees, prices = [], onAction
                     inventory={inventory}
                     employees={employees}
                     prices={prices}
-                    onCheckIn={onAction}
+                    onCheckIn={(id, qty, dep, price, date) => onAction(id, qty, dep, price, date)}
                     title={title}
                     depositorLabel={label}
                     showPrice={showPrice}
@@ -20,7 +20,7 @@ export default function ActionPage({ inventory, employees, prices = [], onAction
                     inventory={inventory}
                     employees={employees}
                     prices={prices}
-                    onCheckOut={onAction}
+                    onCheckOut={(id, qty, dep, price, date) => onAction(id, qty, dep, price, date)}
                     title={title}
                     depositorLabel={label}
                     showPrice={showPrice}

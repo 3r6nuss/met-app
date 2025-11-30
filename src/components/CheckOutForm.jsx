@@ -16,6 +16,14 @@ export default function CheckOutForm({
     const [showCustomInput, setShowCustomInput] = useState(false);
     const [quantity, setQuantity] = useState('');
     const [price, setPrice] = useState('');
+    const [selectedDate, setSelectedDate] = useState('');
+
+    useEffect(() => {
+        // Set default date to now (local time for input)
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        setSelectedDate(now.toISOString().slice(0, 16));
+    }, []);
 
     const selectedItem = useMemo(() => inventory.find(i => i.id === parseInt(selectedId)), [selectedId, inventory]);
 
@@ -50,8 +58,9 @@ export default function CheckOutForm({
 
         const finalDepositor = showCustomInput ? customName : depositor;
         const finalPrice = showPrice ? (parseFloat(price) || 0) : 0;
+        const finalDate = selectedDate ? new Date(selectedDate).toISOString() : null;
 
-        onCheckOut(parseInt(selectedId), parseInt(quantity), finalDepositor, finalPrice);
+        onCheckOut(parseInt(selectedId), parseInt(quantity), finalDepositor, finalPrice, finalDate);
         setQuantity('');
         setDepositor('');
         setCustomName('');
@@ -84,6 +93,16 @@ export default function CheckOutForm({
                             </option>
                         ))}
                     </select>
+                </div>
+
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Datum & Zeit</label>
+                    <input
+                        type="datetime-local"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="w-full glass-input rounded-lg px-4 py-2.5 text-slate-200"
+                    />
                 </div>
 
                 <div className="space-y-1">

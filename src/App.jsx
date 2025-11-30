@@ -153,7 +153,7 @@ function App() {
     }).catch(err => console.error("Failed to save log:", err));
   };
 
-  const handleCheckIn = (id, quantity, depositor, price = 0, type = 'in', category = 'internal') => {
+  const handleCheckIn = (id, quantity, depositor, price = 0, customDate = null, type = 'in', category = 'internal') => {
     const item = inventory.find(i => i.id === id);
     if (!item) return;
 
@@ -166,7 +166,8 @@ function App() {
         itemId: id,
         quantity,
         depositor: depositor || 'Unbekannt',
-        price
+        price,
+        timestamp: customDate
       })
     })
       .then(res => res.json())
@@ -186,7 +187,7 @@ function App() {
       });
   };
 
-  const handleCheckOut = (id, quantity, depositor, price = 0, type = 'out', category = 'internal') => {
+  const handleCheckOut = (id, quantity, depositor, price = 0, customDate = null, type = 'out', category = 'internal') => {
     const item = inventory.find(i => i.id === id);
     if (!item) return;
 
@@ -199,7 +200,8 @@ function App() {
         itemId: id,
         quantity,
         depositor: depositor || 'Unbekannt',
-        price
+        price,
+        timestamp: customDate
       })
     })
       .then(res => res.json())
@@ -369,7 +371,7 @@ function App() {
                 inventory={inventory}
                 employees={employees}
                 prices={prices}
-                onAction={(id, qty, dep, price) => handleCheckIn(id, qty, dep, price, 'in', 'internal')}
+                onAction={(id, qty, dep, price, date) => handleCheckIn(id, qty, dep, price, date, 'in', 'internal')}
                 type="in"
                 title="Einlagern"
                 label="Mitarbeiter"
@@ -385,7 +387,7 @@ function App() {
                 inventory={inventory}
                 employees={employees}
                 prices={prices}
-                onAction={(id, qty, dep, price) => handleCheckOut(id, qty, dep, price, 'out', 'internal')}
+                onAction={(id, qty, dep, price, date) => handleCheckOut(id, qty, dep, price, date, 'out', 'internal')}
                 type="out"
                 title="Auslagern"
                 label="Mitarbeiter"
