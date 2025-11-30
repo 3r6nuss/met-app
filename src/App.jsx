@@ -18,6 +18,7 @@ import PriceListModal from './components/PriceListModal';
 import Login from './components/Login';
 import { Activity } from 'lucide-react';
 import UserManagement from './components/UserManagement';
+import CalculatorPage from './pages/CalculatorPage';
 
 const API_URL = '/api';
 
@@ -423,6 +424,9 @@ function App() {
               } />
             </>
           )}
+
+          {/* Calculator Route */}
+          <Route path="/buchung/rechner" element={<CalculatorPage prices={prices} />} />
 
           {/* Redirect old routes */}
           <Route path="/buchung" element={<Navigate to={isLager ? "/buchung/auslagern" : "/"} replace />} />

@@ -59,6 +59,8 @@ export default function Navbar({ onOpenPriceList, user }) {
                                     <NavLink to="/buchung/verkauf" className={dropdownItemClass}>Verkauf (Abverkauf)</NavLink>
                                 </>
                             )}
+                            <div className="h-px bg-slate-800 my-1"></div>
+                            <NavLink to="/buchung/rechner" className={dropdownItemClass}>Rechner</NavLink>
                         </div>
                     </div>
                 )}
