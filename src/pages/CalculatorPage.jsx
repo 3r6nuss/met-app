@@ -12,9 +12,6 @@ export default function CalculatorPage({ prices = [] }) {
     const availableProducts = useMemo(() => {
         return prices.filter(p => {
             const price = p[priceType];
-            // Check if price exists and is a number (or convertible string)
-            // Some lohn values might be ranges like "50/80", we need to handle that or filter them out
-            // For now, we'll try to parse it. If it's not a simple number, we might exclude it or take the first value.
             return price && price !== "" && price !== "-";
         });
     }, [prices, priceType]);
@@ -35,21 +32,22 @@ export default function CalculatorPage({ prices = [] }) {
 
     const getPriceValue = (priceStr) => {
         if (!priceStr) return 0;
-        // Handle ranges like "50/80" - take the higher one? or average? 
-        // Let's take the first one for simplicity for now, or maybe the max?
-        // If it's a string with non-numeric chars, try to extract.
         const cleanStr = String(priceStr).split('/')[0].trim();
         return parseFloat(cleanStr) || 0;
     };
 
-    const calculateQuantity = (priceStr) => {
+    // Calculate allocated budget per item
+    const allocatedBudget = useMemo(() => {
         const budgetVal = parseFloat(budget);
         if (!budgetVal || budgetVal <= 0) return 0;
+        if (selectedProducts.length === 0) return budgetVal;
+        return budgetVal / selectedProducts.length;
+    }, [budget, selectedProducts.length]);
 
+    const calculateQuantity = (priceStr) => {
         const price = getPriceValue(priceStr);
         if (price <= 0) return 0;
-
-        return Math.floor(budgetVal / price);
+        return Math.floor(allocatedBudget / price);
     };
 
     const toggleSelectAll = () => {
@@ -124,6 +122,16 @@ export default function CalculatorPage({ prices = [] }) {
                                 <span className="text-sm text-slate-400">Ausgewählt:</span>
                                 <span className="text-sm font-bold text-white">{selectedProducts.length} Produkte</span>
                             </div>
+
+                            {selectedProducts.length > 0 && (
+                                <div className="mb-4 p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg">
+                                    <div className="flex justify-between text-sm mb-1">
+                                        <span className="text-slate-400">Budget pro Item:</span>
+                                        <span className="text-white font-mono">${Math.floor(allocatedBudget).toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            )}
+
                             {selectedProducts.length > 0 && (
                                 <button
                                     onClick={() => setSelectedProducts([])}
