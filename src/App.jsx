@@ -429,36 +429,34 @@ function App() {
           {/* Protokolle Routes */}
           {isBuchhaltung && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
 
-          {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} user={user} />} />}
-
-          {/* Weekly Protocol: Only Buchhaltung/Admin (Lager removed) */}
-          {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} onPayout={(amountOrBatch, date) => {
+          {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
+          {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} user={user} onPayout={(amountOrBatch, date, depositor) => {
             if (Array.isArray(amountOrBatch)) {
-              // Batch mode
-              amountOrBatch.forEach(({ amount, date }) => {
+              // Batch mode (Outstanding Wages)
+              amountOrBatch.forEach(({ amount, date, depositor }) => {
                 const entry = {
                   msg: 'Wochenlohn Auszahlung (Offen)',
                   price: -amount,
                   quantity: 1,
                   category: 'internal',
                   timestamp: date.toISOString(),
-                  depositor: user?.username || 'Buchhaltung'
+                  depositor: depositor || 'Buchhaltung'
                 };
                 saveLogEntry(entry);
               });
               addLog(`${amountOrBatch.length} offene Wochenlöhne ausgezahlt`);
             } else {
-              // Single mode
+              // Single mode (Current Week Employee Payout)
               const entry = {
                 msg: 'Wochenlohn Auszahlung',
                 price: -amountOrBatch,
                 quantity: 1,
                 category: 'internal',
                 timestamp: date.toISOString(),
-                depositor: user?.username || 'Buchhaltung'
+                depositor: depositor || user?.username || 'Buchhaltung'
               };
               saveLogEntry(entry);
-              addLog(`Wochenlohn ausgezahlt: ${amountOrBatch}€`);
+              addLog(`Wochenlohn ausgezahlt: ${amountOrBatch}€ (${depositor})`);
             }
           }} />} />}
           {isBuchhaltung && <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />}

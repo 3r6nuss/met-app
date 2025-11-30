@@ -1,61 +1,88 @@
 import React, { useMemo } from 'react';
+import { Check } from 'lucide-react';
 
-export default function DailyEmployeeLog({ logs, user }) {
-    // 1. Determine "Current Week" (Sat-Fri)
-    const weekDays = [
-        { label: 'Samstag', offset: 0 },
-        { label: 'Sonntag', offset: 1 },
-        { label: 'Montag', offset: 2 },
-        { label: 'Dienstag', offset: 3 },
-        { label: 'Mittwoch', offset: 4 },
-        { label: 'Donnerstag', offset: 5 },
-        { label: 'Freitag', offset: 6 },
-    ];
+export default function DailyEmployeeLog({ logs, user, onPayout }) {
+    // Helper to get current week start (Saturday)
+    const getCurrentWeekStart = () => {
+        const now = new Date();
+        const day = now.getDay(); // 0=Sun, 6=Sat
+        const diff = day === 6 ? 0 : -(day + 1);
+        const saturday = new Date(now);
+        saturday.setDate(now.getDate() + diff);
+        saturday.setHours(0, 0, 0, 0);
+        return saturday;
+    };
 
-    // Group logs by Employee -> Day
-    const groupedData = useMemo(() => {
+    const currentWeekStart = getCurrentWeekStart();
+
+    // Split logs into Current Week and Past Weeks (Outstanding)
+    const { currentLogs, pastLogs } = useMemo(() => {
+        const current = [];
+        const past = [];
+        logs.forEach(log => {
+            const date = new Date(log.timestamp);
+            if (date >= currentWeekStart) {
+                current.push(log);
+            } else {
+                past.push(log);
+            }
+        });
+        return { currentLogs: current, pastLogs: past };
+    }, [logs, currentWeekStart]);
+
+    // Calculate Outstanding Wages (Past Weeks)
+    const outstandingData = useMemo(() => {
         const groups = {};
-
-        logs.filter(log => log.category !== 'trade').forEach(log => {
+        pastLogs.filter(log => log.category !== 'trade').forEach(log => {
             // Filter by user permissions
             const isPrivileged = ['Administrator', 'Buchhaltung', 'Lager'].includes(user?.role);
             if (!isPrivileged && log.depositor !== user.employeeName) {
                 return;
             }
 
-            const date = new Date(log.timestamp);
-            const satIndex = (date.getDay() + 1) % 7;
-
-            if (!groups[log.depositor]) {
-                groups[log.depositor] = {
-                    name: log.depositor,
-                    days: Array(7).fill().map(() => ({ logs: [], total: 0 })),
-                    total: 0
-                };
-            }
-
-            const dayGroup = groups[log.depositor].days[satIndex];
-            dayGroup.logs.push(log);
+            if (!groups[log.depositor]) groups[log.depositor] = 0;
             const value = (log.price || 0) * (log.quantity || 0);
-            dayGroup.total += value;
+            groups[log.depositor] += value;
         });
-
-        const result = Object.values(groups);
-        if (user?.employeeName) {
-            result.sort((a, b) => {
-                if (a.name === user.employeeName) return -1;
-                if (b.name === user.employeeName) return 1;
-                return 0;
-            });
-        }
-        return result;
-    }, [logs, user]);
+        return groups;
+    }, [pastLogs, user]);
 
     const formatMoney = (amount) => `$${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
     return (
         <div className="animate-fade-in overflow-x-auto pb-12">
-            <h2 className="text-2xl font-bold mb-6 text-slate-200">Wochenprotokoll Mitarbeiter (Lohn)</h2>
+            <div className="flex justify-between items-end mb-6">
+                <h2 className="text-2xl font-bold text-slate-200">Wochenprotokoll Mitarbeiter (Lohn)</h2>
+
+                {outstandingTotal > 0 && (user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
+                    <div className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                        <div className="text-right">
+                            <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">Offene Lohnzahlung (Vergangen)</div>
+                            <div className="text-xl font-bold text-emerald-400">{formatMoney(outstandingTotal)}</div>
+                        </div>
+                        {onPayout && (
+                            <button
+                                onClick={() => {
+                                    if (confirm(`Alle offenen Löhne aus der Vergangenheit (${formatMoney(outstandingTotal)}) jetzt auszahlen?`)) {
+                                        // Create batch payout for each employee with outstanding balance
+                                        const batch = Object.entries(outstandingData).map(([name, amount]) => {
+                                            // Date it to just before current week start to keep it in "Past"
+                                            const payoutDate = new Date(currentWeekStart);
+                                            payoutDate.setSeconds(payoutDate.getSeconds() - 1);
+                                            return { amount, date: payoutDate, depositor: name };
+                                        });
+                                        onPayout(batch);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center gap-2"
+                            >
+                                <Check size={18} />
+                                Alles Auszahlen
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
 
             <div className="min-w-[1000px] border border-slate-700 rounded-lg bg-slate-900/50">
                 {/* Header */}
@@ -105,9 +132,25 @@ export default function DailyEmployeeLog({ logs, user }) {
                                 })}
 
                                 <div className="p-3 font-bold text-emerald-400 text-right flex items-center justify-end bg-emerald-900/10">
-                                    {(user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) &&
-                                        formatMoney(emp.days.reduce((acc, d) => acc + d.total, 0))
-                                    }
+                                    {(user?.role === 'Administrator' || user?.role === 'Buchhaltung' || emp.name === user?.employeeName) && (
+                                        <div className="flex items-center justify-end gap-2">
+                                            {formatMoney(emp.days.reduce((acc, d) => acc + d.total, 0))}
+                                            {onPayout && (user?.role === 'Administrator' || user?.role === 'Buchhaltung') && emp.days.reduce((acc, d) => acc + d.total, 0) > 0 && (
+                                                <button
+                                                    onClick={() => {
+                                                        const total = emp.days.reduce((acc, d) => acc + d.total, 0);
+                                                        if (confirm(`${emp.name}: Wochenlohn von ${formatMoney(total)} auszahlen?`)) {
+                                                            onPayout(total, new Date(), emp.name);
+                                                        }
+                                                    }}
+                                                    className="p-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded shadow-sm transition-colors"
+                                                    title="Wochenlohn auszahlen"
+                                                >
+                                                    <Check size={14} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -120,6 +163,6 @@ export default function DailyEmployeeLog({ logs, user }) {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

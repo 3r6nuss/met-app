@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { Check } from 'lucide-react';
 
-export default function WeeklyProtocol({ logs, user, onPayout }) {
+export default function WeeklyProtocol({ logs, user }) {
+
     // Helper to get the Saturday that starts the week for a given date
     const getWeekStart = (date) => {
         const d = new Date(date);
