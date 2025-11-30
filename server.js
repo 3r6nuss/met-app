@@ -786,10 +786,32 @@ app.post('/api/logs', async (req, res) => {
             status: 'pending'
         };
 
-        await db.run(
-            'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            entry.timestamp, entry.type, entry.category, entry.itemId, entry.itemName, entry.quantity, entry.depositor, entry.price, entry.msg, entry.time, entry.status
-        );
+        // Retry loop for log insertion to handle timestamp collisions
+        let logInserted = false;
+        let retries = 0;
+        let currentTimestamp = entry.timestamp;
+
+        while (!logInserted && retries < 5) {
+            try {
+                await db.run(
+                    'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    currentTimestamp, entry.type, entry.category, entry.itemId, entry.itemName, entry.quantity, entry.depositor, entry.price, entry.msg, entry.time, entry.status
+                );
+                logInserted = true;
+            } catch (err) {
+                if (err.code === 'SQLITE_CONSTRAINT' && err.message.includes('logs.timestamp')) {
+                    // Collision detected, add 1ms and retry
+                    const date = new Date(currentTimestamp);
+                    date.setMilliseconds(date.getMilliseconds() + 1 + Math.floor(Math.random() * 10)); // Add random 1-10ms
+                    currentTimestamp = date.toISOString();
+                    retries++;
+                } else {
+                    throw err; // Re-throw other errors
+                }
+            }
+        }
+
+        if (!logInserted) throw new Error("Failed to generate unique timestamp for log");
 
         broadcastUpdate();
         res.json({ success: true });
@@ -870,10 +892,32 @@ app.post('/api/transaction', async (req, res) => {
             time: new Date().toLocaleTimeString()
         };
 
-        await db.run(
-            'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            logEntry.timestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time, 'pending'
-        );
+        // Retry loop for log insertion to handle timestamp collisions
+        let logInserted = false;
+        let retries = 0;
+        let currentTimestamp = logEntry.timestamp;
+
+        while (!logInserted && retries < 5) {
+            try {
+                await db.run(
+                    'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    currentTimestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time, 'pending'
+                );
+                logInserted = true;
+            } catch (err) {
+                if (err.code === 'SQLITE_CONSTRAINT' && err.message.includes('logs.timestamp')) {
+                    // Collision detected, add 1ms and retry
+                    const date = new Date(currentTimestamp);
+                    date.setMilliseconds(date.getMilliseconds() + 1 + Math.floor(Math.random() * 10)); // Add random 1-10ms
+                    currentTimestamp = date.toISOString();
+                    retries++;
+                } else {
+                    throw err; // Re-throw other errors
+                }
+            }
+        }
+
+        if (!logInserted) throw new Error("Failed to generate unique timestamp for log");
 
         await db.run('COMMIT');
         broadcastUpdate();
