@@ -27,7 +27,7 @@ export default function OrderList({ orders, onUpdateStatus, onDelete, user }) {
                 <div
                     key={order.id}
                     className={cn(
-                        "relative p-4 rounded-lg border-l-4 bg-slate-900 transition-all hover:bg-slate-800",
+                        "relative p-4 rounded-lg border-l-4 bg-slate-800 transition-all hover:bg-slate-700",
                         getStatusColor(order.status)
                     )}
                 >
