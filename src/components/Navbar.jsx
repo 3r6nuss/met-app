@@ -39,31 +39,26 @@ export default function Navbar({ onOpenPriceList, user }) {
                             <ChevronDown className="w-4 h-4 ml-1" />
                         </button>
                         <div className="absolute left-0 mt-2 w-full min-w-[200px] bg-slate-900 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2">
-                            {/* Einlagern: Lager & Buchhaltung/Admin */}
+                            {/* Einlagern & Auslagern: Lager & Buchhaltung/Admin */}
                             {(isLager || isBuchhaltung) && (
                                 <>
                                     <NavLink to="/buchung/einlagern" className={dropdownItemClass}>Einlagern</NavLink>
-                                    <div className="h-px bg-slate-800 my-1"></div>
+                                    {isLager && <NavLink to="/buchung/auslagern" className={dropdownItemClass}>Auslagern</NavLink>}
                                 </>
                             )}
-                            {isLager && (
-                                <>
-                                    <NavLink to="/buchung/auslagern" className={dropdownItemClass}>Auslagern</NavLink>
-                                </>
-                            )}
+
+                            {/* Divider if we have previous items AND next items */}
+                            {(isLager || isBuchhaltung) && (isHaendler || isBuchhaltung) && <div className="h-px bg-slate-800 my-1"></div>}
+
+                            {/* Trade & Auftrag: Händler & Buchhaltung/Admin */}
                             {(isHaendler || isBuchhaltung) && (
                                 <>
-                                    {isLager && <div className="h-px bg-slate-800 my-1"></div>}
                                     <NavLink to="/buchung/einkauf" className={dropdownItemClass}>Einkauf (Ankauf)</NavLink>
                                     <NavLink to="/buchung/verkauf" className={dropdownItemClass}>Verkauf (Abverkauf)</NavLink>
+                                    <div className="h-px bg-slate-800 my-1"></div>
+                                    <NavLink to="/buchung/auftrag" className={dropdownItemClass}>Auftrag erstellen</NavLink>
                                 </>
                             )}
-                            <div className="h-px bg-slate-800 my-1"></div>
-                            {(isHaendler || isBuchhaltung) && (
-                                <NavLink to="/buchung/auftrag" className={dropdownItemClass}>Auftrag erstellen</NavLink>
-                            )}
-                            <div className="h-px bg-slate-800 my-1"></div>
-                            <NavLink to="/buchung/rechner" className={dropdownItemClass}>Rechner</NavLink>
                         </div>
                     </div>
                 )}
@@ -84,12 +79,6 @@ export default function Navbar({ onOpenPriceList, user }) {
                                     <div className="h-px bg-slate-800 my-1"></div>
                                     <NavLink to="/protokolle/weekly" className={dropdownItemClass}>Wochenprotokolle</NavLink>
                                     <NavLink to="/protokolle/period" className={dropdownItemClass}>Zeitraum Protokolle (Monat/Jahr)</NavLink>
-                                </>
-                            )}
-                            {isLager && (
-                                <>
-                                    <div className="h-px bg-slate-800 my-1"></div>
-                                    <NavLink to="/protokolle/storage" className={dropdownItemClass}>Lagerprotokoll</NavLink>
                                 </>
                             )}
                         </div>
