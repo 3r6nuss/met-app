@@ -465,9 +465,9 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                                     <div className="flex items-center gap-3">
                                         <Circle
                                             className={`w-5 h-5 ${item.priority === 'high' ? 'text-red-500 fill-red-500' :
-                                                    item.priority === 'medium' ? 'text-orange-500 fill-orange-500' :
-                                                        item.priority === 'low' ? 'text-green-500 fill-green-500' :
-                                                            'text-slate-600'
+                                                item.priority === 'medium' ? 'text-orange-500 fill-orange-500' :
+                                                    item.priority === 'low' ? 'text-green-500 fill-green-500' :
+                                                        'text-slate-600'
                                                 }`}
                                         />
                                         <span className="text-slate-200 font-medium">{item.name}</span>
@@ -479,11 +479,11 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                                                     method: 'PUT',
                                                     headers: { 'Content-Type': 'application/json' },
                                                     body: JSON.stringify({ priority: 'high' })
-                                                }).then(() => window.location.reload());
+                                                });
                                             }}
                                             className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'high'
-                                                    ? 'bg-red-600 text-white'
-                                                    : 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
+                                                ? 'bg-red-600 text-white'
+                                                : 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
                                                 }`}
                                         >
                                             Rot
@@ -494,11 +494,11 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                                                     method: 'PUT',
                                                     headers: { 'Content-Type': 'application/json' },
                                                     body: JSON.stringify({ priority: 'medium' })
-                                                }).then(() => window.location.reload());
+                                                });
                                             }}
                                             className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'medium'
-                                                    ? 'bg-orange-600 text-white'
-                                                    : 'bg-orange-600/20 text-orange-400 hover:bg-orange-600/30'
+                                                ? 'bg-orange-600 text-white'
+                                                : 'bg-orange-600/20 text-orange-400 hover:bg-orange-600/30'
                                                 }`}
                                         >
                                             Orange
@@ -509,11 +509,11 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                                                     method: 'PUT',
                                                     headers: { 'Content-Type': 'application/json' },
                                                     body: JSON.stringify({ priority: 'low' })
-                                                }).then(() => window.location.reload());
+                                                });
                                             }}
                                             className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'low'
-                                                    ? 'bg-green-600 text-white'
-                                                    : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
+                                                ? 'bg-green-600 text-white'
+                                                : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
                                                 }`}
                                         >
                                             Grün
@@ -524,7 +524,7 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                                                     method: 'PUT',
                                                     headers: { 'Content-Type': 'application/json' },
                                                     body: JSON.stringify({ priority: null })
-                                                }).then(() => window.location.reload());
+                                                });
                                             }}
                                             className="px-3 py-1 rounded text-xs bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
                                         >
