@@ -7,8 +7,8 @@ export default function OrderList({ orders, onUpdateStatus, onDelete, user }) {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'done': return 'border-emerald-500/50 text-emerald-200 bg-emerald-900/10';
-            case 'open': return 'border-amber-500/50 text-amber-200 bg-amber-900/10';
+            case 'done': return 'border-emerald-500/50 text-emerald-200';
+            case 'open': return 'border-amber-500/50 text-amber-200';
             default: return 'border-slate-500/50 text-slate-200';
         }
     };
