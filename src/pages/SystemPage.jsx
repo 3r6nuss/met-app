@@ -128,9 +128,9 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
             .then(res => res.json())
             .then(data => {
                 if (data.success) alert("Backup erfolgreich erstellt!");
-                else alert("Backup fehlgeschlagen!");
+                else alert("Backup fehlgeschlagen: " + (data.error || "Unbekannter Fehler"));
             })
-            .catch(err => alert("Fehler: " + err));
+            .catch(err => alert("Netzwerkfehler: " + err));
     };
 
     const handleResetDatabase = () => {

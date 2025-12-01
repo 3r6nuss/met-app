@@ -1034,11 +1034,10 @@ app.post('/api/transaction', async (req, res) => {
 
 // POST Backup
 app.post('/api/backup', async (req, res) => {
-    // SQLite backup is just copying the file
     try {
         const backupDir = path.join(__dirname, 'backups');
-        // fs/promises is not imported, need to import it or use sync methods if we want to keep it simple
-        // But let's stick to the pattern.
+        // Use dynamic import for fs/promises to keep it compatible if top-level await is an issue (though it shouldn't be in modules)
+        // or just to match the style.
         const fs = (await import('fs/promises')).default;
 
         await fs.mkdir(backupDir, { recursive: true });
@@ -1049,10 +1048,10 @@ app.post('/api/backup', async (req, res) => {
         await fs.copyFile(dbPath, backupPath);
 
         console.log(`${new Date().toISOString()} - Backup created at ${backupPath}`);
-        res.json({ success: true, message: "Backup created successfully" });
+        res.json({ success: true, message: "Backup created successfully", path: backupPath });
     } catch (error) {
         console.error("Backup failed:", error);
-        res.status(500).json({ error: "Backup failed" });
+        res.status(500).json({ error: "Backup failed: " + error.message });
     }
 });
 
