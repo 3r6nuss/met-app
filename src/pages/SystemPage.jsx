@@ -455,207 +455,178 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
 
 
                 {/* Priority Management (Buchhaltung/Admin Only) */}
-                {activeTab === 'priorities' && (isAdmin || user?.role === 'Buchhaltung') && (
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-300 mb-4">Prioritäten verwalten</h3>
-                        <p className="text-slate-400 text-sm mb-6">Lege die Priorität für Lagerartikel fest. Die Farben werden im Inventar angezeigt.</p>
-                        <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-                            {inventory.map((item) => (
-                                <div key={item.id} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 flex justify-between items-center hover:bg-slate-800/50 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <Circle
-                                            className={`w-5 h-5 ${item.priority === 'high' ? 'text-red-500 fill-red-500' :
-                                                item.priority === 'medium' ? 'text-orange-500 fill-orange-500' :
-                                                    item.priority === 'low' ? 'text-green-500 fill-green-500' :
-                                                        'text-slate-600'
-                                                }`}
-                                        />
-                                        <span className="text-slate-200 font-medium">{item.name}</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => {
-                                                fetch(`/api/inventory/${item.id}/priority`, {
-                                                    method: 'PUT',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ priority: 'high' })
+                headers: {'Content-Type': 'application/json' },
+                body: JSON.stringify({priority: 'high' })
                                                 });
                                             }}
-                                            className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'high'
-                                                ? 'bg-red-600 text-white'
-                                                : 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
-                                                }`}
+                className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'high'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
+                    }`}
                                         >
-                                            Rot
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                fetch(`/api/inventory/${item.id}/priority`, {
-                                                    method: 'PUT',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ priority: 'medium' })
-                                                });
-                                            }}
-                                            className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'medium'
-                                                ? 'bg-orange-600 text-white'
-                                                : 'bg-orange-600/20 text-orange-400 hover:bg-orange-600/30'
-                                                }`}
-                                        >
-                                            Orange
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                fetch(`/api/inventory/${item.id}/priority`, {
-                                                    method: 'PUT',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ priority: 'low' })
-                                                });
-                                            }}
-                                            className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'low'
-                                                ? 'bg-green-600 text-white'
-                                                : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
-                                                }`}
-                                        >
-                                            Grün
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                fetch(`/api/inventory/${item.id}/priority`, {
-                                                    method: 'PUT',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ priority: null })
-                                                });
-                                            }}
-                                            className="px-3 py-1 rounded text-xs bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
-                                        >
-                                            Keine
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                Rot
+            </button>
+            <button
+                onClick={() => {
+                    fetch(`/api/inventory/${item.id}/priority`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ priority: 'medium' })
+                    });
+                }}
+                className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'medium'
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-orange-600/20 text-orange-400 hover:bg-orange-600/30'
+                    }`}
+            >
+                Orange
+            </button>
+            <button
+                onClick={() => {
+                    fetch(`/api/inventory/${item.id}/priority`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ priority: 'low' })
+                    });
+                }}
+                className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'low'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
+                    }`}
+            >
+                Grün
+            </button>
+            <button
+                onClick={() => {
+                    fetch(`/api/inventory/${item.id}/priority`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ priority: null })
+                    });
+                }}
+                className="px-3 py-1 rounded text-xs bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
+            >
+                Keine
+            </button>
+        </div>
+                                </div >
+                            ))
+}
+                        </div >
+                    </div >
                 )}
 
-                {/* System Actions (Admin Only) */}
-                {activeTab === 'system' && isAdmin && (
-                    <div className="space-y-6">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-300 mb-4">Datenbank & Backup</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                <button
-                                    onClick={handleBackup}
-                                    className="flex items-center justify-center gap-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/50 p-6 rounded-xl transition-all group"
-                                >
-                                    <Save className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                                    <div className="text-left">
-                                        <div className="font-bold">Backup erstellen</div>
-                                        <div className="text-xs opacity-70">Sichert die aktuelle Datenbank</div>
-                                    </div>
-                                </button>
+{/* System Actions (Admin Only) */ }
+{
+    activeTab === 'system' && isAdmin && (
+        <div className="space-y-6">
+            <div>
+                <h3 className="text-lg font-bold text-slate-300 mb-4">Datenbank & Backup</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <button
+                        onClick={handleBackup}
+                        className="flex items-center justify-center gap-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/50 p-6 rounded-xl transition-all group"
+                    >
+                        <Save className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                        <div className="text-left">
+                            <div className="font-bold">Backup erstellen</div>
+                            <div className="text-xs opacity-70">Sichert die aktuelle Datenbank</div>
+                        </div>
+                    </button>
 
-                                <button
-                                    onClick={handleResetDatabase}
-                                    className="flex items-center justify-center gap-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50 p-6 rounded-xl transition-all group"
-                                >
-                                    <RefreshCw className="w-8 h-8 group-hover:rotate-180 transition-transform duration-500" />
-                                    <div className="text-left">
-                                        <div className="font-bold">System Reset</div>
-                                        <div className="text-xs opacity-70">Löscht ALLE Daten (Vorsicht!)</div>
-                                    </div>
-                                </button>
+                    <button
+                        onClick={handleResetDatabase}
+                        className="flex items-center justify-center gap-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50 p-6 rounded-xl transition-all group"
+                    >
+                        <RefreshCw className="w-8 h-8 group-hover:rotate-180 transition-transform duration-500" />
+                        <div className="text-left">
+                            <div className="font-bold">System Reset</div>
+                            <div className="text-xs opacity-70">Löscht ALLE Daten (Vorsicht!)</div>
+                        </div>
+                    </button>
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-emerald-400" />
+                    Verfügbare Backups
+                </h3>
+
+                {loadingBackups ? (
+                    <div className="text-slate-500 italic">Lade Backups...</div>
+                ) : (
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                        {backups.map((backup) => (
+                            <div key={backup.name} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 flex justify-between items-center hover:bg-slate-800/50 transition-colors">
+                                <div>
+                                    <button
+                                        onClick={() => handleDeleteBackup(backup.name)}
+                                        className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+                                        title="Löschen"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
-
-                            <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-emerald-400" />
-                                Verfügbare Backups
-                            </h3>
-
-                            {loadingBackups ? (
-                                <div className="text-slate-500 italic">Lade Backups...</div>
-                            ) : (
-                                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                                    {backups.map((backup) => (
-                                        <div key={backup.name} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 flex justify-between items-center hover:bg-slate-800/50 transition-colors">
-                                            <div>
-                                                <div className="font-medium text-slate-200">{backup.name}</div>
-                                                <div className="text-xs text-slate-500">
-                                                    {new Date(backup.created).toLocaleString()} • {(backup.size / 1024).toFixed(1)} KB
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => handleRestoreBackup(backup.name)}
-                                                    className="px-3 py-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-600/50 rounded text-xs transition-colors"
-                                                >
-                                                    Wiederherstellen
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteBackup(backup.name)}
-                                                    className="p-2 text-slate-500 hover:text-red-400 transition-colors"
-                                                    title="Löschen"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {backups.length === 0 && (
-                                        <div className="text-center text-slate-500 py-4">Keine Backups gefunden.</div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Log Management (Admin Only) */}
-                {activeTab === 'logs' && isAdmin && (
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
-                            <FileText className="w-5 h-5" />
-                            Letzte System-Logs ({logs.length})
-                        </h3>
-                        <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-                            {logs.map((log, idx) => (
-                                <div key={idx} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 text-sm hover:bg-slate-800/50 transition-colors group">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className="text-xs text-slate-500">
-                                            {new Date(log.timestamp).toLocaleString()}
-                                        </span>
-                                        <button
-                                            onClick={() => onDeleteLog(log.timestamp)}
-                                            className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                                            title="Eintrag löschen"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        {log.type === 'in' ? (
-                                            <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
-                                        ) : (
-                                            <ArrowUpRight className="w-4 h-4 text-amber-400" />
-                                        )}
-                                        <span className="font-medium text-slate-200">
-                                            {log.quantity}x {log.itemName}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-slate-400">{log.depositor}</span>
-                                        <span className="text-slate-500 font-mono">
-                                            ${(log.price || 0).toLocaleString()}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                            {logs.length === 0 && (
-                                <div className="text-center text-slate-500 py-8">Keine Logs vorhanden.</div>
-                            )}
-                        </div>
+                        ))}
+                        {backups.length === 0 && (
+                            <div className="text-center text-slate-500 py-4">Keine Backups gefunden.</div>
+                        )}
                     </div>
                 )}
             </div>
         </div>
+    )
+}
+
+{/* Log Management (Admin Only) */ }
+{
+    activeTab === 'logs' && isAdmin && (
+        <div>
+            <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Letzte System-Logs ({logs.length})
+            </h3>
+            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
+                {logs.map((log, idx) => (
+                    <div key={idx} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 text-sm hover:bg-slate-800/50 transition-colors group">
+                        <div className="flex justify-between items-start mb-1">
+                            <span className="text-xs text-slate-500">
+                                {new Date(log.timestamp).toLocaleString()}
+                            </span>
+                            <button
+                                onClick={() => onDeleteLog(log.timestamp)}
+                                className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                                title="Eintrag löschen"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1">
+                            {log.type === 'in' ? (
+                                <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
+                            ) : (
+                                <ArrowUpRight className="w-4 h-4 text-amber-400" />
+                            )}
+                            <span className="font-medium text-slate-200">
+                                {log.quantity}x {log.itemName}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400">{log.depositor}</span>
+                            <span className="text-slate-500 font-mono">
+                                ${(log.price || 0).toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+                ))}
+                {logs.length === 0 && (
+                    <div className="text-center text-slate-500 py-8">Keine Logs vorhanden.</div>
+                )}
+            </div>
+        </div>
+    )
+}
+            </div >
+        </div >
     );
 }
