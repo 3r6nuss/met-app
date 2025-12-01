@@ -420,8 +420,8 @@ function App() {
           } />
 
           {/* Buchung Routes */}
-          {/* Einlagern: Only Buchhaltung/Admin (Lager removed) */}
-          {isBuchhaltung && (
+          {/* Einlagern: Lager & Buchhaltung/Admin */}
+          {(isLager || isBuchhaltung) && (
             <Route path="/buchung/einlagern" element={
               <ActionPage
                 inventory={inventory}
@@ -452,8 +452,8 @@ function App() {
             } />
           )}
 
-          {/* Auftrag: Lager & Buchhaltung/Admin */}
-          {(isLager || isBuchhaltung) && (
+          {/* Auftrag: Händler & Buchhaltung/Admin (Lager removed) */}
+          {(isHaendler || isBuchhaltung) && (
             <Route path="/buchung/auftrag" element={
               <div className="animate-fade-in">
                 <CreateOrderForm inventory={inventory} onSubmit={handleCreateOrder} />
