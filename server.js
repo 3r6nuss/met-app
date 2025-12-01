@@ -875,6 +875,9 @@ app.post('/api/transaction', async (req, res) => {
                         WHERE employee_name = ? AND item_id = ?`,
                         quantity, depositor, itemId);
                 }
+
+                // Cleanup: Remove items with 0 quantity
+                await db.run('DELETE FROM employee_inventory WHERE employee_name = ? AND quantity <= 0', depositor);
             }
         }
 
