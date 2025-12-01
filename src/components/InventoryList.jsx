@@ -15,6 +15,13 @@ export default function InventoryList({ inventory, isEditMode, onUpdateStock }) 
         return 'border-emerald-500/50 text-emerald-200';
     };
 
+    const getPriorityBackground = (item) => {
+        if (item.priority === 'high') return 'bg-red-900/30 border-red-700';
+        if (item.priority === 'medium') return 'bg-orange-900/30 border-orange-700';
+        if (item.priority === 'low') return 'bg-green-900/30 border-green-700';
+        return 'bg-slate-800';
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-24">
             {columns.map((colItems, colIndex) => (
@@ -32,21 +39,12 @@ export default function InventoryList({ inventory, isEditMode, onUpdateStock }) 
                             <div
                                 key={item.id}
                                 className={cn(
-                                    "grid grid-cols-[2fr_1fr_1fr] gap-2 p-3 rounded bg-slate-800 items-center transition-colors hover:bg-slate-700 border-l-4",
-                                    getStatusColor(item)
+                                    "grid grid-cols-[2fr_1fr_1fr] gap-2 p-3 rounded items-center transition-colors hover:bg-slate-700 border-l-4",
+                                    getStatusColor(item),
+                                    getPriorityBackground(item)
                                 )}
                             >
-                                <div className="flex items-center gap-2">
-                                    {item.priority && (
-                                        <div className={cn(
-                                            "w-2 h-2 rounded-full",
-                                            item.priority === 'high' ? 'bg-red-500' :
-                                                item.priority === 'medium' ? 'bg-orange-500' :
-                                                    'bg-green-500'
-                                        )} />
-                                    )}
-                                    <span className="font-medium text-slate-200 truncate">{item.name}</span>
-                                </div>
+                                <div className="font-medium text-slate-200 truncate">{item.name}</div>
 
                                 <div className="text-right">
                                     {isEditMode ? (
