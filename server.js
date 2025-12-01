@@ -1032,6 +1032,139 @@ app.post('/api/transaction', async (req, res) => {
     }
 });
 
+// POST Backup
+app.post('/api/backup', async (req, res) => {
+    try {
+        // Database is located in /app/data/database.sqlite in Docker (and ./data/database.sqlite locally)
+        const dbPath = path.join(__dirname, 'data', 'database.sqlite');
+
+        // Save backups to /app/data/backups so they persist in the volume
+        const backupDir = path.join(__dirname, 'data', 'backups');
+
+        // Use dynamic import for fs/promises to keep it compatible if top-level await is an issue (though it shouldn't be in modules)
+        // or just to match the style.
+        const fs = (await import('fs/promises')).default;
+
+        await fs.mkdir(backupDir, { recursive: true });
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupPath = path.join(backupDir, `database_${timestamp}.sqlite`);
+
+        await fs.copyFile(dbPath, backupPath);
+
+        console.log(`${new Date().toISOString()} - Backup created at ${backupPath}`);
+        res.json({ success: true, message: "Backup created successfully", path: backupPath });
+    } catch (error) {
+        console.error("Backup failed:", error);
+        res.status(500).json({ error: "Backup failed: " + error.message });
+    }
+});
+
+// GET Backups
+app.get('/api/backups', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const backupDir = path.join(__dirname, 'data', 'backups');
+        const fs = (await import('fs/promises')).default;
+
+        // Check if dir exists
+        try {
+            await fs.access(backupDir);
+        } catch {
+            return res.json([]); // No backups yet
+        }
+
+        const files = await fs.readdir(backupDir);
+        const backups = [];
+
+        for (const file of files) {
+            if (file.endsWith('.sqlite')) {
+                const stats = await fs.stat(path.join(backupDir, file));
+                backups.push({
+                    name: file,
+                    size: stats.size,
+                    created: stats.birthtime
+                });
+            }
+        }
+
+        // Sort by creation time desc
+        backups.sort((a, b) => new Date(b.created) - new Date(a.created));
+
+        res.json(backups);
+    } catch (error) {
+        console.error("Error fetching backups:", error);
+        res.status(500).json({ error: "Failed to fetch backups" });
+    }
+});
+
+// POST Restore Backup
+app.post('/api/restore', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { filename } = req.body;
+        if (!filename) return res.status(400).json({ error: "Filename required" });
+
+        const backupPath = path.join(__dirname, 'data', 'backups', filename);
+        const dbPath = path.join(__dirname, 'data', 'database.sqlite');
+        const fs = (await import('fs/promises')).default;
+
+        // Verify backup exists
+        try {
+            await fs.access(backupPath);
+        } catch {
+            return res.status(404).json({ error: "Backup file not found" });
+        }
+
+        console.log(`Restoring backup from ${backupPath}...`);
+
+        // 1. Close DB Connection
+        await closeDb();
+
+        // 2. Replace DB File
+        await fs.copyFile(backupPath, dbPath);
+
+        // 3. Re-open DB (handled by next request to getDb)
+        // But let's verify it opens
+        await getDb();
+
+        console.log("Restore successful.");
+        broadcastUpdate();
+        res.json({ success: true, message: "Restore successful" });
+    } catch (error) {
+        console.error("Restore failed:", error);
+        res.status(500).json({ error: "Restore failed: " + error.message });
+    }
+});
+
+// DELETE Backup
+app.delete('/api/backups/:filename', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { filename } = req.params;
+        const backupPath = path.join(__dirname, 'data', 'backups', filename);
+        const fs = (await import('fs/promises')).default;
+
+        await fs.unlink(backupPath);
+
+        console.log(`Deleted backup ${filename}`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Delete backup failed:", error);
+        res.status(500).json({ error: "Delete failed: " + error.message });
+    }
+});
+
+// Catch-all for SPA (Express 5 compatible)
+app.get(/.*/, (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 const server = http.createServer(app);
 
 // Setup WebSocket Server
