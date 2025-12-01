@@ -29,7 +29,7 @@ export default function UserManagement({ employees = [] }) {
         fetch(`/api/users/${user.discordId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role: user.role, employeeName: user.employeeName, isHaendler: user.isHaendler })
+            body: JSON.stringify({ role: user.role, employeeName: user.employeeName, isHaendler: user.isHaendler, isLagerist: user.isLagerist })
         })
             .then(res => res.json())
             .then(() => alert('Gespeichert!'))
@@ -104,6 +104,15 @@ export default function UserManagement({ employees = [] }) {
                                             className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-violet-600 focus:ring-violet-500"
                                         />
                                         <span className="text-sm">Händler</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer mt-1">
+                                        <input
+                                            type="checkbox"
+                                            checked={user.isLagerist === 1 || user.isLagerist === true}
+                                            onChange={(e) => handleUpdate(user.discordId, 'isLagerist', e.target.checked ? 1 : 0)}
+                                            className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-violet-600 focus:ring-violet-500"
+                                        />
+                                        <span className="text-sm">Lagerist</span>
                                     </label>
                                 </td>
                                 <td className="p-3">

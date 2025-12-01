@@ -132,10 +132,10 @@ app.get('/api/users', async (req, res) => {
 app.put('/api/users/:discordId', async (req, res) => {
     if (req.isAuthenticated() && req.user.role === 'Administrator') {
         try {
-            const { role, employeeName, isHaendler } = req.body;
+            const { role, employeeName, isHaendler, isLagerist } = req.body;
             const { discordId } = req.params;
             const db = await getDb();
-            await db.run('UPDATE users SET role = ?, employeeName = ?, isHaendler = ? WHERE discordId = ?', role, employeeName, isHaendler, discordId);
+            await db.run('UPDATE users SET role = ?, employeeName = ?, isHaendler = ?, isLagerist = ? WHERE discordId = ?', role, employeeName, isHaendler, isLagerist, discordId);
             broadcastUpdate();
             res.json({ success: true });
         } catch (error) {

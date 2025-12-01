@@ -344,7 +344,7 @@ function App() {
 
   const isAdmin = user.role === 'Administrator';
   const isBuchhaltung = user.role === 'Buchhaltung' || isAdmin;
-  const isLager = user.role === 'Lager' || isBuchhaltung;
+  const isLager = (user?.isLagerist === 1 || user?.isLagerist === true) || user.role === 'Lager' || isBuchhaltung;
   const isHaendler = (user?.isHaendler === 1 || user?.isHaendler === true) || user?.role === 'Händler' || isBuchhaltung;
   const isPending = user.role === 'Pending';
 

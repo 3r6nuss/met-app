@@ -71,7 +71,8 @@ export async function getDb() {
             avatar TEXT,
             role TEXT DEFAULT 'Benutzer',
             employeeName TEXT,
-            isHaendler BOOLEAN DEFAULT 0
+            isHaendler BOOLEAN DEFAULT 0,
+            isLagerist BOOLEAN DEFAULT 0
         );
     `);
 
@@ -82,6 +83,12 @@ export async function getDb() {
         if (!hasIsHaendler) {
             await dbInstance.run("ALTER TABLE users ADD COLUMN isHaendler BOOLEAN DEFAULT 0");
             console.log("Migrated database: Added isHaendler column to users table.");
+        }
+
+        const hasIsLagerist = tableInfo.some(col => col.name === 'isLagerist');
+        if (!hasIsLagerist) {
+            await dbInstance.run("ALTER TABLE users ADD COLUMN isLagerist BOOLEAN DEFAULT 0");
+            console.log("Migrated database: Added isLagerist column to users table.");
         }
     } catch (error) {
         console.error("Migration error:", error);
