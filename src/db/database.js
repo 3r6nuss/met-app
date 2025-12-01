@@ -89,3 +89,11 @@ export async function getDb() {
 
     return dbInstance;
 }
+
+export async function closeDb() {
+    if (dbInstance) {
+        await dbInstance.close();
+        dbInstance = null;
+        console.log("Database connection closed.");
+    }
+}

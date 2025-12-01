@@ -123,14 +123,72 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
         }
     };
 
+    const [backups, setBackups] = useState([]);
+    const [loadingBackups, setLoadingBackups] = useState(false);
+
+    const fetchBackups = () => {
+        setLoadingBackups(true);
+        fetch('/api/backups')
+            .then(res => res.json())
+            .then(data => {
+                setBackups(data);
+                setLoadingBackups(false);
+            })
+            .catch(err => {
+                console.error("Failed to fetch backups:", err);
+                setLoadingBackups(false);
+            });
+    };
+
+    useEffect(() => {
+        if (activeTab === 'system') {
+            fetchBackups();
+        }
+    }, [activeTab]);
+
     const handleBackup = () => {
         fetch('/api/backup', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
-                if (data.success) alert("Backup erfolgreich erstellt!");
+                if (data.success) {
+                    alert("Backup erfolgreich erstellt!");
+                    fetchBackups(); // Refresh list
+                }
                 else alert("Backup fehlgeschlagen: " + (data.error || "Unbekannter Fehler"));
             })
             .catch(err => alert("Netzwerkfehler: " + err));
+    };
+
+    const handleRestoreBackup = (filename) => {
+        if (window.confirm(`WARNUNG: Möchtest du wirklich das Backup "${filename}" wiederherstellen? \n\nALLE aktuellen Daten gehen verloren und werden durch das Backup ersetzt!`)) {
+            fetch('/api/restore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Wiederherstellung erfolgreich! Die Seite wird neu geladen.");
+                        window.location.reload();
+                    } else {
+                        alert("Fehler bei Wiederherstellung: " + (data.error || "Unbekannter Fehler"));
+                    }
+                })
+                .catch(err => alert("Netzwerkfehler: " + err));
+        }
+    };
+
+    const handleDeleteBackup = (filename) => {
+        if (window.confirm(`Backup "${filename}" wirklich löschen?`)) {
+            fetch(`/api/backups/${filename}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) fetchBackups();
+                    else alert("Fehler beim Löschen: " + (data.error || "Unbekannter Fehler"));
+                })
+                .catch(err => alert("Netzwerkfehler: " + err));
+        }
     };
 
     const handleResetDatabase = () => {
@@ -388,7 +446,7 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                     <div className="space-y-6">
                         <div>
                             <h3 className="text-lg font-bold text-slate-300 mb-4">Datenbank & Backup</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                                 <button
                                     onClick={handleBackup}
                                     className="flex items-center justify-center gap-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/50 p-6 rounded-xl transition-all group"
@@ -411,6 +469,46 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                                     </div>
                                 </button>
                             </div>
+
+                            <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-emerald-400" />
+                                Verfügbare Backups
+                            </h3>
+
+                            {loadingBackups ? (
+                                <div className="text-slate-500 italic">Lade Backups...</div>
+                            ) : (
+                                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                                    {backups.map((backup) => (
+                                        <div key={backup.name} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 flex justify-between items-center hover:bg-slate-800/50 transition-colors">
+                                            <div>
+                                                <div className="font-medium text-slate-200">{backup.name}</div>
+                                                <div className="text-xs text-slate-500">
+                                                    {new Date(backup.created).toLocaleString()} • {(backup.size / 1024).toFixed(1)} KB
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleRestoreBackup(backup.name)}
+                                                    className="px-3 py-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-600/50 rounded text-xs transition-colors"
+                                                >
+                                                    Wiederherstellen
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteBackup(backup.name)}
+                                                    className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+                                                    title="Löschen"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {backups.length === 0 && (
+                                        <div className="text-center text-slate-500 py-4">Keine Backups gefunden.</div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

@@ -6,7 +6,7 @@ import session from 'express-session';
 import passport from 'passport';
 import { Strategy as DiscordStrategy } from 'passport-discord';
 import dotenv from 'dotenv';
-import { getDb } from './src/db/database.js';
+import { getDb, closeDb } from './src/db/database.js';
 import { initialInventory } from './src/data/initialData.js';
 import { initialPrices } from './src/data/initialPrices.js';
 import { initialEmployees } from './src/data/initialEmployees.js';
@@ -1032,39 +1032,6 @@ app.post('/api/transaction', async (req, res) => {
     }
 });
 
-// POST Backup
-app.post('/api/backup', async (req, res) => {
-    try {
-        // Database is located in /app/data/database.sqlite in Docker (and ./data/database.sqlite locally)
-        const dbPath = path.join(__dirname, 'data', 'database.sqlite');
-
-        // Save backups to /app/data/backups so they persist in the volume
-        const backupDir = path.join(__dirname, 'data', 'backups');
-
-        // Use dynamic import for fs/promises to keep it compatible if top-level await is an issue (though it shouldn't be in modules)
-        // or just to match the style.
-        const fs = (await import('fs/promises')).default;
-
-        await fs.mkdir(backupDir, { recursive: true });
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const backupPath = path.join(backupDir, `database_${timestamp}.sqlite`);
-
-        await fs.copyFile(dbPath, backupPath);
-
-        console.log(`${new Date().toISOString()} - Backup created at ${backupPath}`);
-        res.json({ success: true, message: "Backup created successfully", path: backupPath });
-    } catch (error) {
-        console.error("Backup failed:", error);
-        res.status(500).json({ error: "Backup failed: " + error.message });
-    }
-});
-
-// Catch-all for SPA (Express 5 compatible)
-app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-// Create HTTP server
 const server = http.createServer(app);
 
 // Setup WebSocket Server
