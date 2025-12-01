@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PackagePlus, DollarSign } from 'lucide-react';
+import { recipes } from '../data/recipes';
 
 export default function CheckInForm({
     inventory,
@@ -17,6 +18,7 @@ export default function CheckInForm({
     const [quantity, setQuantity] = useState('');
     const [price, setPrice] = useState('');
     const [isReturn, setIsReturn] = useState(false);
+    const [isSelfCollected, setIsSelfCollected] = useState(false);
     const [showWarningModal, setShowWarningModal] = useState(false);
     const [warningMessage, setWarningMessage] = useState('');
     const [pendingSubmission, setPendingSubmission] = useState(null);
@@ -32,14 +34,45 @@ export default function CheckInForm({
 
     const selectedItem = useMemo(() => inventory.find(i => i.id === parseInt(selectedId)), [selectedId, inventory]);
 
+    // Helper for recursive wage calculation
+    const calculateRecursiveWage = (itemId) => {
+        const item = inventory.find(i => i.id === itemId);
+        if (!item) return 0;
+
+        const priceItem = prices.find(p => p.name === item.name);
+        const baseWage = priceItem ? (parseFloat(priceItem.lohn?.toString().split('/')[0]) || 0) : 0;
+
+        const recipe = recipes[itemId];
+        if (!recipe) return baseWage;
+
+        let ingredientWage = 0;
+        recipe.inputs.forEach(input => {
+            const inputItem = inventory.find(i => i.name === input.name);
+            if (inputItem) {
+                const inputUnitWage = calculateRecursiveWage(inputItem.id);
+                const qtyNeeded = input.quantity / recipe.output;
+                ingredientWage += inputUnitWage * qtyNeeded;
+            }
+        });
+
+        return baseWage + ingredientWage;
+    };
+
     // Pre-fill price based on item and transaction type
     useEffect(() => {
         if (isReturn) {
             setPrice(0);
             return;
         }
-        setPrice('');
+
         if (selectedItem) {
+            if (title.includes("Einlagern") && isSelfCollected) {
+                const wage = calculateRecursiveWage(selectedItem.id);
+                setPrice(Math.round(wage * 100) / 100); // Round to 2 decimals
+                return;
+            }
+
+            setPrice('');
             const priceItem = prices.find(p => p.name === selectedItem.name);
             if (priceItem) {
                 if (title.includes("Einkauf")) {
@@ -49,7 +82,7 @@ export default function CheckInForm({
                 }
             }
         }
-    }, [selectedId, selectedItem, prices, title, isReturn]);
+    }, [selectedId, selectedItem, prices, title, isReturn, isSelfCollected]);
 
 
 
@@ -83,6 +116,7 @@ export default function CheckInForm({
         setShowCustomInput(false);
         setShowWarningModal(false);
         setPendingSubmission(null);
+        setIsSelfCollected(false); // Reset checkbox
     };
 
     const handleSubmit = (e) => {
@@ -210,20 +244,37 @@ export default function CheckInForm({
                     </div>
                     {showPrice && (
                         <div className="space-y-1">
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center flex-wrap gap-2">
                                 <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
                                     {title.includes("Einkauf") ? "Preis (Stk)" : "Lohn (Stk)"}
                                 </label>
                                 {title.includes("Einlagern") && (
-                                    <label className="flex items-center gap-2 cursor-pointer group">
-                                        <input
-                                            type="checkbox"
-                                            checked={isReturn}
-                                            onChange={(e) => setIsReturn(e.target.checked)}
-                                            className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500 focus:ring-violet-500 focus:ring-offset-slate-900"
-                                        />
-                                        <span className="text-xs text-slate-400 group-hover:text-violet-300 transition-colors">Rückgabe (0$)</span>
-                                    </label>
+                                    <div className="flex gap-3">
+                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelfCollected}
+                                                onChange={(e) => {
+                                                    setIsSelfCollected(e.target.checked);
+                                                    if (e.target.checked) setIsReturn(false);
+                                                }}
+                                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+                                            />
+                                            <span className="text-xs text-slate-400 group-hover:text-emerald-300 transition-colors">Selbst gesammelt</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                checked={isReturn}
+                                                onChange={(e) => {
+                                                    setIsReturn(e.target.checked);
+                                                    if (e.target.checked) setIsSelfCollected(false);
+                                                }}
+                                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500 focus:ring-violet-500 focus:ring-offset-slate-900"
+                                            />
+                                            <span className="text-xs text-slate-400 group-hover:text-violet-300 transition-colors">Rückgabe (0$)</span>
+                                        </label>
+                                    </div>
                                 )}
                             </div>
                             <div className="relative">
