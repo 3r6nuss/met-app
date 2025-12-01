@@ -20,6 +20,8 @@ import { Activity } from 'lucide-react';
 import UserManagement from './components/UserManagement';
 import CalculatorPage from './pages/CalculatorPage';
 
+import CreateOrderForm from './components/CreateOrderForm';
+
 const API_URL = '/api';
 
 function App() {
@@ -29,6 +31,7 @@ function App() {
   const [employees, setEmployees] = useState([]); // Employee list
   const [employeeInventory, setEmployeeInventory] = useState([]); // Employee inventory
   const [prices, setPrices] = useState([]); // Price list
+  const [orders, setOrders] = useState([]); // Orders
   const [showPriceList, setShowPriceList] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState('idle');
@@ -45,17 +48,19 @@ function App() {
       fetch(`${API_URL}/employees`).then(res => res.json()),
       fetch(`${API_URL}/employee-inventory`).then(res => res.json()),
       fetch(`${API_URL}/prices`).then(res => res.json()),
+      fetch(`${API_URL}/orders`).then(res => res.json()),
       fetch(`${API_URL}/user`).then(res => {
         if (res.ok) return res.json();
         return null;
       })
     ])
-      .then(([invData, logsData, empData, empInvData, priceData, userData]) => {
+      .then(([invData, logsData, empData, empInvData, priceData, ordersData, userData]) => {
         setInventory(invData);
         setTransactionLogs(logsData);
         setEmployees(empData);
         setEmployeeInventory(empInvData);
         setPrices(priceData);
+        setOrders(ordersData || []);
         if (userData) setUser(userData); // Only update user if fetched successfully
         setLoading(false);
       })
@@ -289,7 +294,47 @@ function App() {
     setLogs(prev => [log, ...prev].slice(0, 5));
   };
 
+  // Order Handlers
+  const handleCreateOrder = (orderData) => {
+    fetch(`${API_URL}/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          fetchData();
+          addLog(`Neuer Auftrag: ${orderData.quantity}x ${orderData.itemName}`);
+          alert("Auftrag erfolgreich erstellt!");
+        } else {
+          alert("Fehler beim Erstellen des Auftrags");
+        }
+      })
+      .catch(err => alert("Netzwerkfehler"));
+  };
 
+  const handleUpdateOrderStatus = (id, status) => {
+    fetch(`${API_URL}/orders/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) fetchData();
+      });
+  };
+
+  const handleDeleteOrder = (id) => {
+    if (confirm("Auftrag wirklich löschen?")) {
+      fetch(`${API_URL}/orders/${id}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) fetchData();
+        });
+    }
+  };
 
   if (loading) return <div className="flex items-center justify-center min-h-screen text-violet-400">Lade Daten...</div>;
 
@@ -362,7 +407,17 @@ function App() {
         )}
 
         <Routes>
-          <Route path="/" element={<InventoryPage inventory={inventory} onUpdateStock={handleUpdateStock} onVerify={handleVerify} user={user} />} />
+          <Route path="/" element={
+            <InventoryPage
+              inventory={inventory}
+              onUpdateStock={handleUpdateStock}
+              onVerify={handleVerify}
+              user={user}
+              orders={orders}
+              onUpdateOrderStatus={handleUpdateOrderStatus}
+              onDeleteOrder={handleDeleteOrder}
+            />
+          } />
 
           {/* Buchung Routes */}
           {/* Einlagern: Only Buchhaltung/Admin (Lager removed) */}
@@ -394,6 +449,15 @@ function App() {
                 label="Mitarbeiter"
                 showPrice={isBuchhaltung}
               />
+            } />
+          )}
+
+          {/* Auftrag: Lager & Buchhaltung/Admin */}
+          {(isLager || isBuchhaltung) && (
+            <Route path="/buchung/auftrag" element={
+              <div className="animate-fade-in">
+                <CreateOrderForm inventory={inventory} onSubmit={handleCreateOrder} />
+              </div>
             } />
           )}
 

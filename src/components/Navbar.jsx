@@ -60,6 +60,10 @@ export default function Navbar({ onOpenPriceList, user }) {
                                 </>
                             )}
                             <div className="h-px bg-slate-800 my-1"></div>
+                            {(isLager || isBuchhaltung) && (
+                                <NavLink to="/buchung/auftrag" className={dropdownItemClass}>Auftrag erstellen</NavLink>
+                            )}
+                            <div className="h-px bg-slate-800 my-1"></div>
                             <NavLink to="/buchung/rechner" className={dropdownItemClass}>Rechner</NavLink>
                         </div>
                     </div>

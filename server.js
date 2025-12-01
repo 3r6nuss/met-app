@@ -798,25 +798,118 @@ app.post('/api/logs', async (req, res) => {
                     currentTimestamp, entry.type, entry.category, entry.itemId, entry.itemName, entry.quantity, entry.depositor, entry.price, entry.msg, entry.time, entry.status
                 );
                 logInserted = true;
-            } catch (err) {
-                if (err.code === 'SQLITE_CONSTRAINT' && err.message.includes('logs.timestamp')) {
-                    // Collision detected, add 1ms and retry
+            } catch (e) {
+                if (e.code === 'SQLITE_CONSTRAINT') {
+                    console.warn(`Timestamp collision for ${currentTimestamp}, retrying...`);
+                    // Increment timestamp by 1ms
                     const date = new Date(currentTimestamp);
-                    date.setMilliseconds(date.getMilliseconds() + 1 + Math.floor(Math.random() * 10)); // Add random 1-10ms
+                    date.setMilliseconds(date.getMilliseconds() + 1);
                     currentTimestamp = date.toISOString();
                     retries++;
                 } else {
-                    throw err; // Re-throw other errors
+                    throw e;
                 }
             }
         }
 
-        if (!logInserted) throw new Error("Failed to generate unique timestamp for log");
+        if (!logInserted) {
+            console.error("Failed to insert log after retries due to timestamp collision");
+            res.status(500).json({ error: "Failed to save log" });
+            return;
+        }
 
         broadcastUpdate();
         res.json({ success: true });
     } catch (error) {
         console.error("Error saving log:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// --- ORDERS FEATURE ---
+
+// Initialize Orders Table
+const initOrdersTable = async () => {
+    const db = await getDb();
+    await db.run(`CREATE TABLE IF NOT EXISTS orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_name TEXT,
+        quantity INTEGER,
+        requester TEXT,
+        status TEXT DEFAULT 'open',
+        timestamp TEXT,
+        note TEXT
+    )`);
+};
+initOrdersTable().catch(console.error);
+
+// GET Orders
+app.get('/api/orders', async (req, res) => {
+    try {
+        const db = await getDb();
+        const orders = await db.all('SELECT * FROM orders ORDER BY timestamp DESC');
+        res.json(orders);
+    } catch (error) {
+        console.error("Error fetching orders:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Order (Create)
+app.post('/api/orders', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    try {
+        const { itemName, quantity, note } = req.body;
+        const requester = req.user.employeeName || req.user.username;
+        const timestamp = new Date().toISOString();
+
+        const db = await getDb();
+        await db.run(
+            'INSERT INTO orders (item_name, quantity, requester, status, timestamp, note) VALUES (?, ?, ?, ?, ?, ?)',
+            itemName, quantity, requester, 'open', timestamp, note
+        );
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error creating order:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// PUT Order (Update Status)
+app.put('/api/orders/:id', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const db = await getDb();
+        await db.run('UPDATE orders SET status = ? WHERE id = ?', status, id);
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error updating order:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// DELETE Order
+app.delete('/api/orders/:id', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    try {
+        const { id } = req.params;
+        const db = await getDb();
+        await db.run('DELETE FROM orders WHERE id = ?', id);
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting order:", error);
         res.status(500).json({ error: "Database error" });
     }
 });
