@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus } from 'lucide-react';
+import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus, Circle } from 'lucide-react';
 import UserManagement from '../components/UserManagement';
 
 export default function SystemPage({ employees = [], onUpdateEmployees, logs = [], onDeleteLog, onReset, user, inventory = [] }) {
@@ -227,6 +227,18 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                         >
                             Rezepte
                         </button>
+                    </>
+                )}
+                {(isAdmin || user?.role === 'Buchhaltung') && (
+                    <button
+                        onClick={() => setActiveTab('priorities')}
+                        className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'priorities' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                        Prioritäten
+                    </button>
+                )}
+                {isAdmin && (
+                    <>
                         <button
                             onClick={() => setActiveTab('system')}
                             className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'system' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
@@ -437,6 +449,90 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                                     <div className="text-center text-slate-500 py-4">Keine Rezepte gefunden.</div>
                                 )}
                             </div>
+                        </div>
+                    </div>
+                )}
+
+
+                {/* Priority Management (Buchhaltung/Admin Only) */}
+                {activeTab === 'priorities' && (isAdmin || user?.role === 'Buchhaltung') && (
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-300 mb-4">Prioritäten verwalten</h3>
+                        <p className="text-slate-400 text-sm mb-6">Lege die Priorität für Lagerartikel fest. Die Farben werden im Inventar angezeigt.</p>
+                        <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
+                            {inventory.map((item) => (
+                                <div key={item.id} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 flex justify-between items-center hover:bg-slate-800/50 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <Circle
+                                            className={`w-5 h-5 ${item.priority === 'high' ? 'text-red-500 fill-red-500' :
+                                                    item.priority === 'medium' ? 'text-orange-500 fill-orange-500' :
+                                                        item.priority === 'low' ? 'text-green-500 fill-green-500' :
+                                                            'text-slate-600'
+                                                }`}
+                                        />
+                                        <span className="text-slate-200 font-medium">{item.name}</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                fetch(`/api/inventory/${item.id}/priority`, {
+                                                    method: 'PUT',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ priority: 'high' })
+                                                }).then(() => window.location.reload());
+                                            }}
+                                            className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'high'
+                                                    ? 'bg-red-600 text-white'
+                                                    : 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
+                                                }`}
+                                        >
+                                            Rot
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                fetch(`/api/inventory/${item.id}/priority`, {
+                                                    method: 'PUT',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ priority: 'medium' })
+                                                }).then(() => window.location.reload());
+                                            }}
+                                            className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'medium'
+                                                    ? 'bg-orange-600 text-white'
+                                                    : 'bg-orange-600/20 text-orange-400 hover:bg-orange-600/30'
+                                                }`}
+                                        >
+                                            Orange
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                fetch(`/api/inventory/${item.id}/priority`, {
+                                                    method: 'PUT',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ priority: 'low' })
+                                                }).then(() => window.location.reload());
+                                            }}
+                                            className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'low'
+                                                    ? 'bg-green-600 text-white'
+                                                    : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
+                                                }`}
+                                        >
+                                            Grün
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                fetch(`/api/inventory/${item.id}/priority`, {
+                                                    method: 'PUT',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ priority: null })
+                                                }).then(() => window.location.reload());
+                                            }}
+                                            className="px-3 py-1 rounded text-xs bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
+                                        >
+                                            Keine
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 )}

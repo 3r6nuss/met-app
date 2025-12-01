@@ -87,6 +87,18 @@ export async function getDb() {
         console.error("Migration error:", error);
     }
 
+    // Migration: Add priority column to inventory if it doesn't exist
+    try {
+        const inventoryInfo = await dbInstance.all("PRAGMA table_info(inventory)");
+        const hasPriority = inventoryInfo.some(col => col.name === 'priority');
+        if (!hasPriority) {
+            await dbInstance.run("ALTER TABLE inventory ADD COLUMN priority TEXT DEFAULT NULL");
+            console.log("Migrated database: Added priority column to inventory table.");
+        }
+    } catch (error) {
+        console.error("Migration error:", error);
+    }
+
     return dbInstance;
 }
 

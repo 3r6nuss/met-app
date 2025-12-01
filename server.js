@@ -196,10 +196,10 @@ app.post('/api/inventory', async (req, res) => {
         const db = await getDb();
 
         await db.run('BEGIN TRANSACTION');
-        const stmt = await db.prepare('INSERT OR REPLACE INTO inventory (id, name, category, current, target, min, unit, price, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        const stmt = await db.prepare('INSERT OR REPLACE INTO inventory (id, name, category, current, target, min, unit, price, image, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
 
         for (const item of newData) {
-            await stmt.run(item.id, item.name, item.category, item.current, item.target, item.min, item.unit, item.price, item.image);
+            await stmt.run(item.id, item.name, item.category, item.current, item.target, item.min, item.unit, item.price, item.image, item.priority || null);
         }
 
         await stmt.finalize();
@@ -209,6 +209,26 @@ app.post('/api/inventory', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error("Error updating inventory:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// PUT Inventory Priority (Buchhaltung/Admin only)
+app.put('/api/inventory/:id/priority', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { id } = req.params;
+        const { priority } = req.body; // 'high', 'medium', 'low', or null
+        const db = await getDb();
+
+        await db.run('UPDATE inventory SET priority = ? WHERE id = ?', priority || null, id);
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error updating priority:", error);
         res.status(500).json({ error: "Database error" });
     }
 });

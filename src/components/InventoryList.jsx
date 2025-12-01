@@ -36,7 +36,17 @@ export default function InventoryList({ inventory, isEditMode, onUpdateStock }) 
                                     getStatusColor(item)
                                 )}
                             >
-                                <div className="font-medium text-slate-200 truncate">{item.name}</div>
+                                <div className="flex items-center gap-2">
+                                    {item.priority && (
+                                        <div className={cn(
+                                            "w-2 h-2 rounded-full",
+                                            item.priority === 'high' ? 'bg-red-500' :
+                                                item.priority === 'medium' ? 'bg-orange-500' :
+                                                    'bg-green-500'
+                                        )} />
+                                    )}
+                                    <span className="font-medium text-slate-200 truncate">{item.name}</span>
+                                </div>
 
                                 <div className="text-right">
                                     {isEditMode ? (
