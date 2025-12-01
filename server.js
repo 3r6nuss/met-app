@@ -1035,14 +1035,18 @@ app.post('/api/transaction', async (req, res) => {
 // POST Backup
 app.post('/api/backup', async (req, res) => {
     try {
-        const backupDir = path.join(__dirname, 'backups');
+        // Database is located in /app/data/database.sqlite in Docker (and ./data/database.sqlite locally)
+        const dbPath = path.join(__dirname, 'data', 'database.sqlite');
+
+        // Save backups to /app/data/backups so they persist in the volume
+        const backupDir = path.join(__dirname, 'data', 'backups');
+
         // Use dynamic import for fs/promises to keep it compatible if top-level await is an issue (though it shouldn't be in modules)
         // or just to match the style.
         const fs = (await import('fs/promises')).default;
 
         await fs.mkdir(backupDir, { recursive: true });
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const dbPath = path.join(__dirname, 'database.sqlite');
         const backupPath = path.join(backupDir, `database_${timestamp}.sqlite`);
 
         await fs.copyFile(dbPath, backupPath);
