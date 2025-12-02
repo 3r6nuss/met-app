@@ -427,6 +427,9 @@ app.get('/api/prices', async (req, res) => {
 
 // POST Prices
 app.post('/api/prices', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
     try {
         const newPrices = req.body;
         const db = await getDb();

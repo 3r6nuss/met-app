@@ -94,10 +94,12 @@ export default function Navbar({ onOpenPriceList, user }) {
                             <ChevronDown className="w-4 h-4 ml-1" />
                         </button>
                         <div className="absolute right-0 mt-2 w-full min-w-[200px] bg-slate-900 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2">
-                            <button onClick={onOpenPriceList} className={`w-full text-left ${dropdownItemClass({ isActive: false })} flex items-center gap-2`}>
-                                <ShoppingCart className="w-4 h-4" />
-                                Preise
-                            </button>
+                            {isAdmin && (
+                                <button onClick={onOpenPriceList} className={`w-full text-left ${dropdownItemClass({ isActive: false })} flex items-center gap-2`}>
+                                    <ShoppingCart className="w-4 h-4" />
+                                    Preise
+                                </button>
+                            )}
                             <NavLink to="/kontrolle" className={dropdownItemClass}>Kontrolle</NavLink>
                             <div className="h-px bg-slate-800 my-1"></div>
                             <NavLink to="/system" className={dropdownItemClass}>System</NavLink>

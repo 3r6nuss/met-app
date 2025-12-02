@@ -384,7 +384,7 @@ function App() {
         <header className="mb-6 flex justify-between items-center">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400">
-              Lagerverwaltung
+              Syncrolog
             </h1>
             <p className="text-slate-400 mt-1">MET System Dashboard</p>
           </div>
