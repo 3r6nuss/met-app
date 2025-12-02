@@ -382,11 +382,14 @@ function App() {
     <Router>
       <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto">
         <header className="mb-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400">
-              Syncrolog
-            </h1>
-            <p className="text-slate-400 mt-1">MET System Dashboard</p>
+          <div className="flex items-center gap-4">
+            <img src="/logo.png" alt="MET Logo" className="w-16 h-16 md:w-20 md:h-20" />
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400">
+                Syncrolog
+              </h1>
+              <p className="text-slate-400 mt-1">MET System Dashboard</p>
+            </div>
           </div>
           <div className="text-right hidden md:block">
             <div className="text-sm text-slate-500 mb-1">System Status</div>
