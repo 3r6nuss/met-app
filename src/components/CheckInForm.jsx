@@ -244,7 +244,7 @@ export default function CheckInForm({
                     </div>
                     {showPrice && (
                         <div className="space-y-1">
-                            <div className="flex justify-between items-center flex-wrap gap-2">
+                            <div className="flex justify-between items-end flex-wrap gap-2">
                                 <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
                                     {title.includes("Einkauf") ? "Preis (Stk)" : "Lohn (Stk)"}
                                 </label>
