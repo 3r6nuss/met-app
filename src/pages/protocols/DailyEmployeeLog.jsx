@@ -83,7 +83,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             return log.timestamp > lastPayout; // Show only if newer than last payout
         });
 
-        filteredLogs.filter(log => log.category !== 'trade').forEach(log => {
+        filteredLogs.filter(log => log.category !== 'trade' && log.type === 'in').forEach(log => {
             if (!groups[log.depositor]) {
                 groups[log.depositor] = {
                     name: log.depositor,
