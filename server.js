@@ -175,7 +175,22 @@ app.use((req, res, next) => {
 app.get('/api/inventory', async (req, res) => {
     try {
         const db = await getDb();
-        const inventory = await db.all('SELECT * FROM inventory');
+        // Check for sortOrder column and migrate if needed
+        try {
+            const tableInfo = await db.all("PRAGMA table_info(inventory)");
+            const hasSortOrder = tableInfo.some(col => col.name === 'sortOrder');
+            if (!hasSortOrder) {
+                console.log("Migrating inventory table: Adding sortOrder column...");
+                await db.run("ALTER TABLE inventory ADD COLUMN sortOrder INTEGER DEFAULT 0");
+
+                // Initialize sortOrder based on current ID order or just 0
+                // We can leave it as 0 for now, or update it.
+            }
+        } catch (e) {
+            console.error("Migration error (inventory):", e);
+        }
+
+        const inventory = await db.all('SELECT * FROM inventory ORDER BY sortOrder ASC, id ASC');
         if (inventory.length === 0) {
             res.json(initialInventory);
         } else {
@@ -196,10 +211,19 @@ app.post('/api/inventory', async (req, res) => {
         const db = await getDb();
 
         await db.run('BEGIN TRANSACTION');
-        const stmt = await db.prepare('INSERT OR REPLACE INTO inventory (id, name, category, current, target, min, unit, price, image, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        // Ensure sortOrder column exists (duplicate check but safe)
+        try {
+            const tableInfo = await db.all("PRAGMA table_info(inventory)");
+            if (!tableInfo.some(col => col.name === 'sortOrder')) {
+                await db.run("ALTER TABLE inventory ADD COLUMN sortOrder INTEGER DEFAULT 0");
+            }
+        } catch (e) { }
 
+        const stmt = await db.prepare('INSERT OR REPLACE INTO inventory (id, name, category, current, target, min, unit, price, image, priority, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+
+        let index = 0;
         for (const item of newData) {
-            await stmt.run(item.id, item.name, item.category, item.current, item.target, item.min, item.unit, item.price, item.image, item.priority || null);
+            await stmt.run(item.id, item.name, item.category, item.current, item.target, item.min, item.unit, item.price, item.image, item.priority || null, index++);
         }
 
         await stmt.finalize();

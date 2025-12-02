@@ -236,6 +236,20 @@ function App() {
     saveInventory(newData);
   };
 
+  const handleUpdateTarget = (id, newTarget) => {
+    const newData = inventory.map(item => {
+      if (item.id === id) {
+        return { ...item, target: newTarget };
+      }
+      return item;
+    });
+    saveInventory(newData);
+  };
+
+  const handleReorder = (newInventory) => {
+    saveInventory(newInventory);
+  };
+
   const handleVerify = (name) => {
     const verificationEntry = {
       verifier: name,
@@ -411,6 +425,8 @@ function App() {
             <InventoryPage
               inventory={inventory}
               onUpdateStock={handleUpdateStock}
+              onUpdateTarget={handleUpdateTarget}
+              onReorder={handleReorder}
               onVerify={handleVerify}
               user={user}
               orders={orders}

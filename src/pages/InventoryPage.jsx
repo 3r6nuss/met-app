@@ -4,7 +4,7 @@ import VerificationSection from '../components/VerificationSection';
 import OrderList from '../components/OrderList';
 import { ClipboardList } from 'lucide-react';
 
-export default function InventoryPage({ inventory, onUpdateStock, onVerify, user, orders, onUpdateOrderStatus, onDeleteOrder }) {
+export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget, onReorder, onVerify, user, orders, onUpdateOrderStatus, onDeleteOrder }) {
     const [isEditMode, setIsEditMode] = useState(false);
 
     const isAuthorized = user?.role === 'Buchhaltung' || user?.role === 'Administrator';
@@ -31,6 +31,8 @@ export default function InventoryPage({ inventory, onUpdateStock, onVerify, user
                 inventory={inventory}
                 isEditMode={isEditMode && isAuthorized}
                 onUpdateStock={onUpdateStock}
+                onUpdateTarget={onUpdateTarget}
+                onReorder={onReorder}
             />
 
             <VerificationSection
