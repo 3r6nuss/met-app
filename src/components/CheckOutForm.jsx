@@ -277,14 +277,22 @@ export default function CheckOutForm({
                 </div>
 
 
-                <button
-                    type="button"
-                    onClick={addToCart}
-                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-medium py-2.5 px-6 rounded-lg shadow-lg shadow-amber-500/25 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                    <ShoppingCart className="w-5 h-5" />
-                    ➕ Zum Warenkorb hinzufügen
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+                    <button
+                        type="submit"
+                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-medium py-2.5 px-6 rounded-lg shadow-lg shadow-green-500/25 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        Direkt bestätigen
+                    </button>
+                    <button
+                        type="button"
+                        onClick={addToCart}
+                        className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-medium py-2.5 px-6 rounded-lg shadow-lg shadow-amber-500/25 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                    >
+                        <ShoppingCart className="w-5 h-5" />
+                        ➕ Warenkorb
+                    </button>
+                </div>
             </form>
 
             {/* Shopping Cart Display */}

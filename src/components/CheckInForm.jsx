@@ -386,14 +386,22 @@ export default function CheckInForm({
                     </div>
                 )}
 
-                <button
-                    type="button"
-                    onClick={addToCart}
-                    className="w-full bg-violet-600 text-white py-3 rounded-lg font-semibold hover:bg-violet-700 transition-colors duration-200 mt-2 flex items-center justify-center gap-2"
-                >
-                    <ShoppingCart className="w-5 h-5" />
-                    ➕ Zum Warenkorb hinzufügen
-                </button>
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                    <button
+                        type="submit"
+                        className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors duration-200"
+                    >
+                        Direkt bestätigen
+                    </button>
+                    <button
+                        type="button"
+                        onClick={addToCart}
+                        className="w-full bg-violet-600 text-white py-3 rounded-lg font-semibold hover:bg-violet-700 transition-colors duration-200 flex items-center justify-center gap-2"
+                    >
+                        <ShoppingCart className="w-5 h-5" />
+                        ➕ Warenkorb
+                    </button>
+                </div>
             </form>
 
             {/* Shopping Cart Display */}
