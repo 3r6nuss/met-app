@@ -25,6 +25,7 @@ import BusinessAccountPage from './pages/BusinessAccountPage';
 import ContactsPage from './pages/ContactsPage';
 import AdsPage from './pages/AdsPage';
 import PartnersPage from './pages/PartnersPage';
+import PersonnelPage from './pages/PersonnelPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 
@@ -608,7 +609,7 @@ function App() {
               <Route path="/sonstiges/konto" element={<BusinessAccountPage logs={transactionLogs} inventory={inventory} prices={prices} onAdjustBalance={handleSpecialBooking} user={user} />} />
               <Route path="/sonstiges/kontakte" element={<ContactsPage />} />
               <Route path="/sonstiges/partner" element={<PartnersPage />} />
-              <Route path="/sonstiges/personal" element={<ComingSoonPage title="Personalliste" />} />
+              <Route path="/sonstiges/personal" element={<PersonnelPage />} />
             </>
           )}
 

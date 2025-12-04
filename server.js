@@ -564,6 +564,28 @@ const initNewTables = async () => {
         info TEXT
     )`);
 
+    // Personnel
+    await db.run(`CREATE TABLE IF NOT EXISTS personnel (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE,
+        phone TEXT,
+        truck_license INTEGER DEFAULT 0,
+        contract TEXT,
+        license_plate TEXT,
+        second_job TEXT
+    )`);
+
+    // Violations
+    await db.run(`CREATE TABLE IF NOT EXISTS violations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        personnel_id INTEGER,
+        date TEXT,
+        violation TEXT,
+        remark TEXT,
+        percentage INTEGER,
+        FOREIGN KEY(personnel_id) REFERENCES personnel(id) ON DELETE CASCADE
+    )`);
+
     // Check if recipes exist, if not populate
     const recipeCount = await db.get('SELECT COUNT(*) as count FROM recipes');
     if (recipeCount.count === 0) {
@@ -589,6 +611,110 @@ const initNewTables = async () => {
 
 // Call init
 initNewTables().catch(console.error);
+
+// --- PERSONNEL ENDPOINTS ---
+
+// GET Personnel (with violations)
+app.get('/api/personnel', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const db = await getDb();
+        const personnel = await db.all('SELECT * FROM personnel');
+
+        // Fetch violations for each person
+        // This is N+1 but acceptable for small datasets. A JOIN would be better but requires reshaping.
+        for (const p of personnel) {
+            p.violations = await db.all('SELECT * FROM violations WHERE personnel_id = ? ORDER BY date DESC', p.id);
+        }
+
+        res.json(personnel);
+    } catch (error) {
+        console.error("Error fetching personnel:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Personnel (Add/Update)
+app.post('/api/personnel', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { id, name, phone, truck_license, contract, license_plate, second_job } = req.body;
+        const db = await getDb();
+
+        if (id) {
+            // Update
+            await db.run('UPDATE personnel SET name = ?, phone = ?, truck_license = ?, contract = ?, license_plate = ?, second_job = ? WHERE id = ?',
+                name, phone, truck_license ? 1 : 0, contract, license_plate, second_job, id);
+        } else {
+            // Insert
+            await db.run('INSERT INTO personnel (name, phone, truck_license, contract, license_plate, second_job) VALUES (?, ?, ?, ?, ?, ?)',
+                name, phone, truck_license ? 1 : 0, contract, license_plate, second_job);
+        }
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error saving personnel:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// DELETE Personnel
+app.delete('/api/personnel/:id', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { id } = req.params;
+        const db = await getDb();
+        await db.run('DELETE FROM personnel WHERE id = ?', id);
+        await db.run('DELETE FROM violations WHERE personnel_id = ?', id); // Manual cascade if FK not enforced
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting personnel:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Violation
+app.post('/api/violations', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { personnel_id, date, violation, remark, percentage } = req.body;
+        const db = await getDb();
+        await db.run('INSERT INTO violations (personnel_id, date, violation, remark, percentage) VALUES (?, ?, ?, ?, ?)',
+            personnel_id, date, violation, remark, percentage);
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error saving violation:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// DELETE Violation
+app.delete('/api/violations/:id', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { id } = req.params;
+        const db = await getDb();
+        await db.run('DELETE FROM violations WHERE id = ?', id);
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting violation:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 
 // --- PARTNERS ENDPOINTS ---
 
