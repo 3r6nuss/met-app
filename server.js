@@ -548,6 +548,13 @@ const initNewTables = async () => {
         info TEXT
     )`);
 
+    // Ads
+    await db.run(`CREATE TABLE IF NOT EXISTS ads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content TEXT,
+        description TEXT
+    )`);
+
     // Check if recipes exist, if not populate
     const recipeCount = await db.get('SELECT COUNT(*) as count FROM recipes');
     if (recipeCount.count === 0) {
@@ -573,6 +580,65 @@ const initNewTables = async () => {
 
 // Call init
 initNewTables().catch(console.error);
+
+// --- ADS ENDPOINTS ---
+
+// GET Ads
+app.get('/api/ads', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const db = await getDb();
+        const ads = await db.all('SELECT * FROM ads');
+        res.json(ads);
+    } catch (error) {
+        console.error("Error fetching ads:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Ads (Add/Update)
+app.post('/api/ads', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { id, content, description } = req.body;
+        const db = await getDb();
+
+        if (id) {
+            // Update
+            await db.run('UPDATE ads SET content = ?, description = ? WHERE id = ?', content, description, id);
+        } else {
+            // Insert
+            await db.run('INSERT INTO ads (content, description) VALUES (?, ?)', content, description);
+        }
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error saving ad:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// DELETE Ad
+app.delete('/api/ads/:id', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { id } = req.params;
+        const db = await getDb();
+        await db.run('DELETE FROM ads WHERE id = ?', id);
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting ad:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 
 // --- CONTACTS ENDPOINTS ---
 

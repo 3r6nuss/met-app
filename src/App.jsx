@@ -23,6 +23,7 @@ import SpecialBookingPage from './pages/SpecialBookingPage';
 import ComingSoonPage from './pages/ComingSoonPage';
 import BusinessAccountPage from './pages/BusinessAccountPage';
 import ContactsPage from './pages/ContactsPage';
+import AdsPage from './pages/AdsPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 
@@ -602,7 +603,7 @@ function App() {
           {/* Sonstiges Routes - Admin Only */}
           {isAdmin && (
             <>
-              <Route path="/sonstiges/werbung" element={<ComingSoonPage title="Werbung" />} />
+              <Route path="/sonstiges/werbung" element={<AdsPage />} />
               <Route path="/sonstiges/konto" element={<BusinessAccountPage logs={transactionLogs} inventory={inventory} prices={prices} onAdjustBalance={handleSpecialBooking} user={user} />} />
               <Route path="/sonstiges/kontakte" element={<ContactsPage />} />
               <Route path="/sonstiges/partner" element={<ComingSoonPage title="Partnerschaften" />} />
