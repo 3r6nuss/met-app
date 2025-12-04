@@ -44,6 +44,7 @@ export default function Navbar({ onOpenPriceList, user }) {
                                 <>
                                     <NavLink to="/buchung/einlagern" className={dropdownItemClass}>Einlagern</NavLink>
                                     {isLager && <NavLink to="/buchung/auslagern" className={dropdownItemClass}>Auslagern</NavLink>}
+                                    {isBuchhaltung && <NavLink to="/buchung/sonderbuchung" className={dropdownItemClass}>Sonderbuchung</NavLink>}
                                 </>
                             )}
 

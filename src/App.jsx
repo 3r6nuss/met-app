@@ -19,6 +19,7 @@ import Login from './components/Login';
 import { Activity } from 'lucide-react';
 import UserManagement from './components/UserManagement';
 import CalculatorPage from './pages/CalculatorPage';
+import SpecialBookingPage from './pages/SpecialBookingPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 
@@ -350,6 +351,34 @@ function App() {
     }
   };
 
+  const handleSpecialBooking = ({ employee, reason, amount }) => {
+    fetch(`${API_URL}/transaction`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'in', // Treat as 'in' so it counts as positive wage (or negative if price is negative)
+        category: 'internal',
+        itemId: null,
+        itemName: reason,
+        quantity: 1,
+        depositor: employee,
+        price: amount,
+        skipInventory: true
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          fetchData();
+          addLog(`Sonderbuchung: ${amount}€ für ${employee} (${reason})`);
+          alert("Sonderbuchung erfolgreich!");
+        } else {
+          alert("Fehler: " + data.error);
+        }
+      })
+      .catch(err => alert("Netzwerkfehler"));
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-screen text-violet-400">Lade Daten...</div>;
 
   if (!user) {
@@ -467,6 +496,16 @@ function App() {
                 title="Auslagern"
                 label="Mitarbeiter"
                 showPrice={isBuchhaltung}
+              />
+            } />
+          )}
+
+          {/* Sonderbuchung: Buchhaltung/Admin only */}
+          {isBuchhaltung && (
+            <Route path="/buchung/sonderbuchung" element={
+              <SpecialBookingPage
+                employees={employees}
+                onAction={handleSpecialBooking}
               />
             } />
           )}

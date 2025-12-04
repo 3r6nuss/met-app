@@ -100,7 +100,8 @@ export default function PriceListModal({ onClose }) {
                                         <th className="px-6 py-4 text-right text-amber-400">EK (Einkauf)</th>
                                         <th className="px-6 py-4 text-right text-emerald-400">VK (Verkauf)</th>
                                         <th className="px-6 py-4 text-right text-blue-400">Lohn</th>
-                                        <th className="px-6 py-4 text-left text-slate-400">Notiz</th>
+                                        <th className="px-6 py-4 text-left text-slate-400">Notiz (Ankauf)</th>
+                                        <th className="px-6 py-4 text-left text-slate-400">Notiz (Verkauf)</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-700/50">
@@ -159,6 +160,26 @@ export default function PriceListModal({ onClose }) {
                                                                 'bg-slate-800 text-slate-400'
                                                             }`}>
                                                             {item.note}
+                                                        </span>
+                                                    )
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-3 text-left text-slate-400 text-xs">
+                                                {isEditing ? (
+                                                    <input
+                                                        type="text"
+                                                        value={item.noteVK || ''}
+                                                        onChange={(e) => handlePriceChange(idx, 'noteVK', e.target.value)}
+                                                        className="bg-slate-900 border border-slate-700 rounded px-2 py-1 w-full focus:border-violet-500 outline-none"
+                                                        placeholder="Notiz..."
+                                                    />
+                                                ) : (
+                                                    item.noteVK && (
+                                                        <span className={`px-2 py-1 rounded ${item.noteVK.includes('Kein Verkauf') ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                                                            item.noteVK.includes('Verkauf bis') ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                                                'bg-slate-800 text-slate-400'
+                                                            }`}>
+                                                            {item.noteVK}
                                                         </span>
                                                     )
                                                 )}

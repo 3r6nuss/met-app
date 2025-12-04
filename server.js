@@ -436,9 +436,9 @@ app.post('/api/prices', async (req, res) => {
 
         await db.run('BEGIN TRANSACTION');
         await db.run('DELETE FROM prices');
-        const stmt = await db.prepare('INSERT INTO prices (name, ek, vk, lohn, note) VALUES (?, ?, ?, ?, ?)');
+        const stmt = await db.prepare('INSERT INTO prices (name, ek, vk, lohn, note, noteVK) VALUES (?, ?, ?, ?, ?, ?)');
         for (const p of newPrices) {
-            await stmt.run(p.name, p.ek, p.vk, p.lohn, p.note);
+            await stmt.run(p.name, p.ek, p.vk, p.lohn, p.note, p.noteVK || '');
         }
         await stmt.finalize();
         await db.run('COMMIT');
@@ -477,9 +477,9 @@ app.post('/api/reset', async (req, res) => {
         await stmtEmp.finalize();
 
         await db.run('DELETE FROM prices');
-        const stmtPrice = await db.prepare('INSERT INTO prices (name, ek, vk, lohn, note) VALUES (?, ?, ?, ?, ?)');
+        const stmtPrice = await db.prepare('INSERT INTO prices (name, ek, vk, lohn, note, noteVK) VALUES (?, ?, ?, ?, ?, ?)');
         for (const p of initialPrices) {
-            await stmtPrice.run(p.name, p.ek, p.vk, p.lohn, p.note);
+            await stmtPrice.run(p.name, p.ek, p.vk, p.lohn, p.note, p.noteVK || '');
         }
         await stmtPrice.finalize();
 
@@ -508,6 +508,18 @@ const initNewTables = async () => {
         }
     } catch (e) {
         console.error("Migration error:", e);
+    }
+
+    // Migration: Add noteVK column to prices if it doesn't exist
+    try {
+        const pricesInfo = await db.all("PRAGMA table_info(prices)");
+        const hasNoteVK = pricesInfo.some(col => col.name === 'noteVK');
+        if (!hasNoteVK) {
+            console.log("Migrating prices table: Adding noteVK column...");
+            await db.run("ALTER TABLE prices ADD COLUMN noteVK TEXT DEFAULT ''");
+        }
+    } catch (e) {
+        console.error("Migration error (prices):", e);
     }
 
     // Employee Inventory
@@ -965,59 +977,65 @@ app.delete('/api/orders/:id', async (req, res) => {
 app.post('/api/transaction', async (req, res) => {
     let db;
     try {
-        const { type, itemId, quantity, depositor, price, category, timestamp } = req.body;
+        const { type, itemId, quantity, depositor, price, category, timestamp, skipInventory, itemName: providedItemName } = req.body;
         // type: 'in' (Einlagern) or 'out' (Auslagern)
         // category: 'internal' or 'trade'
+        // skipInventory: true for special bookings (Sonderbuchung)
 
         db = await getDb();
         await db.run('BEGIN TRANSACTION');
 
-        // 1. Update Main Inventory
-        const item = await db.get('SELECT * FROM inventory WHERE id = ?', itemId);
-        if (!item) throw new Error("Item not found");
+        let itemName = providedItemName;
 
-        let newCurrent = item.current;
-        if (type === 'in') {
-            newCurrent += quantity;
-        } else {
-            newCurrent = Math.max(0, newCurrent - quantity);
-        }
-        await db.run('UPDATE inventory SET current = ? WHERE id = ?', newCurrent, itemId);
+        if (!skipInventory) {
+            // 1. Update Main Inventory
+            const item = await db.get('SELECT * FROM inventory WHERE id = ?', itemId);
+            if (!item) throw new Error("Item not found");
+            itemName = item.name;
 
-        // 2. Update Employee Inventory (Only for internal transactions)
-        if (category === 'internal' && depositor !== 'Unbekannt') {
-            if (type === 'out') {
-                // Auslagern: Warehouse -> Employee (Employee GAINS item)
-                await db.run(`INSERT INTO employee_inventory (employee_name, item_id, quantity) 
-                    VALUES (?, ?, ?) 
-                    ON CONFLICT(employee_name, item_id) 
-                    DO UPDATE SET quantity = quantity + ?`,
-                    depositor, itemId, quantity, quantity);
-            } else if (type === 'in') {
-                // Einlagern: Employee -> Warehouse (Employee LOSES item OR ingredients)
+            let newCurrent = item.current;
+            if (type === 'in') {
+                newCurrent += quantity;
+            } else {
+                newCurrent = Math.max(0, newCurrent - quantity);
+            }
+            await db.run('UPDATE inventory SET current = ? WHERE id = ?', newCurrent, itemId);
 
-                // Check for recipe
-                const recipeIngredients = await db.all('SELECT * FROM recipes WHERE product_id = ?', itemId);
+            // 2. Update Employee Inventory (Only for internal transactions)
+            if (category === 'internal' && depositor !== 'Unbekannt') {
+                if (type === 'out') {
+                    // Auslagern: Warehouse -> Employee (Employee GAINS item)
+                    await db.run(`INSERT INTO employee_inventory (employee_name, item_id, quantity) 
+                        VALUES (?, ?, ?) 
+                        ON CONFLICT(employee_name, item_id) 
+                        DO UPDATE SET quantity = quantity + ?`,
+                        depositor, itemId, quantity, quantity);
+                } else if (type === 'in') {
+                    // Einlagern: Employee -> Warehouse (Employee LOSES item OR ingredients)
 
-                if (recipeIngredients.length > 0) {
-                    // It's a crafted item, deduct ingredients
-                    for (const ing of recipeIngredients) {
-                        const deductQty = ing.quantity * quantity;
+                    // Check for recipe
+                    const recipeIngredients = await db.all('SELECT * FROM recipes WHERE product_id = ?', itemId);
+
+                    if (recipeIngredients.length > 0) {
+                        // It's a crafted item, deduct ingredients
+                        for (const ing of recipeIngredients) {
+                            const deductQty = ing.quantity * quantity;
+                            await db.run(`UPDATE employee_inventory 
+                                SET quantity = MAX(0, quantity - ?) 
+                                WHERE employee_name = ? AND item_id = ?`,
+                                deductQty, depositor, ing.ingredient_id);
+                        }
+                    } else {
+                        // Normal item, deduct item itself
                         await db.run(`UPDATE employee_inventory 
                             SET quantity = MAX(0, quantity - ?) 
                             WHERE employee_name = ? AND item_id = ?`,
-                            deductQty, depositor, ing.ingredient_id);
+                            quantity, depositor, itemId);
                     }
-                } else {
-                    // Normal item, deduct item itself
-                    await db.run(`UPDATE employee_inventory 
-                        SET quantity = MAX(0, quantity - ?) 
-                        WHERE employee_name = ? AND item_id = ?`,
-                        quantity, depositor, itemId);
-                }
 
-                // Cleanup: Remove items with 0 quantity
-                await db.run('DELETE FROM employee_inventory WHERE employee_name = ? AND quantity <= 0', depositor);
+                    // Cleanup: Remove items with 0 quantity
+                    await db.run('DELETE FROM employee_inventory WHERE employee_name = ? AND quantity <= 0', depositor);
+                }
             }
         }
 
@@ -1026,12 +1044,12 @@ app.post('/api/transaction', async (req, res) => {
             timestamp: timestamp || new Date().toISOString(),
             type,
             category,
-            itemId,
-            itemName: item.name,
+            itemId: itemId || null,
+            itemName: itemName || 'Unbekannt',
             quantity,
             depositor,
             price,
-            msg: `${type === 'in' ? (category === 'trade' ? 'Gekauft' : 'Eingelagert') : (category === 'trade' ? 'Verkauft' : 'Ausgelagert')}: ${quantity}x ${item.name} (${depositor})`,
+            msg: `${type === 'in' ? (category === 'trade' ? 'Gekauft' : (skipInventory ? 'Sonderbuchung' : 'Eingelagert')) : (category === 'trade' ? 'Verkauft' : 'Ausgelagert')}: ${quantity}x ${itemName} (${depositor})`,
             time: new Date().toLocaleTimeString()
         };
 
