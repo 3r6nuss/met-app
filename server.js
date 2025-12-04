@@ -555,6 +555,15 @@ const initNewTables = async () => {
         description TEXT
     )`);
 
+    // Partners
+    await db.run(`CREATE TABLE IF NOT EXISTS partners (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        partner_offer TEXT,
+        met_offer TEXT,
+        info TEXT
+    )`);
+
     // Check if recipes exist, if not populate
     const recipeCount = await db.get('SELECT COUNT(*) as count FROM recipes');
     if (recipeCount.count === 0) {
@@ -580,6 +589,65 @@ const initNewTables = async () => {
 
 // Call init
 initNewTables().catch(console.error);
+
+// --- PARTNERS ENDPOINTS ---
+
+// GET Partners
+app.get('/api/partners', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const db = await getDb();
+        const partners = await db.all('SELECT * FROM partners');
+        res.json(partners);
+    } catch (error) {
+        console.error("Error fetching partners:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Partners (Add/Update)
+app.post('/api/partners', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { id, name, partner_offer, met_offer, info } = req.body;
+        const db = await getDb();
+
+        if (id) {
+            // Update
+            await db.run('UPDATE partners SET name = ?, partner_offer = ?, met_offer = ?, info = ? WHERE id = ?', name, partner_offer, met_offer, info, id);
+        } else {
+            // Insert
+            await db.run('INSERT INTO partners (name, partner_offer, met_offer, info) VALUES (?, ?, ?, ?)', name, partner_offer, met_offer, info);
+        }
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error saving partner:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// DELETE Partner
+app.delete('/api/partners/:id', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { id } = req.params;
+        const db = await getDb();
+        await db.run('DELETE FROM partners WHERE id = ?', id);
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting partner:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 
 // --- ADS ENDPOINTS ---
 
