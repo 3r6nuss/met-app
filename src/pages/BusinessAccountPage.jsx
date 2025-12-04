@@ -1,8 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, DollarSign } from 'lucide-react';
+import { TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, DollarSign, Pencil, X, Check, Info } from 'lucide-react';
 
-export default function BusinessAccountPage({ logs, inventory, prices }) {
+export default function BusinessAccountPage({ logs, inventory, prices, onAdjustBalance, user }) {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState('');
+
     // 1. Calculate Statistics and Chart Data
     const { currentBalance, currentInventoryValue, chartData, transactions } = useMemo(() => {
         let balance = 0;
@@ -12,66 +15,34 @@ export default function BusinessAccountPage({ logs, inventory, prices }) {
         // Filter and sort logs (oldest first for calculation)
         const sortedLogs = [...logs].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        // Helper to get item price (VK)
-        const getItemPrice = (itemName) => {
-            const priceItem = prices.find(p => p.name === itemName);
-            return priceItem ? priceItem.vk : 0;
-        };
-
         sortedLogs.forEach(log => {
             let change = 0;
             let type = 'other';
 
             // Identify transaction type and impact on balance
             if (log.itemName === 'Auszahlung' || log.msg.includes('Auszahlung')) {
-                // Wage Payout (Money leaves)
-                // Log price is usually negative for payout in some contexts, or positive quantity * negative price
-                // Based on App.jsx: price is negative (-amount), quantity is 1.
                 change = log.price * log.quantity;
                 type = 'payout';
             } else if (log.category === 'trade' && log.type === 'in') {
-                // Purchase (Money leaves)
-                // "Einkauf": We pay money.
-                // Usually represented as negative impact on cash.
-                // In ActionPage/App.jsx: CheckIn (in) -> price is positive usually.
-                // We need to subtract it.
                 change = -(log.price * log.quantity);
                 type = 'purchase';
             } else if (log.category === 'trade' && log.type === 'out') {
-                // Sale (Money enters)
-                // "Verkauf": We get money.
                 change = log.price * log.quantity;
                 type = 'sale';
+            } else if (log.itemName === 'Korrektur Geschäftskonto' || log.msg.includes('Korrektur Geschäftskonto')) {
+                // Manual Correction
+                change = log.price; // Price holds the adjustment amount
+                type = log.price >= 0 ? 'sale' : 'purchase'; // Reuse types for color
             }
 
             if (change !== 0) {
                 balance += change;
 
-                // Create a snapshot for the chart
-                // Note: This is a simplified inventory value. 
-                // Real historical inventory value is hard to reconstruct perfectly without full history.
-                // We will just plot the Cash Balance for now, or approximate.
-                // User asked for "Current Account with prices we have in stock".
-                // Let's assume "Inventory Value" is constant for the chart or we just show the Balance evolution.
-                // User asked for "two lines". 
-                // Line 1: Cash Balance.
-                // Line 2: Cash + Inventory Value (Total Assets).
-
-                // For the chart, we need a date.
                 const date = new Date(log.timestamp).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
 
                 dataPoints.push({
                     date,
                     balance: balance,
-                    // We can't easily know the inventory value at that exact past moment without replaying ALL inventory moves.
-                    // For now, let's just track the Balance. 
-                    // If we want the second line, maybe we can just add the CURRENT inventory value to it? 
-                    // Or try to estimate?
-                    // Let's stick to Balance for now and maybe add a static offset for current inventory?
-                    // Actually, let's try to track inventory value change too if possible.
-                    // If not, we might have to omit the second line or make it static.
-                    // Let's try to replay inventory changes too?
-                    // That requires parsing "quantity" and "itemName" for every log.
                 });
 
                 relevantTransactions.unshift({
@@ -92,15 +63,6 @@ export default function BusinessAccountPage({ logs, inventory, prices }) {
             return sum + (item.current * (priceItem?.vk || 0));
         }, 0);
 
-        // Add Inventory Value to the chart data (Total Wealth)
-        // Since we didn't track historical inventory, we will just add the *current* inventory value 
-        // to the balance to show "Potential Total". This is not historically accurate but gives the requested "two lines".
-        // Or better: We can't easily reconstruct history.
-        // Let's just show the Balance line and maybe a "Target" line?
-        // User said: "wie das aktuelle Konto mit der Preisen aussieht die wir noch im lager haben"
-        // This implies: Line 1 = Cash. Line 2 = Cash + Inventory Value.
-        // If we assume Inventory Value is roughly constant or we just add the CURRENT value, it's a parallel line.
-        // Let's do that for now as a first approximation.
         const finalData = dataPoints.map(p => ({
             ...p,
             total: p.balance + invValue
@@ -113,6 +75,29 @@ export default function BusinessAccountPage({ logs, inventory, prices }) {
             transactions: relevantTransactions
         };
     }, [logs, inventory, prices]);
+
+    const handleStartEdit = () => {
+        setEditValue(currentBalance.toString());
+        setIsEditing(true);
+    };
+
+    const handleSaveEdit = () => {
+        const newBal = parseFloat(editValue);
+        if (isNaN(newBal)) return;
+
+        const diff = newBal - currentBalance;
+        if (diff === 0) {
+            setIsEditing(false);
+            return;
+        }
+
+        onAdjustBalance({
+            amount: diff,
+            reason: 'Korrektur Geschäftskonto',
+            employee: user?.username || 'Admin'
+        });
+        setIsEditing(false);
+    };
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -129,31 +114,76 @@ export default function BusinessAccountPage({ logs, inventory, prices }) {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="glass-panel p-6 rounded-2xl relative overflow-hidden">
+                {/* Kontostand Card */}
+                <div className="glass-panel p-6 rounded-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <DollarSign className="w-24 h-24 text-violet-400" />
                     </div>
-                    <p className="text-slate-400 font-medium mb-2">Aktueller Kontostand</p>
-                    <h2 className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {currentBalance.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
-                    </h2>
+                    <div className="flex justify-between items-start mb-2">
+                        <p className="text-slate-400 font-medium">Aktueller Kontostand</p>
+                        {!isEditing && (
+                            <button onClick={handleStartEdit} className="text-slate-500 hover:text-violet-400 transition-colors opacity-0 group-hover:opacity-100">
+                                <Pencil className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    {isEditing ? (
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white w-full"
+                                autoFocus
+                            />
+                            <button onClick={handleSaveEdit} className="p-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30">
+                                <Check className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => setIsEditing(false)} className="p-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ) : (
+                        <h2 className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {currentBalance.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                        </h2>
+                    )}
                 </div>
 
+                {/* Lagerwert VK Card */}
                 <div className="glass-panel p-6 rounded-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <TrendingUp className="w-24 h-24 text-blue-400" />
                     </div>
-                    <p className="text-slate-400 font-medium mb-2">Lagerwert (VK)</p>
+                    <div className="flex items-center gap-2 mb-2">
+                        <p className="text-slate-400 font-medium">Lagerwert (VK)</p>
+                        <div className="group/tooltip relative">
+                            <Info className="w-4 h-4 text-slate-500" />
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 border border-slate-700 rounded text-xs text-slate-300 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50">
+                                Der Wert aller Waren im Lager basierend auf dem aktuellen Verkaufspreis.
+                            </div>
+                        </div>
+                    </div>
                     <h2 className="text-3xl font-bold text-blue-400">
                         {currentInventoryValue.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
                     </h2>
                 </div>
 
+                {/* Gesamtvermögen Card */}
                 <div className="glass-panel p-6 rounded-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <Wallet className="w-24 h-24 text-fuchsia-400" />
                     </div>
-                    <p className="text-slate-400 font-medium mb-2">Gesamtwert (Potenziell)</p>
+                    <div className="flex items-center gap-2 mb-2">
+                        <p className="text-slate-400 font-medium">Gesamtvermögen</p>
+                        <div className="group/tooltip relative">
+                            <Info className="w-4 h-4 text-slate-500" />
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 border border-slate-700 rounded text-xs text-slate-300 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50">
+                                Summe aus aktuellem Kontostand und dem Lagerwert (VK). Das potenzielle Kapital bei vollständigem Abverkauf.
+                            </div>
+                        </div>
+                    </div>
                     <h2 className="text-3xl font-bold text-fuchsia-400">
                         {(currentBalance + currentInventoryValue).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
                     </h2>
@@ -176,7 +206,7 @@ export default function BusinessAccountPage({ logs, inventory, prices }) {
                             />
                             <Legend />
                             <Line type="monotone" dataKey="balance" name="Kontostand" stroke="#10b981" strokeWidth={2} dot={false} />
-                            <Line type="monotone" dataKey="total" name="Gesamtwert (inkl. Lager)" stroke="#d946ef" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="total" name="Gesamtvermögen (Potenzial)" stroke="#d946ef" strokeWidth={2} dot={false} />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
@@ -208,7 +238,7 @@ export default function BusinessAccountPage({ logs, inventory, prices }) {
                                             {tx.type === 'sale' && <ArrowUpRight className="w-3 h-3" />}
                                             {tx.type === 'purchase' && <ArrowDownRight className="w-3 h-3" />}
                                             {tx.type === 'payout' && <ArrowDownRight className="w-3 h-3" />}
-                                            {tx.type === 'sale' ? 'Verkauf' : tx.type === 'purchase' ? 'Einkauf' : 'Auszahlung'}
+                                            {tx.type === 'sale' ? 'Eingang' : 'Ausgang'}
                                         </span>
                                     </td>
                                     <td className="p-3">{tx.reason}</td>

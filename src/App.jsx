@@ -602,7 +602,7 @@ function App() {
           {isAdmin && (
             <>
               <Route path="/sonstiges/werbung" element={<ComingSoonPage title="Werbung" />} />
-              <Route path="/sonstiges/konto" element={<BusinessAccountPage logs={transactionLogs} inventory={inventory} prices={prices} />} />
+              <Route path="/sonstiges/konto" element={<BusinessAccountPage logs={transactionLogs} inventory={inventory} prices={prices} onAdjustBalance={handleSpecialBooking} user={user} />} />
               <Route path="/sonstiges/partner" element={<ComingSoonPage title="Partnerschaften" />} />
               <Route path="/sonstiges/personal" element={<ComingSoonPage title="Personalliste" />} />
             </>
