@@ -21,6 +21,7 @@ import UserManagement from './components/UserManagement';
 import CalculatorPage from './pages/CalculatorPage';
 import SpecialBookingPage from './pages/SpecialBookingPage';
 import ComingSoonPage from './pages/ComingSoonPage';
+import BusinessAccountPage from './pages/BusinessAccountPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 
@@ -601,7 +602,7 @@ function App() {
           {isAdmin && (
             <>
               <Route path="/sonstiges/werbung" element={<ComingSoonPage title="Werbung" />} />
-              <Route path="/sonstiges/konto" element={<ComingSoonPage title="Geschäftskonto" />} />
+              <Route path="/sonstiges/konto" element={<BusinessAccountPage logs={transactionLogs} inventory={inventory} prices={prices} />} />
               <Route path="/sonstiges/partner" element={<ComingSoonPage title="Partnerschaften" />} />
               <Route path="/sonstiges/personal" element={<ComingSoonPage title="Personalliste" />} />
             </>
