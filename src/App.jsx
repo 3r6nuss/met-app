@@ -22,6 +22,7 @@ import CalculatorPage from './pages/CalculatorPage';
 import SpecialBookingPage from './pages/SpecialBookingPage';
 import ComingSoonPage from './pages/ComingSoonPage';
 import BusinessAccountPage from './pages/BusinessAccountPage';
+import ContactsPage from './pages/ContactsPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 
@@ -603,6 +604,7 @@ function App() {
             <>
               <Route path="/sonstiges/werbung" element={<ComingSoonPage title="Werbung" />} />
               <Route path="/sonstiges/konto" element={<BusinessAccountPage logs={transactionLogs} inventory={inventory} prices={prices} onAdjustBalance={handleSpecialBooking} user={user} />} />
+              <Route path="/sonstiges/kontakte" element={<ContactsPage />} />
               <Route path="/sonstiges/partner" element={<ComingSoonPage title="Partnerschaften" />} />
               <Route path="/sonstiges/personal" element={<ComingSoonPage title="Personalliste" />} />
             </>

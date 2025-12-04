@@ -538,6 +538,16 @@ const initNewTables = async () => {
         quantity INTEGER
     )`);
 
+    // Contacts
+    await db.run(`CREATE TABLE IF NOT EXISTS contacts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        phone TEXT,
+        name TEXT,
+        second_name TEXT,
+        plz TEXT,
+        info TEXT
+    )`);
+
     // Check if recipes exist, if not populate
     const recipeCount = await db.get('SELECT COUNT(*) as count FROM recipes');
     if (recipeCount.count === 0) {
@@ -563,6 +573,65 @@ const initNewTables = async () => {
 
 // Call init
 initNewTables().catch(console.error);
+
+// --- CONTACTS ENDPOINTS ---
+
+// GET Contacts
+app.get('/api/contacts', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const db = await getDb();
+        const contacts = await db.all('SELECT * FROM contacts');
+        res.json(contacts);
+    } catch (error) {
+        console.error("Error fetching contacts:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Contacts (Add/Update)
+app.post('/api/contacts', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { id, phone, name, second_name, plz, info } = req.body;
+        const db = await getDb();
+
+        if (id) {
+            // Update
+            await db.run('UPDATE contacts SET phone = ?, name = ?, second_name = ?, plz = ?, info = ? WHERE id = ?', phone, name, second_name, plz, info, id);
+        } else {
+            // Insert
+            await db.run('INSERT INTO contacts (phone, name, second_name, plz, info) VALUES (?, ?, ?, ?, ?)', phone, name, second_name, plz, info);
+        }
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error saving contact:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// DELETE Contact
+app.delete('/api/contacts/:id', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { id } = req.params;
+        const db = await getDb();
+        await db.run('DELETE FROM contacts WHERE id = ?', id);
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting contact:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 
 // --- ACCOUNTING ENDPOINTS ---
 

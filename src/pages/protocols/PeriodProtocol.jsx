@@ -79,8 +79,9 @@ export default function PeriodProtocol({ logs }) {
     const processedData = useMemo(() => {
         const { start, end } = getPeriodRange(currentDate, periodType);
 
-        // Filter logs by date
+        // Filter logs by date and exclude corrections
         const periodLogs = logs.filter(log => {
+            if (log.itemName === 'Korrektur Geschäftskonto' || log.msg?.includes('Korrektur Geschäftskonto')) return false;
             const logDate = new Date(log.timestamp);
             return logDate >= start && logDate <= end;
         });

@@ -6,6 +6,7 @@ export default function StorageProtocol({ logs }) {
 
     const processedLogs = useMemo(() => {
         return logs.filter(log => {
+            if (log.itemName === 'Korrektur Geschäftskonto' || log.msg?.includes('Korrektur Geschäftskonto')) return false;
             // Only internal storage logs
             if (log.category !== 'internal') return false;
 
@@ -27,8 +28,8 @@ export default function StorageProtocol({ logs }) {
                     <button
                         onClick={() => setFilterType('all')}
                         className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${filterType === 'all'
-                                ? 'bg-violet-600 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                            ? 'bg-violet-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                             }`}
                     >
                         Alle
@@ -36,8 +37,8 @@ export default function StorageProtocol({ logs }) {
                     <button
                         onClick={() => setFilterType('in')}
                         className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${filterType === 'in'
-                                ? 'bg-emerald-600 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                            ? 'bg-emerald-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                             }`}
                     >
                         <ArrowDownCircle className="w-4 h-4" />
@@ -46,8 +47,8 @@ export default function StorageProtocol({ logs }) {
                     <button
                         onClick={() => setFilterType('out')}
                         className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-2 ${filterType === 'out'
-                                ? 'bg-red-600 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                            ? 'bg-red-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                             }`}
                     >
                         <ArrowUpCircle className="w-4 h-4" />

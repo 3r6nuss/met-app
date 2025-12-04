@@ -97,6 +97,7 @@ export default function Navbar({ onOpenPriceList, user }) {
                         <div className="absolute left-0 mt-2 w-full min-w-[200px] bg-slate-900 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2">
                             <NavLink to="/sonstiges/werbung" className={dropdownItemClass}>Werbung</NavLink>
                             <NavLink to="/sonstiges/konto" className={dropdownItemClass}>Geschäftskonto</NavLink>
+                            <NavLink to="/sonstiges/kontakte" className={dropdownItemClass}>Kontakte</NavLink>
                             <NavLink to="/sonstiges/partner" className={dropdownItemClass}>Partnerschaften</NavLink>
                             <NavLink to="/sonstiges/personal" className={dropdownItemClass}>Personalliste</NavLink>
                         </div>
