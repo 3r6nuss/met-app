@@ -119,7 +119,7 @@ export default function BusinessAccountPage({ logs, inventory, prices, onAdjustB
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <DollarSign className="w-24 h-24 text-violet-400" />
                     </div>
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex justify-between items-start mb-2 relative z-10">
                         <p className="text-slate-400 font-medium">Aktueller Kontostand</p>
                         {!isEditing && (
                             <button onClick={handleStartEdit} className="text-slate-500 hover:text-violet-400 transition-colors opacity-0 group-hover:opacity-100">
@@ -129,7 +129,7 @@ export default function BusinessAccountPage({ logs, inventory, prices, onAdjustB
                     </div>
 
                     {isEditing ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 relative z-10">
                             <input
                                 type="number"
                                 value={editValue}
@@ -145,7 +145,7 @@ export default function BusinessAccountPage({ logs, inventory, prices, onAdjustB
                             </button>
                         </div>
                     ) : (
-                        <h2 className={`text-3xl font-bold ${currentBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <h2 className={`text-3xl font-bold relative z-10 ${currentBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                             {currentBalance.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
                         </h2>
                     )}
