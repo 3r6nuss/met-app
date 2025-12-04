@@ -20,6 +20,7 @@ import { Activity } from 'lucide-react';
 import UserManagement from './components/UserManagement';
 import CalculatorPage from './pages/CalculatorPage';
 import SpecialBookingPage from './pages/SpecialBookingPage';
+import ComingSoonPage from './pages/ComingSoonPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 
@@ -595,6 +596,12 @@ function App() {
           <Route path="/protokolle/monthly" element={<Navigate to="/protokolle/period" replace />} />
 
           {isBuchhaltung && <Route path="/kontrolle" element={<ControlPage employeeInventory={employeeInventory} employees={employees} inventory={inventory} />} />}
+
+          {/* Sonstiges Routes */}
+          <Route path="/sonstiges/werbung" element={<ComingSoonPage title="Werbung" />} />
+          <Route path="/sonstiges/konto" element={<ComingSoonPage title="Geschäftskonto" />} />
+          <Route path="/sonstiges/partner" element={<ComingSoonPage title="Partnerschaften" />} />
+          <Route path="/sonstiges/personal" element={<ComingSoonPage title="Personalliste" />} />
 
           {/* System Routes */}
           {isBuchhaltung && (
