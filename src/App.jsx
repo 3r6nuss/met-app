@@ -597,11 +597,15 @@ function App() {
 
           {isBuchhaltung && <Route path="/kontrolle" element={<ControlPage employeeInventory={employeeInventory} employees={employees} inventory={inventory} />} />}
 
-          {/* Sonstiges Routes */}
-          <Route path="/sonstiges/werbung" element={<ComingSoonPage title="Werbung" />} />
-          <Route path="/sonstiges/konto" element={<ComingSoonPage title="Geschäftskonto" />} />
-          <Route path="/sonstiges/partner" element={<ComingSoonPage title="Partnerschaften" />} />
-          <Route path="/sonstiges/personal" element={<ComingSoonPage title="Personalliste" />} />
+          {/* Sonstiges Routes - Admin Only */}
+          {isAdmin && (
+            <>
+              <Route path="/sonstiges/werbung" element={<ComingSoonPage title="Werbung" />} />
+              <Route path="/sonstiges/konto" element={<ComingSoonPage title="Geschäftskonto" />} />
+              <Route path="/sonstiges/partner" element={<ComingSoonPage title="Partnerschaften" />} />
+              <Route path="/sonstiges/personal" element={<ComingSoonPage title="Personalliste" />} />
+            </>
+          )}
 
           {/* System Routes */}
           {isBuchhaltung && (

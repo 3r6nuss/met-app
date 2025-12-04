@@ -86,8 +86,8 @@ export default function Navbar({ onOpenPriceList, user }) {
                     </div>
                 )}
 
-                {/* Sonstiges Dropdown - All Users (except Pending) */}
-                {!user?.role?.includes('Pending') && (
+                {/* Sonstiges Dropdown - Admin Only */}
+                {isAdmin && (
                     <div className="relative group flex-1">
                         <button className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
                             <MoreHorizontal className="w-5 h-5" />
