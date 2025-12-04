@@ -108,8 +108,8 @@ export default function ContactsPage() {
                         <thead>
                             <tr className="text-slate-400 border-b border-slate-700 bg-slate-900/50">
                                 <th className="p-4 font-medium uppercase text-xs tracking-wider">Telefon</th>
-                                <th className="p-4 font-medium uppercase text-xs tracking-wider">Name</th>
-                                <th className="p-4 font-medium uppercase text-xs tracking-wider">Zweitname</th>
+                                <th className="p-4 font-medium uppercase text-xs tracking-wider">Gruppierungsname</th>
+                                <th className="p-4 font-medium uppercase text-xs tracking-wider">Ansprechperson</th>
                                 <th className="p-4 font-medium uppercase text-xs tracking-wider">PLZ</th>
                                 <th className="p-4 font-medium uppercase text-xs tracking-wider">Info</th>
                                 <th className="p-4 font-medium uppercase text-xs tracking-wider text-right">Aktionen</th>
@@ -172,24 +172,24 @@ export default function ContactsPage() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-400 uppercase mb-1">Name</label>
+                                    <label className="block text-xs font-medium text-slate-400 uppercase mb-1">Gruppierungsname</label>
                                     <input
                                         type="text"
                                         required
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                                         className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-violet-500 transition-colors"
-                                        placeholder="Max Mustermann"
+                                        placeholder="z.B. Firma XYZ"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-400 uppercase mb-1">Zweitname</label>
+                                    <label className="block text-xs font-medium text-slate-400 uppercase mb-1">Ansprechperson</label>
                                     <input
                                         type="text"
                                         value={formData.second_name}
                                         onChange={e => setFormData({ ...formData, second_name: e.target.value })}
                                         className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-violet-500 transition-colors"
-                                        placeholder="Optional"
+                                        placeholder="z.B. Max Mustermann"
                                     />
                                 </div>
                             </div>
