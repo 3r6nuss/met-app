@@ -6,34 +6,185 @@ export default function CheckInForm({
     inventory,
     employees = [],
     prices = [],
-    employeeInventory = [],
-    onConsumeIngredients,
-    setPrice('');
-setSelectedId('');
-setShowCustomInput(false);
-setShowWarningModal(false);
-setPendingSubmission(null);
-setIsSelfCollected(false); // Reset checkbox
-};
+    onCheckIn,
+    title = "Einlagern",
+    depositorLabel = "Mitarbeiter",
+    showPrice = true
+}) {
+    const [selectedId, setSelectedId] = useState('');
+    const [depositor, setDepositor] = useState('');
+    const [customName, setCustomName] = useState('');
+    const [showCustomInput, setShowCustomInput] = useState(false);
+    const [quantity, setQuantity] = useState('');
+    const [price, setPrice] = useState('');
+    const [isReturn, setIsReturn] = useState(false);
+    const [isSelfCollected, setIsSelfCollected] = useState(false);
+    const [showWarningModal, setShowWarningModal] = useState(false);
+    const [warningMessage, setWarningMessage] = useState('');
+    const [pendingSubmission, setPendingSubmission] = useState(null);
+    const [selectedDate, setSelectedDate] = useState('');
+    const [items, setItems] = useState([]);
 
-const submitAllItems = async () => {
-    if (items.length === 0) return;
-    if (!depositor && !showCustomInput) return;
-    if (showCustomInput && !customName) return;
+    useEffect(() => {
+        // Set default date to now (local time for input)
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        setSelectedDate(now.toISOString().slice(0, 16));
+    }, []);
 
-    const finalDepositor = showCustomInput ? customName : depositor;
-    const finalDate = selectedDate ? new Date(selectedDate).toISOString() : null;
 
-    // Process each item
-    for (const item of items) {
-        const submissionData = {
-            selectedId: item.id,
-            quantity: item.quantity,
-            depositor: finalDepositor,
-            price: item.price,
-            date: finalDate
+    const selectedItem = useMemo(() => inventory.find(i => i.id === parseInt(selectedId)), [selectedId, inventory]);
+
+    // Helper for recursive wage calculation
+    const calculateRecursiveWage = (itemId) => {
+        const item = inventory.find(i => i.id === itemId);
+        if (!item) return 0;
+
+        const priceItem = prices.find(p => p.name === item.name);
+        const baseWage = priceItem ? (parseFloat(priceItem.lohn?.toString().split('/')[0]) || 0) : 0;
+
+        const recipe = recipes[itemId];
+        if (!recipe) return baseWage;
+
+        let ingredientWage = 0;
+        recipe.inputs.forEach(input => {
+            const inputItem = inventory.find(i => i.name === input.name);
+            if (inputItem) {
+                const inputUnitWage = calculateRecursiveWage(inputItem.id);
+                const qtyNeeded = input.quantity / recipe.output;
+                ingredientWage += inputUnitWage * qtyNeeded;
+            }
+        });
+
+        return baseWage + ingredientWage;
+    };
+
+    // Pre-fill price based on item and transaction type
+    useEffect(() => {
+        if (isReturn) {
+            setPrice(0);
+            return;
+        }
+
+        if (selectedItem) {
+            if (title.includes("Einlagern") && isSelfCollected) {
+                const wage = calculateRecursiveWage(selectedItem.id);
+                setPrice(Math.round(wage * 100) / 100); // Round to 2 decimals
+                return;
+            }
+
+            setPrice('');
+            const priceItem = prices.find(p => p.name === selectedItem.name);
+            if (priceItem) {
+                if (title.includes("Einkauf")) {
+                    setPrice(priceItem.ek || '');
+                } else if (title.includes("Einlagern")) {
+                    setPrice(priceItem.lohn || '');
+                }
+            }
+        }
+    }, [selectedId, selectedItem, prices, title, isReturn, isSelfCollected]);
+
+
+
+    const handleEmployeeChange = (e) => {
+        const value = e.target.value;
+        if (value === '__custom__') {
+            setShowCustomInput(true);
+            setDepositor('');
+        } else {
+            setShowCustomInput(false);
+            setDepositor(value);
+            setCustomName('');
+        }
+    };
+
+    const addToCart = () => {
+        if (!selectedId || !quantity) return;
+
+        const selectedItem = inventory.find(i => i.id === parseInt(selectedId));
+        if (!selectedItem) return;
+
+        const newItem = {
+            id: parseInt(selectedId),
+            name: selectedItem.name,
+            quantity: parseInt(quantity),
+            price: showPrice ? price : 0,
+            isSelfCollected,
+            isReturn,
+            key: Date.now() // unique key for React
         };
 
+        setItems([...items, newItem]);
+
+        // Reset form fields for next item
+        setSelectedId('');
+        setQuantity('');
+        setPrice('');
+        setIsSelfCollected(false);
+        setIsReturn(false);
+    };
+
+    const removeFromCart = (key) => {
+        setItems(items.filter(item => item.key !== key));
+    };
+
+    const processSubmission = (submissionData) => {
+        const { selectedId, quantity, depositor, price } = submissionData;
+        onCheckIn(
+            parseInt(selectedId),
+            parseInt(quantity),
+            depositor,
+            price,
+            submissionData.date // Pass date
+        );
+
+        setQuantity('');
+        setDepositor('');
+        setCustomName('');
+        setPrice('');
+        setSelectedId('');
+        setShowCustomInput(false);
+        setShowWarningModal(false);
+        setPendingSubmission(null);
+        setIsSelfCollected(false); // Reset checkbox
+    };
+
+    const submitAllItems = async () => {
+        if (items.length === 0) return;
+        if (!depositor && !showCustomInput) return;
+        if (showCustomInput && !customName) return;
+
+        const finalDepositor = showCustomInput ? customName : depositor;
+        const finalDate = selectedDate ? new Date(selectedDate).toISOString() : null;
+
+        // Process each item
+        for (const item of items) {
+            const submissionData = {
+                selectedId: item.id,
+                quantity: item.quantity,
+                depositor: finalDepositor,
+                price: item.price,
+                date: finalDate
+            };
+
+            // Check for warnings (only for Einkauf, not Einlagern)
+            if (!title.includes("Einlagern")) {
+                const selectedItemInCart = inventory.find(i => i.id === item.id);
+                const priceItem = prices.find(p => p.name === selectedItemInCart?.name);
+                if (priceItem && priceItem.note) {
+                    const noteLower = priceItem.note.toLowerCase();
+                    if (noteLower.includes("kein einkauf") || noteLower.includes("nur einkauf bis") || noteLower.includes("kein ankauf") || noteLower.includes("nur ankauf bis")) {
+                        setWarningMessage(priceItem.note);
+                        setPendingSubmission(submissionData);
+                        setShowWarningModal(true);
+                        return; // Stop and show warning
+                    }
+                }
+            }
+
+            processSubmission(submissionData);
+        }
 
         // Clear cart after all items processed
         setItems([]);
@@ -65,7 +216,6 @@ const submitAllItems = async () => {
                 if (noteLower.includes("kein einkauf") || noteLower.includes("nur einkauf bis") || noteLower.includes("kein ankauf") || noteLower.includes("nur ankauf bis")) {
                     setWarningMessage(priceItem.note);
                     setPendingSubmission(submissionData);
-                    setModalType('warning');
                     setShowWarningModal(true);
                     return;
                 }
@@ -373,16 +523,14 @@ const submitAllItems = async () => {
                                         onClick={() => setShowWarningModal(false)}
                                         className="flex-1 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors font-medium"
                                     >
-                                        {modalType === 'error' ? 'Schließen' : 'Abbrechen'}
+                                        Abbrechen
                                     </button>
-                                    {modalType === 'warning' && (
-                                        <button
-                                            onClick={() => processSubmission(pendingSubmission)}
-                                            className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-bold"
-                                        >
-                                            Trotzdem bestätigen
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={() => processSubmission(pendingSubmission)}
+                                        className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-bold"
+                                    >
+                                        Trotzdem bestätigen
+                                    </button>
                                 </div>
                             </div>
                         </div>
