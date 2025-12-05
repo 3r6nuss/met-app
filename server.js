@@ -1267,6 +1267,45 @@ app.post('/api/employee-inventory/manual', async (req, res) => {
     }
 });
 
+// POST Consume Ingredients (Deduct from inventory)
+app.post('/api/employee-inventory/consume', async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'Buchhaltung' && req.user.role !== 'Administrator' && req.user.role !== 'Lager')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { employeeName, items } = req.body; // items: [{ itemId, quantity }]
+        const db = await getDb();
+
+        await db.run('BEGIN TRANSACTION');
+
+        for (const item of items) {
+            // Check current stock
+            const current = await db.get(
+                'SELECT quantity FROM employee_inventory WHERE employee_name = ? AND item_id = ?',
+                employeeName, item.itemId
+            );
+
+            if (!current || current.quantity < item.quantity) {
+                throw new Error(`Insufficient stock for item ${item.itemId}`);
+            }
+
+            const newQty = current.quantity - item.quantity;
+            if (newQty <= 0) {
+                await db.run('DELETE FROM employee_inventory WHERE employee_name = ? AND item_id = ?', employeeName, item.itemId);
+            } else {
+                await db.run('UPDATE employee_inventory SET quantity = ? WHERE employee_name = ? AND item_id = ?', newQty, employeeName, item.itemId);
+            }
+        }
+
+        await db.run('COMMIT');
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error consuming ingredients:", error);
+        res.status(500).json({ error: error.message || "Database error" });
+    }
+});
+
 // GET Recipes
 app.get('/api/recipes', async (req, res) => {
     try {

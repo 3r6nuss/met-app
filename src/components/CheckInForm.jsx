@@ -6,6 +6,8 @@ export default function CheckInForm({
     inventory,
     employees = [],
     prices = [],
+    employeeInventory = [],
+    onConsumeIngredients,
     onCheckIn,
     title = "Einlagern",
     depositorLabel = "Mitarbeiter",
@@ -129,14 +131,96 @@ export default function CheckInForm({
         setItems(items.filter(item => item.key !== key));
     };
 
-    const processSubmission = (submissionData) => {
-        const { selectedId, quantity, depositor, price } = submissionData;
+    const validateRecipe = (itemId, quantity, employeeName) => {
+        // Only check for "Einlagern" and if NOT self-collected
+        if (!title.includes("Einlagern") || isSelfCollected) return { valid: true };
+
+        const recipe = recipes[itemId];
+        if (!recipe) return { valid: true }; // No recipe, no check needed
+
+        // Calculate required ingredients
+        const requiredIngredients = [];
+        recipe.inputs.forEach(input => {
+            const inputItem = inventory.find(i => i.name === input.name);
+            if (inputItem) {
+                // Calculate quantity needed: (Output Quantity / Recipe Output) * Input Quantity
+                // e.g. Want 10 Steel (Output 2). Recipe needs 4 Iron.
+                // (10 / 2) * 4 = 20 Iron needed.
+                const qtyNeeded = (quantity / recipe.output) * input.quantity;
+                requiredIngredients.push({
+                    itemId: inputItem.id,
+                    name: inputItem.name,
+                    quantity: qtyNeeded
+                });
+            }
+        });
+
+        // Check employee inventory
+        const missing = [];
+        const toConsume = [];
+
+        for (const req of requiredIngredients) {
+            const empItem = employeeInventory.find(i => i.employee_name === employeeName && i.item_id === req.itemId);
+            const currentQty = empItem ? empItem.quantity : 0;
+
+            if (currentQty < req.quantity) {
+                missing.push({ ...req, current: currentQty });
+            } else {
+                toConsume.push({ itemId: req.itemId, quantity: req.quantity });
+            }
+        }
+
+        if (missing.length > 0) {
+            return { valid: false, missing };
+        }
+
+        return { valid: true, toConsume };
+    };
+
+    const processSubmission = async (submissionData) => {
+        const { selectedId, quantity, depositor, price, date } = submissionData;
+
+        // Validate Recipe (only if not already validated/consumed via warning modal flow, 
+        // but here we are inside processSubmission which is called after checks.
+        // Wait, we need to do the check BEFORE calling onCheckIn.
+
+        // Check if we need to validate (only for single item submission via handleSubmit or single item in submitAllItems)
+        // Note: submitAllItems calls this in a loop.
+
+        // Let's move the validation to handleSubmit and submitAllItems to be safe and show UI feedback there.
+        // But we need to handle the consumption here or pass it in.
+
+        // Actually, let's do the consumption right here if valid.
+
+        // Check validation again to be sure (or pass consumption data)
+        // For simplicity, let's re-run validation here if it wasn't a warning modal flow.
+        // But wait, warning modal is for "Kein Einkauf".
+
+        // Let's Refactor:
+        // 1. Check Recipe
+        const validation = validateRecipe(parseInt(selectedId), parseInt(quantity), depositor);
+
+        if (!validation.valid) {
+            const missingText = validation.missing.map(m => `${m.name}: ${m.current}/${m.quantity}`).join(', ');
+            alert(`Fehlende Zutaten bei ${depositor}: ${missingText}`);
+            return; // Stop
+        }
+
+        // 2. Consume Ingredients (if any)
+        if (validation.toConsume && validation.toConsume.length > 0 && onConsumeIngredients) {
+            const result = await onConsumeIngredients(depositor, validation.toConsume);
+            if (!result.success) {
+                alert(`Fehler beim Verbrauch der Zutaten: ${result.error}`);
+                return;
+            }
+        }
+
         onCheckIn(
             parseInt(selectedId),
             parseInt(quantity),
             depositor,
             price,
-            submissionData.date // Pass date
+            date
         );
 
         setQuantity('');

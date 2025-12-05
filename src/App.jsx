@@ -386,6 +386,24 @@ function App() {
       .catch(err => alert("Netzwerkfehler"));
   };
 
+  const handleConsumeIngredients = (employeeName, items) => {
+    return fetch(`${API_URL}/employee-inventory/consume`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employeeName, items })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          fetchData(); // Refresh inventory
+          return { success: true };
+        } else {
+          return { success: false, error: data.error };
+        }
+      })
+      .catch(err => ({ success: false, error: "Netzwerkfehler" }));
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-screen text-violet-400">Lade Daten...</div>;
 
   if (!user) {
@@ -482,6 +500,8 @@ function App() {
                 inventory={inventory}
                 employees={employees}
                 prices={prices}
+                employeeInventory={employeeInventory}
+                onConsumeIngredients={handleConsumeIngredients}
                 onAction={(id, qty, dep, price, date) => handleCheckIn(id, qty, dep, price, date, 'in', 'internal')}
                 type="in"
                 title="Einlagern"
