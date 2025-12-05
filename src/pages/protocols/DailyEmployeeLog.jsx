@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Banknote } from 'lucide-react';
 
 export default function DailyEmployeeLog({ logs, user, onPayout }) {
     // Helper to get current week start (Saturday)
@@ -204,7 +204,28 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                                                 {emp.outstandingTotal > 0 && !isPaid && (
                                                     <div className="flex flex-col items-end">
                                                         <span className="text-[10px] text-slate-400 uppercase">Offen</span>
-                                                        <span className="text-red-400">{formatMoney(emp.outstandingTotal)}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-red-400">{formatMoney(emp.outstandingTotal)}</span>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation(); // Prevent row click if any
+                                                                    if (confirm(`${emp.name}: Nur offenes Gehalt (letzte Woche) von ${formatMoney(emp.outstandingTotal)} auszahlen?`)) {
+                                                                        const payoutDate = new Date(currentWeekStart);
+                                                                        payoutDate.setSeconds(payoutDate.getSeconds() - 1);
+
+                                                                        onPayout([{
+                                                                            amount: emp.outstandingTotal,
+                                                                            date: payoutDate,
+                                                                            depositor: emp.name
+                                                                        }]);
+                                                                    }
+                                                                }}
+                                                                className="p-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition-colors"
+                                                                title="Nur offenes Gehalt auszahlen"
+                                                            >
+                                                                <Banknote className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
 
