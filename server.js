@@ -555,6 +555,147 @@ const initNewTables = async () => {
         description TEXT
     )`);
 
+    // Beginner Guide
+    await db.run(`CREATE TABLE IF NOT EXISTS beginner_guide (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content TEXT
+    )`);
+
+    // Seed Beginner Guide if empty
+    const guideCount = await db.get('SELECT COUNT(*) as count FROM beginner_guide');
+    if (guideCount.count === 0) {
+        console.log("Seeding Beginner Guide...");
+        const initialGuide = {
+            header: {
+                title: "M.E.T. LOGISTIC",
+                subtitle: "QUICK-START-GUIDE"
+            },
+            sections: [
+                {
+                    id: "ansprechpartner",
+                    title: "Ansprechpartner",
+                    icon: "Users",
+                    color: "violet",
+                    content: [
+                        { type: "list", items: ["Emil Bergmann - CEO", "Patrick Miller - Stv. Leitung", "Emma West - Stv. Leitung"] }
+                    ]
+                },
+                {
+                    id: "einstempeln",
+                    title: "Einstempeln und Funk",
+                    icon: "Radio",
+                    color: "fuchsia",
+                    content: [
+                        {
+                            type: "list", items: [
+                                "<strong>Einstempeln:</strong> F5 - Job/Fraktion - Multijob Menü",
+                                "<strong>Zeiterfassung:</strong> F5 - Job/Fraktion - Dutymenü",
+                                "<strong>Funk:</strong> Handy öffnen - Funk-App öffnen - <strong>192.11</strong> oben eingeben - verbinden",
+                                "<strong>GPS:</strong> Rechtsklick auf das GPS-Gerät - <strong>19211</strong> eingeben - Schalter nach rechts Stellen - Verbinden"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "abmeldung",
+                    title: "Abmeldung",
+                    icon: "LogOut",
+                    color: "red",
+                    content: [
+                        {
+                            type: "list", items: [
+                                "Wenn du weißt, dass du nicht da sein wirst, melde dich bitte ab in 'Abmeldungen'.",
+                                "Bei spontan auftretenden Ereignissen bitte ab dem 3. Tag abmelden."
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "umgang",
+                    title: "Umgang miteinander",
+                    icon: "Heart",
+                    color: "pink",
+                    content: [
+                        { type: "text", value: "Wir sehen uns als eine Familie. Das bedeutet:", className: "text-lg font-semibold text-red-400 mb-4" },
+                        {
+                            type: "list", items: [
+                                "Wir unterstützen uns gegenseitig.",
+                                "Wir reden offen, aber respektvoll miteinander.",
+                                "Probleme werden intern angesprochen und gemeinsam gelöst.",
+                                "Wir lassen einander aussprechen und fallen niemandem ins Wort.",
+                                "Unstimmigkeiten werden friedlich geklärt.",
+                                "Private Auseinandersetzungen haben im beruflichen Umfeld nichts zu suchen."
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "fahrzeuge",
+                    title: "Umgang mit Fahrzeugen",
+                    icon: "Truck",
+                    color: "blue",
+                    content: [
+                        {
+                            type: "list", items: [
+                                "Keine riskante Fahrweise oder unnötige Beschädigungen.",
+                                "Fahrzeuge werden ordnungsgemäß abgestellt und nicht unbeaufsichtigt herum stehen gelassen.",
+                                "<span class='font-semibold text-red-400'>➜ Fehlverhalten führt zu Sanktionen.</span>"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "sammelorte",
+                    title: "Sammelorte",
+                    icon: "MapPin",
+                    color: "emerald",
+                    content: [
+                        {
+                            type: "key-value", items: [
+                                { key: "Aramid", value: "862" },
+                                { key: "Schwarzpulver", value: "961" },
+                                { key: "Tabak Blätter", value: "2039" },
+                                { key: "Kohle", value: "4014" },
+                                { key: "Weintrauben", value: "5008" },
+                                { key: "E-Schrott", value: "9253" },
+                                { key: "Eisen", value: "9005" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "herstellungsorte",
+                    title: "Herstellungsorte",
+                    icon: "MapPin",
+                    color: "amber",
+                    content: [
+                        {
+                            type: "key-value", items: [
+                                { key: "P-Clips", value: "710" },
+                                { key: "Tabak", value: "2002" },
+                                { key: "Weinkisten", value: "5001" },
+                                { key: "Stahl", value: "10072" },
+                                { key: "Platinen", value: "10072" },
+                                { key: "Westen", value: "10099" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "was-tun",
+                    title: "Was tun, wenn...?",
+                    icon: "AlertTriangle",
+                    color: "cyan",
+                    content: [
+                        { type: "scenario", title: "... dein Fahrzeug voll ist und niemand anwesend ist, mit dem du die Ware einlagern kannst?", text: "Dann kannst du dir einen LKW ausparken, der als Frei in der Job Garage gekennzeichnet ist. Und mit diesem Weiterarbeiten. Falls kein LKW mehr frei sein sollte, kannst du dir einen LKW von einem Kollegen ausparken. Bitte Informiere diesen per SMS darüber." },
+                        { type: "scenario", title: "... du alleine im Dienst bist und jemand bezüglich An- und Verkaufen anruft?", text: "Dann sagst du der Person die Anruft, dass sie bitte später noch einmal anrufen soll, da momentan keiner da ist, der Ankaufen kann." }
+                    ]
+                }
+            ]
+        };
+        await db.run('INSERT INTO beginner_guide (content) VALUES (?)', JSON.stringify(initialGuide));
+    }
+
     // Partners
     await db.run(`CREATE TABLE IF NOT EXISTS partners (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -802,10 +943,8 @@ app.post('/api/ads', async (req, res) => {
         const db = await getDb();
 
         if (id) {
-            // Update
             await db.run('UPDATE ads SET content = ?, description = ? WHERE id = ?', content, description, id);
         } else {
-            // Insert
             await db.run('INSERT INTO ads (content, description) VALUES (?, ?)', content, description);
         }
 
@@ -830,6 +969,50 @@ app.delete('/api/ads/:id', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error("Error deleting ad:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// --- BEGINNER GUIDE ENDPOINTS ---
+
+// GET Guide
+app.get('/api/guide', async (req, res) => {
+    try {
+        const db = await getDb();
+        const guide = await db.get('SELECT * FROM beginner_guide LIMIT 1');
+        if (guide) {
+            res.json(JSON.parse(guide.content));
+        } else {
+            res.json(null);
+        }
+    } catch (error) {
+        console.error("Error fetching guide:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Guide (Update)
+app.post('/api/guide', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const content = req.body;
+        const db = await getDb();
+
+        // Check if exists
+        const existing = await db.get('SELECT id FROM beginner_guide LIMIT 1');
+
+        if (existing) {
+            await db.run('UPDATE beginner_guide SET content = ? WHERE id = ?', JSON.stringify(content), existing.id);
+        } else {
+            await db.run('INSERT INTO beginner_guide (content) VALUES (?)', JSON.stringify(content));
+        }
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error saving guide:", error);
         res.status(500).json({ error: "Database error" });
     }
 });

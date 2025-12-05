@@ -619,7 +619,7 @@ function App() {
           {!isPending && (
             <>
               <Route path="/sonstiges/hausordnung" element={<ComingSoonPage title="Hausordnung" />} />
-              <Route path="/sonstiges/beginner-guide" element={<BeginnerGuidePage />} />
+              <Route path="/sonstiges/beginner-guide" element={<BeginnerGuidePage user={user} />} />
             </>
           )}
 
