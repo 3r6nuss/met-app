@@ -613,6 +613,14 @@ function App() {
             </>
           )}
 
+          {/* Sonstiges Routes - Public for all users */}
+          {!isPending && (
+            <>
+              <Route path="/sonstiges/hausordnung" element={<ComingSoonPage title="Hausordnung" />} />
+              <Route path="/sonstiges/beginner-guide" element={<ComingSoonPage title="Beginner Guide" />} />
+            </>
+          )}
+
           {/* System Routes */}
           {isBuchhaltung && (
             <>

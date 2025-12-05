@@ -86,8 +86,8 @@ export default function Navbar({ onOpenPriceList, user }) {
                     </div>
                 )}
 
-                {/* Sonstiges Dropdown - Admin Only */}
-                {isAdmin && (
+                {/* Sonstiges Dropdown - All Users (except Pending) */}
+                {!user?.role?.includes('Pending') && (
                     <div className="relative group flex-1">
                         <button className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
                             <MoreHorizontal className="w-5 h-5" />
@@ -95,11 +95,19 @@ export default function Navbar({ onOpenPriceList, user }) {
                             <ChevronDown className="w-4 h-4 ml-1" />
                         </button>
                         <div className="absolute left-0 mt-2 w-full min-w-[200px] bg-slate-900 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2">
-                            <NavLink to="/sonstiges/werbung" className={dropdownItemClass}>Werbung</NavLink>
-                            <NavLink to="/sonstiges/konto" className={dropdownItemClass}>Geschäftskonto</NavLink>
-                            <NavLink to="/sonstiges/kontakte" className={dropdownItemClass}>Kontakte</NavLink>
-                            <NavLink to="/sonstiges/partner" className={dropdownItemClass}>Partnerschaften</NavLink>
-                            <NavLink to="/sonstiges/personal" className={dropdownItemClass}>Personalliste</NavLink>
+                            <NavLink to="/sonstiges/hausordnung" className={dropdownItemClass}>Hausordnung</NavLink>
+                            <NavLink to="/sonstiges/beginner-guide" className={dropdownItemClass}>Beginner Guide</NavLink>
+
+                            {isAdmin && (
+                                <>
+                                    <div className="h-px bg-slate-800 my-1"></div>
+                                    <NavLink to="/sonstiges/werbung" className={dropdownItemClass}>Werbung</NavLink>
+                                    <NavLink to="/sonstiges/konto" className={dropdownItemClass}>Geschäftskonto</NavLink>
+                                    <NavLink to="/sonstiges/kontakte" className={dropdownItemClass}>Kontakte</NavLink>
+                                    <NavLink to="/sonstiges/partner" className={dropdownItemClass}>Partnerschaften</NavLink>
+                                    <NavLink to="/sonstiges/personal" className={dropdownItemClass}>Personalliste</NavLink>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}
