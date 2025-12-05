@@ -26,6 +26,7 @@ import ContactsPage from './pages/ContactsPage';
 import AdsPage from './pages/AdsPage';
 import PartnersPage from './pages/PartnersPage';
 import PersonnelPage from './pages/PersonnelPage';
+import BeginnerGuidePage from './pages/BeginnerGuidePage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 
@@ -613,11 +614,12 @@ function App() {
             </>
           )}
 
+
           {/* Sonstiges Routes - Public for all users */}
           {!isPending && (
             <>
               <Route path="/sonstiges/hausordnung" element={<ComingSoonPage title="Hausordnung" />} />
-              <Route path="/sonstiges/beginner-guide" element={<ComingSoonPage title="Beginner Guide" />} />
+              <Route path="/sonstiges/beginner-guide" element={<BeginnerGuidePage />} />
             </>
           )}
 
