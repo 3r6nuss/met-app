@@ -62,7 +62,7 @@ passport.use(new DiscordStrategy({
         const existingUser = await db.get('SELECT * FROM users WHERE discordId = ?', profile.id);
 
         // Hardcoded Admin Override
-        const isSuperAdmin = profile.id === '823276402320998450';
+        const isSuperAdmin = profile.id === '823276402320998450' || profile.id === '690510884639866960';
         const forcedRole = isSuperAdmin ? 'Administrator' : undefined;
 
         if (existingUser) {
@@ -1683,11 +1683,11 @@ app.post('/api/transaction', async (req, res) => {
 
 // --- SUPER ADMIN ENDPOINTS ---
 
-const SUPER_ADMIN_ID = '823276402320998450';
+const SUPER_ADMIN_IDS = ['823276402320998450', '690510884639866960'];
 
 // GET Audit Logs (Super Admin Only)
 app.get('/api/audit-logs', async (req, res) => {
-    if (!req.isAuthenticated() || req.user.discordId !== SUPER_ADMIN_ID) {
+    if (!req.isAuthenticated() || !SUPER_ADMIN_IDS.includes(req.user.discordId)) {
         return res.status(403).json({ error: 'Unauthorized' });
     }
     try {
@@ -1702,7 +1702,7 @@ app.get('/api/audit-logs', async (req, res) => {
 
 // POST Revert Transaction (Super Admin Only)
 app.post('/api/transaction/revert', async (req, res) => {
-    if (!req.isAuthenticated() || req.user.discordId !== SUPER_ADMIN_ID) {
+    if (!req.isAuthenticated() || !SUPER_ADMIN_IDS.includes(req.user.discordId)) {
         return res.status(403).json({ error: 'Unauthorized' });
     }
 

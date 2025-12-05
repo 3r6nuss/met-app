@@ -131,7 +131,7 @@ export default function Navbar({ onOpenPriceList, user }) {
                             <div className="h-px bg-slate-800 my-1"></div>
                             <NavLink to="/system" className={dropdownItemClass}>System</NavLink>
                             {/* Super Admin Only */}
-                            {user?.discordId === '823276402320998450' && (
+                            {(user?.discordId === '823276402320998450' || user?.discordId === '690510884639866960') && (
                                 <>
                                     <div className="h-px bg-slate-800 my-1"></div>
                                     <NavLink to="/aktivitaetslog" className={dropdownItemClass}>🔴 Aktivitätslog</NavLink>

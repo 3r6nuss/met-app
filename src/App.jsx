@@ -662,7 +662,7 @@ function App() {
           )}
 
           {/* Super Admin Audit Log */}
-          {user?.discordId === '823276402320998450' && (
+          {(user?.discordId === '823276402320998450' || user?.discordId === '690510884639866960') && (
             <Route path="/aktivitaetslog" element={<AuditLogPage />} />
           )}
         </Routes>
