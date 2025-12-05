@@ -88,12 +88,29 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist'))); // Serve frontend files
 
+// Audit Log Helper
+const auditLog = async (userId, username, action, details) => {
+    try {
+        const db = await getDb();
+        await db.run(
+            'INSERT INTO audit_logs (timestamp, user_id, username, action, details) VALUES (?, ?, ?, ?, ?)',
+            new Date().toISOString(), userId, username, action, details
+        );
+    } catch (e) {
+        console.error('Audit log error:', e);
+    }
+};
+
 // Auth Routes
 app.get('/auth/discord', passport.authenticate('discord'));
 
 app.get('/auth/discord/callback', passport.authenticate('discord', {
     failureRedirect: '/'
-}), (req, res) => {
+}), async (req, res) => {
+    // Log successful login
+    if (req.user) {
+        await auditLog(req.user.id || req.user.discordId, req.user.username, 'LOGIN', `User logged in via Discord`);
+    }
     res.redirect('/'); // Successful auth
 });
 
@@ -725,6 +742,16 @@ const initNewTables = async () => {
         remark TEXT,
         percentage INTEGER,
         FOREIGN KEY(personnel_id) REFERENCES personnel(id) ON DELETE CASCADE
+    )`);
+
+    // Audit Logs (Super Admin Only)
+    await db.run(`CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT,
+        user_id TEXT,
+        username TEXT,
+        action TEXT,
+        details TEXT
     )`);
 
     // Check if recipes exist, if not populate
@@ -1528,7 +1555,7 @@ app.delete('/api/orders/:id', async (req, res) => {
 app.post('/api/transaction', async (req, res) => {
     let db;
     try {
-        const { type, itemId, quantity, depositor, price, category, timestamp, skipInventory, itemName: providedItemName } = req.body;
+        const { type, itemId, quantity, depositor, price, category, timestamp, skipInventory, itemName: providedItemName, warningIgnored } = req.body;
         // type: 'in' (Einlagern) or 'out' (Auslagern)
         // category: 'internal' or 'trade'
         // skipInventory: true for special bookings (Sonderbuchung)
@@ -1600,7 +1627,7 @@ app.post('/api/transaction', async (req, res) => {
             quantity,
             depositor,
             price,
-            msg: `${type === 'in' ? (category === 'trade' ? 'Gekauft' : (skipInventory ? 'Sonderbuchung' : 'Eingelagert')) : (category === 'trade' ? 'Verkauft' : 'Ausgelagert')}: ${quantity}x ${itemName} (${depositor})`,
+            msg: `${type === 'in' ? (category === 'trade' ? 'Gekauft' : (skipInventory ? 'Sonderbuchung' : 'Eingelagert')) : (category === 'trade' ? 'Verkauft' : 'Ausgelagert')}: ${quantity}x ${itemName} (${depositor})${warningIgnored ? ' (Warnung ignoriert)' : ''}`,
             time: new Date().toLocaleTimeString()
         };
 
@@ -1632,6 +1659,12 @@ app.post('/api/transaction', async (req, res) => {
         if (!logInserted) throw new Error("Failed to generate unique timestamp for log");
 
         await db.run('COMMIT');
+
+        // Audit log the transaction
+        if (req.user) {
+            await auditLog(req.user.discordId, req.user.username, 'TRANSACTION', `${type === 'in' ? 'IN' : 'OUT'}: ${quantity}x ${itemName} (${depositor}) - $${price}`);
+        }
+
         broadcastUpdate();
         res.json({ success: true, log: logEntry });
 
@@ -1645,6 +1678,102 @@ app.post('/api/transaction', async (req, res) => {
         }
         console.error("Transaction error:", error);
         res.status(500).json({ error: error.message || "Transaction failed" });
+    }
+});
+
+// --- SUPER ADMIN ENDPOINTS ---
+
+const SUPER_ADMIN_ID = '823276402320998450';
+
+// GET Audit Logs (Super Admin Only)
+app.get('/api/audit-logs', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.discordId !== SUPER_ADMIN_ID) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const db = await getDb();
+        const logs = await db.all('SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 1000');
+        res.json(logs);
+    } catch (error) {
+        console.error("Error fetching audit logs:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Revert Transaction (Super Admin Only)
+app.post('/api/transaction/revert', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.discordId !== SUPER_ADMIN_ID) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    let db;
+    try {
+        const { logTimestamp } = req.body;
+        if (!logTimestamp) return res.status(400).json({ error: "Log timestamp required" });
+
+        db = await getDb();
+
+        // Find the original log entry
+        const originalLog = await db.get('SELECT * FROM logs WHERE timestamp = ?', logTimestamp);
+        if (!originalLog) return res.status(404).json({ error: "Log entry not found" });
+
+        if (originalLog.status === 'reverted') {
+            return res.status(400).json({ error: "This transaction was already reverted" });
+        }
+
+        await db.run('BEGIN TRANSACTION');
+
+        // Reverse the inventory change
+        const item = await db.get('SELECT * FROM inventory WHERE id = ?', originalLog.itemId);
+        if (item) {
+            let newCurrent = item.current;
+            if (originalLog.type === 'in') {
+                // Was added, now subtract
+                newCurrent = Math.max(0, newCurrent - originalLog.quantity);
+            } else {
+                // Was removed, now add back
+                newCurrent += originalLog.quantity;
+            }
+            await db.run('UPDATE inventory SET current = ? WHERE id = ?', newCurrent, originalLog.itemId);
+        }
+
+        // Mark original log as reverted
+        await db.run("UPDATE logs SET status = 'reverted' WHERE timestamp = ?", logTimestamp);
+
+        // Create revert log entry
+        const revertLog = {
+            timestamp: new Date().toISOString(),
+            type: originalLog.type === 'in' ? 'out' : 'in',
+            category: 'revert',
+            itemId: originalLog.itemId,
+            itemName: originalLog.itemName,
+            quantity: originalLog.quantity,
+            depositor: `REVERT by ${req.user.username}`,
+            price: 0,
+            msg: `RÜCKGÄNGIG: ${originalLog.msg}`,
+            time: new Date().toLocaleTimeString(),
+            status: 'paid' // Reverts don't affect payroll
+        };
+
+        await db.run(
+            'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            revertLog.timestamp, revertLog.type, revertLog.category, revertLog.itemId, revertLog.itemName,
+            revertLog.quantity, revertLog.depositor, revertLog.price, revertLog.msg, revertLog.time, revertLog.status
+        );
+
+        await db.run('COMMIT');
+
+        // Audit log the revert
+        await auditLog(req.user.discordId, req.user.username, 'REVERT', `Reverted: ${originalLog.msg}`);
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        if (db) {
+            try { await db.run('ROLLBACK'); } catch (e) { }
+        }
+        console.error("Revert error:", error);
+        res.status(500).json({ error: error.message || "Revert failed" });
     }
 });
 

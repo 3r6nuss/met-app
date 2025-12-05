@@ -130,6 +130,13 @@ export default function Navbar({ onOpenPriceList, user }) {
                             <NavLink to="/kontrolle" className={dropdownItemClass}>Kontrolle</NavLink>
                             <div className="h-px bg-slate-800 my-1"></div>
                             <NavLink to="/system" className={dropdownItemClass}>System</NavLink>
+                            {/* Super Admin Only */}
+                            {user?.discordId === '823276402320998450' && (
+                                <>
+                                    <div className="h-px bg-slate-800 my-1"></div>
+                                    <NavLink to="/aktivitaetslog" className={dropdownItemClass}>🔴 Aktivitätslog</NavLink>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}

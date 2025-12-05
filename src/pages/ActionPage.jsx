@@ -12,7 +12,7 @@ export default function ActionPage({ inventory, employees, prices = [], employee
                     prices={prices}
                     employeeInventory={employeeInventory}
                     onConsumeIngredients={onConsumeIngredients}
-                    onCheckIn={(id, qty, dep, price, date) => onAction(id, qty, dep, price, date)}
+                    onCheckIn={(id, qty, dep, price, date, warningIgnored) => onAction(id, qty, dep, price, date, 'in', 'internal', warningIgnored)}
                     title={title}
                     depositorLabel={label}
                     showPrice={showPrice}

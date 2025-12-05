@@ -27,6 +27,7 @@ import AdsPage from './pages/AdsPage';
 import PartnersPage from './pages/PartnersPage';
 import PersonnelPage from './pages/PersonnelPage';
 import BeginnerGuidePage from './pages/BeginnerGuidePage';
+import AuditLogPage from './pages/AuditLogPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 
@@ -167,7 +168,7 @@ function App() {
     }).catch(err => console.error("Failed to save log:", err));
   };
 
-  const handleCheckIn = (id, quantity, depositor, price = 0, customDate = null, type = 'in', category = 'internal') => {
+  const handleCheckIn = (id, quantity, depositor, price = 0, customDate = null, type = 'in', category = 'internal', warningIgnored = false) => {
     const item = inventory.find(i => i.id === id);
     if (!item) return;
 
@@ -181,7 +182,8 @@ function App() {
         quantity,
         depositor: depositor || 'Unbekannt',
         price,
-        timestamp: customDate
+        timestamp: customDate,
+        warningIgnored
       })
     })
       .then(res => res.json())
@@ -657,6 +659,11 @@ function App() {
                 </ErrorBoundary>
               } />
             </>
+          )}
+
+          {/* Super Admin Audit Log */}
+          {user?.discordId === '823276402320998450' && (
+            <Route path="/aktivitaetslog" element={<AuditLogPage />} />
           )}
         </Routes>
       </div>

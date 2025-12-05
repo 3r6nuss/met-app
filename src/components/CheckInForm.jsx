@@ -8,267 +8,32 @@ export default function CheckInForm({
     prices = [],
     employeeInventory = [],
     onConsumeIngredients,
-    onCheckIn,
-    title = "Einlagern",
-    depositorLabel = "Mitarbeiter",
-    showPrice = true
-}) {
-    const [selectedId, setSelectedId] = useState('');
-    const [depositor, setDepositor] = useState('');
-    const [customName, setCustomName] = useState('');
-    const [showCustomInput, setShowCustomInput] = useState(false);
-    const [quantity, setQuantity] = useState('');
-    const [price, setPrice] = useState('');
-    const [isReturn, setIsReturn] = useState(false);
-    const [isSelfCollected, setIsSelfCollected] = useState(false);
-    const [showWarningModal, setShowWarningModal] = useState(false);
-    const [warningMessage, setWarningMessage] = useState('');
-    const [pendingSubmission, setPendingSubmission] = useState(null);
-    const [selectedDate, setSelectedDate] = useState('');
-    const [items, setItems] = useState([]);
+    setPrice('');
+setSelectedId('');
+setShowCustomInput(false);
+setShowWarningModal(false);
+setPendingSubmission(null);
+setIsSelfCollected(false); // Reset checkbox
+};
 
-    useEffect(() => {
-        // Set default date to now (local time for input)
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        setSelectedDate(now.toISOString().slice(0, 16));
-    }, []);
+const submitAllItems = async () => {
+    if (items.length === 0) return;
+    if (!depositor && !showCustomInput) return;
+    if (showCustomInput && !customName) return;
 
+    const finalDepositor = showCustomInput ? customName : depositor;
+    const finalDate = selectedDate ? new Date(selectedDate).toISOString() : null;
 
-    const selectedItem = useMemo(() => inventory.find(i => i.id === parseInt(selectedId)), [selectedId, inventory]);
-
-    // Helper for recursive wage calculation
-    const calculateRecursiveWage = (itemId) => {
-        const item = inventory.find(i => i.id === itemId);
-        if (!item) return 0;
-
-        const priceItem = prices.find(p => p.name === item.name);
-        const baseWage = priceItem ? (parseFloat(priceItem.lohn?.toString().split('/')[0]) || 0) : 0;
-
-        const recipe = recipes[itemId];
-        if (!recipe) return baseWage;
-
-        let ingredientWage = 0;
-        recipe.inputs.forEach(input => {
-            const inputItem = inventory.find(i => i.name === input.name);
-            if (inputItem) {
-                const inputUnitWage = calculateRecursiveWage(inputItem.id);
-                const qtyNeeded = input.quantity / recipe.output;
-                ingredientWage += inputUnitWage * qtyNeeded;
-            }
-        });
-
-        return baseWage + ingredientWage;
-    };
-
-    // Pre-fill price based on item and transaction type
-    useEffect(() => {
-        if (isReturn) {
-            setPrice(0);
-            return;
-        }
-
-        if (selectedItem) {
-            if (title.includes("Einlagern") && isSelfCollected) {
-                const wage = calculateRecursiveWage(selectedItem.id);
-                setPrice(Math.round(wage * 100) / 100); // Round to 2 decimals
-                return;
-            }
-
-            setPrice('');
-            const priceItem = prices.find(p => p.name === selectedItem.name);
-            if (priceItem) {
-                if (title.includes("Einkauf")) {
-                    setPrice(priceItem.ek || '');
-                } else if (title.includes("Einlagern")) {
-                    setPrice(priceItem.lohn || '');
-                }
-            }
-        }
-    }, [selectedId, selectedItem, prices, title, isReturn, isSelfCollected]);
-
-
-
-    const handleEmployeeChange = (e) => {
-        const value = e.target.value;
-        if (value === '__custom__') {
-            setShowCustomInput(true);
-            setDepositor('');
-        } else {
-            setShowCustomInput(false);
-            setDepositor(value);
-            setCustomName('');
-        }
-    };
-
-    const addToCart = () => {
-        if (!selectedId || !quantity) return;
-
-        const selectedItem = inventory.find(i => i.id === parseInt(selectedId));
-        if (!selectedItem) return;
-
-        const newItem = {
-            id: parseInt(selectedId),
-            name: selectedItem.name,
-            quantity: parseInt(quantity),
-            price: showPrice ? price : 0,
-            isSelfCollected,
-            isReturn,
-            key: Date.now() // unique key for React
+    // Process each item
+    for (const item of items) {
+        const submissionData = {
+            selectedId: item.id,
+            quantity: item.quantity,
+            depositor: finalDepositor,
+            price: item.price,
+            date: finalDate
         };
 
-        setItems([...items, newItem]);
-
-        // Reset form fields for next item
-        setSelectedId('');
-        setQuantity('');
-        setPrice('');
-        setIsSelfCollected(false);
-        setIsReturn(false);
-    };
-
-    const removeFromCart = (key) => {
-        setItems(items.filter(item => item.key !== key));
-    };
-
-    const validateRecipe = (itemId, quantity, employeeName) => {
-        // Only check for "Einlagern" and if NOT self-collected
-        if (!title.includes("Einlagern") || isSelfCollected) return { valid: true };
-
-        const recipe = recipes[itemId];
-        if (!recipe) return { valid: true }; // No recipe, no check needed
-
-        // Calculate required ingredients
-        const requiredIngredients = [];
-        recipe.inputs.forEach(input => {
-            const inputItem = inventory.find(i => i.name === input.name);
-            if (inputItem) {
-                // Calculate quantity needed: (Output Quantity / Recipe Output) * Input Quantity
-                // e.g. Want 10 Steel (Output 2). Recipe needs 4 Iron.
-                // (10 / 2) * 4 = 20 Iron needed.
-                const qtyNeeded = (quantity / recipe.output) * input.quantity;
-                requiredIngredients.push({
-                    itemId: inputItem.id,
-                    name: inputItem.name,
-                    quantity: qtyNeeded
-                });
-            }
-        });
-
-        // Check employee inventory
-        const missing = [];
-        const toConsume = [];
-
-        for (const req of requiredIngredients) {
-            const empItem = employeeInventory.find(i => i.employee_name === employeeName && i.item_id === req.itemId);
-            const currentQty = empItem ? empItem.quantity : 0;
-
-            if (currentQty < req.quantity) {
-                missing.push({ ...req, current: currentQty });
-            } else {
-                toConsume.push({ itemId: req.itemId, quantity: req.quantity });
-            }
-        }
-
-        if (missing.length > 0) {
-            return { valid: false, missing };
-        }
-
-        return { valid: true, toConsume };
-    };
-
-    const processSubmission = async (submissionData) => {
-        const { selectedId, quantity, depositor, price, date } = submissionData;
-
-        // Validate Recipe (only if not already validated/consumed via warning modal flow, 
-        // but here we are inside processSubmission which is called after checks.
-        // Wait, we need to do the check BEFORE calling onCheckIn.
-
-        // Check if we need to validate (only for single item submission via handleSubmit or single item in submitAllItems)
-        // Note: submitAllItems calls this in a loop.
-
-        // Let's move the validation to handleSubmit and submitAllItems to be safe and show UI feedback there.
-        // But we need to handle the consumption here or pass it in.
-
-        // Actually, let's do the consumption right here if valid.
-
-        // Check validation again to be sure (or pass consumption data)
-        // For simplicity, let's re-run validation here if it wasn't a warning modal flow.
-        // But wait, warning modal is for "Kein Einkauf".
-
-        // Let's Refactor:
-        // 1. Check Recipe
-        const validation = validateRecipe(parseInt(selectedId), parseInt(quantity), depositor);
-
-        if (!validation.valid) {
-            const missingText = validation.missing.map(m => `${m.name}: ${m.current}/${m.quantity}`).join(', ');
-            alert(`Fehlende Zutaten bei ${depositor}: ${missingText}`);
-            return; // Stop
-        }
-
-        // 2. Consume Ingredients (if any)
-        if (validation.toConsume && validation.toConsume.length > 0 && onConsumeIngredients) {
-            const result = await onConsumeIngredients(depositor, validation.toConsume);
-            if (!result.success) {
-                alert(`Fehler beim Verbrauch der Zutaten: ${result.error}`);
-                return;
-            }
-        }
-
-        onCheckIn(
-            parseInt(selectedId),
-            parseInt(quantity),
-            depositor,
-            price,
-            date
-        );
-
-        setQuantity('');
-        setDepositor('');
-        setCustomName('');
-        setPrice('');
-        setSelectedId('');
-        setShowCustomInput(false);
-        setShowWarningModal(false);
-        setPendingSubmission(null);
-        setIsSelfCollected(false); // Reset checkbox
-    };
-
-    const submitAllItems = async () => {
-        if (items.length === 0) return;
-        if (!depositor && !showCustomInput) return;
-        if (showCustomInput && !customName) return;
-
-        const finalDepositor = showCustomInput ? customName : depositor;
-        const finalDate = selectedDate ? new Date(selectedDate).toISOString() : null;
-
-        // Process each item
-        for (const item of items) {
-            const submissionData = {
-                selectedId: item.id,
-                quantity: item.quantity,
-                depositor: finalDepositor,
-                price: item.price,
-                date: finalDate
-            };
-
-            // Check for warnings (only for Einkauf, not Einlagern)
-            if (!title.includes("Einlagern")) {
-                const selectedItemInCart = inventory.find(i => i.id === item.id);
-                const priceItem = prices.find(p => p.name === selectedItemInCart?.name);
-                if (priceItem && priceItem.note) {
-                    const noteLower = priceItem.note.toLowerCase();
-                    if (noteLower.includes("kein einkauf") || noteLower.includes("nur einkauf bis") || noteLower.includes("kein ankauf") || noteLower.includes("nur ankauf bis")) {
-                        setWarningMessage(priceItem.note);
-                        setPendingSubmission(submissionData);
-                        setShowWarningModal(true);
-                        return; // Stop and show warning
-                    }
-                }
-            }
-
-            processSubmission(submissionData);
-        }
 
         // Clear cart after all items processed
         setItems([]);
@@ -300,6 +65,7 @@ export default function CheckInForm({
                 if (noteLower.includes("kein einkauf") || noteLower.includes("nur einkauf bis") || noteLower.includes("kein ankauf") || noteLower.includes("nur ankauf bis")) {
                     setWarningMessage(priceItem.note);
                     setPendingSubmission(submissionData);
+                    setModalType('warning');
                     setShowWarningModal(true);
                     return;
                 }
@@ -607,14 +373,16 @@ export default function CheckInForm({
                                         onClick={() => setShowWarningModal(false)}
                                         className="flex-1 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors font-medium"
                                     >
-                                        Abbrechen
+                                        {modalType === 'error' ? 'Schließen' : 'Abbrechen'}
                                     </button>
-                                    <button
-                                        onClick={() => processSubmission(pendingSubmission)}
-                                        className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-bold"
-                                    >
-                                        Trotzdem bestätigen
-                                    </button>
+                                    {modalType === 'warning' && (
+                                        <button
+                                            onClick={() => processSubmission(pendingSubmission)}
+                                            className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-bold"
+                                        >
+                                            Trotzdem bestätigen
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
