@@ -159,7 +159,7 @@ function App() {
   };
 
   const saveLogEntry = (entry) => {
-    const newLog = { ...entry, timestamp: new Date().toISOString() };
+    const newLog = { ...entry, timestamp: entry.timestamp || new Date().toISOString() };
     setTransactionLogs(prev => [newLog, ...prev]);
 
     fetch(`${API_URL}/logs`, {

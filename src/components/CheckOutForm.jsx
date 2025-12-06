@@ -142,77 +142,61 @@ export default function CheckOutForm({
     };
 
     return (
-        <section className="glass-panel rounded-2xl p-6 mb-8 animate-fade-in h-full">
-            <div className="flex items-center gap-3 mb-6 border-b border-slate-700/50 pb-4">
-                <div className="p-3 bg-amber-500/10 rounded-xl">
-                    <PackageMinus className="w-6 h-6 text-amber-400" />
-                </div>
-                <div>
-                    <h2 className="text-xl font-bold text-white">{title}</h2>
-                    <p className="text-sm text-slate-400">Neuen Eintrag erstellen</p>
-                </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Date Selection */}
+        <section className="glass-panel rounded-2xl p-6 mb-8 h-full">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-amber-300">
+                <PackageMinus className="w-5 h-5" />
+                {title}
+            </h2>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
                 <div className="space-y-1">
-                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Datum & Uhrzeit</label>
+                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Produkt</label>
+                    <select
+                        value={selectedId}
+                        onChange={(e) => setSelectedId(e.target.value)}
+                        className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
+                        required
+                    >
+                        <option value="">Produkt wählen...</option>
+                        {sortedInventory.map(item => (
+                            <option key={item.id} value={item.id} className="bg-slate-900">
+                                {item.name} (Bestand: {item.current})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Datum & Zeit</label>
                     <input
                         type="datetime-local"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
-                        className="w-full glass-input rounded-lg px-4 py-2.5"
+                        className="w-full glass-input rounded-lg px-4 py-2.5 text-slate-200"
                     />
                 </div>
 
-                {/* Item Selection */}
-                <div className="space-y-1">
-                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Item</label>
-                    <div className="relative">
-                        <select
-                            value={selectedId}
-                            onChange={(e) => setSelectedId(e.target.value)}
-                            className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
-                            required
-                        >
-                            <option value="">Bitte wählen...</option>
-                            {sortedInventory.map(item => (
-                                <option key={item.id} value={item.id}>
-                                    {item.name} (Bestand: {item.current})
-                                </option>
-                            ))}
-                        </select>
-                        <div className="absolute right-4 top-3.5 pointer-events-none text-slate-500">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Depositor Selection */}
                 <div className="space-y-1">
                     <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{depositorLabel}</label>
-                    <div className="relative">
-                        <select
-                            value={showCustomInput ? '__custom__' : depositor}
-                            onChange={handleEmployeeChange}
-                            className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
-                            required={!showCustomInput}
-                        >
-                            <option value="">Bitte wählen...</option>
-                            {employees.map(emp => (
-                                <option key={emp} value={emp}>{emp}</option>
-                            ))}
-                            <option value="__custom__">Andere Person...</option>
-                        </select>
-                        <div className="absolute right-4 top-3.5 pointer-events-none text-slate-500">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </div>
+                    <select
+                        value={showCustomInput ? '__custom__' : depositor}
+                        onChange={handleEmployeeChange}
+                        className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
+                        required={!showCustomInput}
+                    >
+                        <option value="">Mitarbeiter wählen...</option>
+                        {employees.map((emp, idx) => (
+                            <option key={idx} value={emp} className="bg-slate-900">
+                                {emp}
+                            </option>
+                        ))}
+                        <option value="__custom__" className="bg-slate-900 text-amber-400">
+                            ➕ Andere...
+                        </option>
+                    </select>
                 </div>
 
-                {/* Custom Name Input */}
                 {showCustomInput && (
-                    <div className="space-y-1 animate-fade-in">
+                    <div className="space-y-1">
                         <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Name eingeben</label>
                         <input
                             type="text"
@@ -251,7 +235,7 @@ export default function CheckOutForm({
                                     placeholder="0"
                                     className="w-full glass-input rounded-lg px-4 py-2.5 pl-8"
                                 />
-                                <div className="absolute left-3 top-2.5 text-slate-500 font-bold">$</div>
+                                <DollarSign className="w-4 h-4 text-slate-500 absolute left-2.5 top-3" />
                             </div>
                         </div>
                     )}
@@ -286,15 +270,23 @@ export default function CheckOutForm({
                     </div>
                 )}
 
-                <div className="mt-2">
+                <div className="grid grid-cols-2 gap-3 mt-2">
                     <button
                         type="submit"
-                        className={`w-full font-bold py-3 rounded-lg shadow-lg transition-all duration-200 ${skipInventory
-                            ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 shadow-blue-500/25 text-white'
-                            : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-amber-500/25'
+                        className={`w-full text-white py-3 rounded-lg font-semibold transition-colors duration-200 ${skipInventory
+                            ? 'bg-blue-600 hover:bg-blue-700'
+                            : 'bg-amber-600 hover:bg-amber-700'
                             }`}
                     >
-                        {skipInventory ? 'Nur Protokollieren' : 'Bestätigen'}
+                        {skipInventory ? 'Nur Protokollieren' : 'Direkt bestätigen'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { /* Placeholder for future cart functionality */ }}
+                        className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors duration-200 flex items-center justify-center gap-2"
+                    >
+                        <PackageMinus className="w-5 h-5" />
+                        ➕ Warenkorb
                     </button>
                 </div>
             </form>
