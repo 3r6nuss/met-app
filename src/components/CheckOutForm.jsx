@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { PackageMinus, Trash2, ShoppingCart } from 'lucide-react';
+import { PackageMinus } from 'lucide-react';
 
 export default function CheckOutForm({
     inventory,
@@ -20,14 +20,26 @@ export default function CheckOutForm({
     const [showWarningModal, setShowWarningModal] = useState(false);
     const [warningMessage, setWarningMessage] = useState('');
     const [pendingSubmission, setPendingSubmission] = useState(null);
-    const [items, setItems] = useState([]);
+
 
     useEffect(() => {
         // Set default date to now (local time for input)
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         setSelectedDate(now.toISOString().slice(0, 16));
-    }, []);
+
+        // Load saved depositor from localStorage
+        const savedDepositor = localStorage.getItem('met_depositor');
+        if (savedDepositor) {
+            if (employees.includes(savedDepositor)) {
+                setDepositor(savedDepositor);
+            } else {
+                // Custom name was saved
+                setShowCustomInput(true);
+                setCustomName(savedDepositor);
+            }
+        }
+    }, [employees]);
 
     const selectedItem = useMemo(() => inventory.find(i => i.id === parseInt(selectedId)), [selectedId, inventory]);
 
@@ -53,34 +65,23 @@ export default function CheckOutForm({
             setShowCustomInput(false);
             setDepositor(value);
             setCustomName('');
+            // Save to localStorage
+            if (value) {
+                localStorage.setItem('met_depositor', value);
+            }
         }
     };
 
-    const addToCart = () => {
-        if (!selectedId || !quantity) return;
-
-        const selectedItem = inventory.find(i => i.id === parseInt(selectedId));
-        if (!selectedItem) return;
-
-        const newItem = {
-            id: parseInt(selectedId),
-            name: selectedItem.name,
-            quantity: parseInt(quantity),
-            price: showPrice ? (parseFloat(price) || 0) : 0,
-            key: Date.now() // unique key for React
-        };
-
-        setItems([...items, newItem]);
-
-        // Reset form fields for next item
-        setSelectedId('');
-        setQuantity('');
-        setPrice('');
+    const handleCustomNameChange = (e) => {
+        const value = e.target.value;
+        setCustomName(value);
+        // Save custom name to localStorage
+        if (value) {
+            localStorage.setItem('met_depositor', value);
+        }
     };
 
-    const removeFromCart = (key) => {
-        setItems(items.filter(item => item.key !== key));
-    };
+
 
     const processSubmission = (submissionData) => {
         const { selectedId, quantity, depositor, price, date } = submissionData;
@@ -95,48 +96,7 @@ export default function CheckOutForm({
         setPendingSubmission(null);
     };
 
-    const submitAllItems = async () => {
-        if (items.length === 0) return;
-        if (!depositor && !showCustomInput) return;
-        if (showCustomInput && !customName) return;
 
-        const finalDepositor = showCustomInput ? customName : depositor;
-        const finalDate = selectedDate ? new Date(selectedDate).toISOString() : null;
-
-        // Process each item
-        for (const item of items) {
-            const submissionData = {
-                selectedId: item.id,
-                quantity: item.quantity,
-                depositor: finalDepositor,
-                price: item.price,
-                date: finalDate
-            };
-
-            // Check for noteVK warnings for Verkauf
-            if (title.includes("Verkauf")) {
-                const selectedItemInCart = inventory.find(i => i.id === item.id);
-                const priceItem = prices.find(p => p.name === selectedItemInCart?.name);
-                if (priceItem && priceItem.noteVK) {
-                    const noteVKLower = priceItem.noteVK.toLowerCase();
-                    if (noteVKLower.includes("kein verkauf") || noteVKLower.includes("nur verkauf bis")) {
-                        setWarningMessage(priceItem.noteVK);
-                        setPendingSubmission(submissionData);
-                        setShowWarningModal(true);
-                        return; // Stop and show warning
-                    }
-                }
-            }
-
-            processSubmission(submissionData);
-        }
-
-        // Clear cart after all items processed
-        setItems([]);
-        setDepositor('');
-        setCustomName('');
-        setShowCustomInput(false);
-    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -173,12 +133,7 @@ export default function CheckOutForm({
 
     const sortedInventory = [...inventory].sort((a, b) => a.name.localeCompare(b.name));
 
-    // Helper to calculate total earnings for all items in cart
-    const calculateTotalEarnings = () => {
-        return items.reduce((total, item) => {
-            return total + (item.quantity * item.price);
-        }, 0);
-    };
+
 
     return (
         <section className="glass-panel rounded-2xl p-6 mb-8 animate-fade-in h-full">
@@ -240,7 +195,7 @@ export default function CheckOutForm({
                         <input
                             type="text"
                             value={customName}
-                            onChange={(e) => setCustomName(e.target.value)}
+                            onChange={handleCustomNameChange}
                             placeholder="Name..."
                             className="w-full glass-input rounded-lg px-4 py-2.5"
                             required
@@ -277,111 +232,17 @@ export default function CheckOutForm({
                 </div>
 
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="mt-2">
                     <button
                         type="submit"
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-medium py-2.5 px-6 rounded-lg shadow-lg shadow-green-500/25 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                        className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold py-3 rounded-lg shadow-lg shadow-amber-500/25 transition-all duration-200"
                     >
-                        Direkt bestätigen
-                    </button>
-                    <button
-                        type="button"
-                        onClick={addToCart}
-                        className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-medium py-2.5 px-6 rounded-lg shadow-lg shadow-amber-500/25 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-                    >
-                        <ShoppingCart className="w-5 h-5" />
-                        ➕ Warenkorb
+                        Bestätigen
                     </button>
                 </div>
             </form>
 
-            {/* Shopping Cart Display */}
-            {items.length > 0 && (
-                <div className="mt-6 space-y-4 animate-fade-in">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-amber-300 flex items-center gap-2">
-                            <ShoppingCart className="w-5 h-5" />
-                            Warenkorb ({items.length} {items.length === 1 ? 'Artikel' : 'Artikel'})
-                        </h3>
-                        {showPrice && (
-                            <div className="text-sm text-slate-400">
-                                Gesamt: <span className="text-amber-400 font-bold">${calculateTotalEarnings().toLocaleString()}</span>
-                            </div>
-                        )}
-                    </div>
 
-                    <div className="space-y-2">
-                        {items.map((item) => {
-                            const totalItemEarnings = item.quantity * item.price;
-
-                            return (
-                                <div key={item.key} className="glass-panel rounded-lg p-4 flex items-center justify-between">
-                                    <div className="flex-1">
-                                        <h4 className="font-semibold text-slate-200">{item.name}</h4>
-                                        <div className="text-sm text-slate-400 mt-1">
-                                            Menge: {item.quantity}
-                                            {showPrice && (
-                                                <span> × ${item.price} = <span className="text-amber-400 font-semibold">${totalItemEarnings.toLocaleString()}</span></span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => removeFromCart(item.key)}
-                                        className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
-                                        title="Entfernen"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Employee and Submit All Section */}
-                    <div className="glass-panel rounded-lg p-4 space-y-4">
-                        <div className="space-y-1">
-                            <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{depositorLabel}</label>
-                            <select
-                                value={showCustomInput ? '__custom__' : depositor}
-                                onChange={handleEmployeeChange}
-                                className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
-                                required={!showCustomInput}
-                            >
-                                <option value="">Mitarbeiter wählen...</option>
-                                {employees.map((emp, idx) => (
-                                    <option key={idx} value={emp} className="bg-slate-900">
-                                        {emp}
-                                    </option>
-                                ))}
-                                <option value="__custom__" className="bg-slate-900 text-amber-400">
-                                    ➕ Andere...
-                                </option>
-                            </select>
-                        </div>
-
-                        {showCustomInput && (
-                            <div className="space-y-1">
-                                <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Name eingeben</label>
-                                <input
-                                    type="text"
-                                    value={customName}
-                                    onChange={(e) => setCustomName(e.target.value)}
-                                    placeholder="Name..."
-                                    className="w-full glass-input rounded-lg px-4 py-2.5"
-                                    required
-                                />
-                            </div>
-                        )}
-
-                        <button
-                            onClick={submitAllItems}
-                            className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-lg font-bold hover:from-orange-500 hover:to-red-500 transition-all duration-200 shadow-lg shadow-orange-500/25"
-                        >
-                            {title} - Alle bestätigen ({items.length})
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {/* Warning Modal */}
             {showWarningModal && (

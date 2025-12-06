@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { PackagePlus, DollarSign, Trash2, ShoppingCart } from 'lucide-react';
+import { PackagePlus, DollarSign } from 'lucide-react';
 import { recipes } from '../data/recipes';
 
 export default function CheckInForm({
@@ -23,14 +23,26 @@ export default function CheckInForm({
     const [warningMessage, setWarningMessage] = useState('');
     const [pendingSubmission, setPendingSubmission] = useState(null);
     const [selectedDate, setSelectedDate] = useState('');
-    const [items, setItems] = useState([]);
+
 
     useEffect(() => {
         // Set default date to now (local time for input)
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         setSelectedDate(now.toISOString().slice(0, 16));
-    }, []);
+
+        // Load saved depositor from localStorage
+        const savedDepositor = localStorage.getItem('met_depositor');
+        if (savedDepositor) {
+            if (employees.includes(savedDepositor)) {
+                setDepositor(savedDepositor);
+            } else {
+                // Custom name was saved
+                setShowCustomInput(true);
+                setCustomName(savedDepositor);
+            }
+        }
+    }, [employees]);
 
 
     const selectedItem = useMemo(() => inventory.find(i => i.id === parseInt(selectedId)), [selectedId, inventory]);
@@ -96,38 +108,23 @@ export default function CheckInForm({
             setShowCustomInput(false);
             setDepositor(value);
             setCustomName('');
+            // Save to localStorage
+            if (value) {
+                localStorage.setItem('met_depositor', value);
+            }
         }
     };
 
-    const addToCart = () => {
-        if (!selectedId || !quantity) return;
-
-        const selectedItem = inventory.find(i => i.id === parseInt(selectedId));
-        if (!selectedItem) return;
-
-        const newItem = {
-            id: parseInt(selectedId),
-            name: selectedItem.name,
-            quantity: parseInt(quantity),
-            price: showPrice ? price : 0,
-            isSelfCollected,
-            isReturn,
-            key: Date.now() // unique key for React
-        };
-
-        setItems([...items, newItem]);
-
-        // Reset form fields for next item
-        setSelectedId('');
-        setQuantity('');
-        setPrice('');
-        setIsSelfCollected(false);
-        setIsReturn(false);
+    const handleCustomNameChange = (e) => {
+        const value = e.target.value;
+        setCustomName(value);
+        // Save custom name to localStorage
+        if (value) {
+            localStorage.setItem('met_depositor', value);
+        }
     };
 
-    const removeFromCart = (key) => {
-        setItems(items.filter(item => item.key !== key));
-    };
+
 
     const processSubmission = (submissionData) => {
         const { selectedId, quantity, depositor, price } = submissionData;
@@ -150,48 +147,7 @@ export default function CheckInForm({
         setIsSelfCollected(false); // Reset checkbox
     };
 
-    const submitAllItems = async () => {
-        if (items.length === 0) return;
-        if (!depositor && !showCustomInput) return;
-        if (showCustomInput && !customName) return;
 
-        const finalDepositor = showCustomInput ? customName : depositor;
-        const finalDate = selectedDate ? new Date(selectedDate).toISOString() : null;
-
-        // Process each item
-        for (const item of items) {
-            const submissionData = {
-                selectedId: item.id,
-                quantity: item.quantity,
-                depositor: finalDepositor,
-                price: item.price,
-                date: finalDate
-            };
-
-            // Check for warnings (only for Einkauf, not Einlagern)
-            if (!title.includes("Einlagern")) {
-                const selectedItemInCart = inventory.find(i => i.id === item.id);
-                const priceItem = prices.find(p => p.name === selectedItemInCart?.name);
-                if (priceItem && priceItem.note) {
-                    const noteLower = priceItem.note.toLowerCase();
-                    if (noteLower.includes("kein einkauf") || noteLower.includes("nur einkauf bis") || noteLower.includes("kein ankauf") || noteLower.includes("nur ankauf bis")) {
-                        setWarningMessage(priceItem.note);
-                        setPendingSubmission(submissionData);
-                        setShowWarningModal(true);
-                        return; // Stop and show warning
-                    }
-                }
-            }
-
-            processSubmission(submissionData);
-        }
-
-        // Clear cart after all items processed
-        setItems([]);
-        setDepositor('');
-        setCustomName('');
-        setShowCustomInput(false);
-    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -235,13 +191,7 @@ export default function CheckInForm({
         return (quantity * numericPrice).toLocaleString();
     };
 
-    // Helper to calculate total earnings for all items in cart
-    const calculateTotalEarnings = () => {
-        return items.reduce((total, item) => {
-            const numericPrice = parseFloat(item.price.toString().split('/')[0]) || 0;
-            return total + (item.quantity * numericPrice);
-        }, 0);
-    };
+
 
     return (
         <section className="glass-panel rounded-2xl p-6 mb-8 h-full">
@@ -303,7 +253,7 @@ export default function CheckInForm({
                         <input
                             type="text"
                             value={customName}
-                            onChange={(e) => setCustomName(e.target.value)}
+                            onChange={handleCustomNameChange}
                             placeholder="Name..."
                             className="w-full glass-input rounded-lg px-4 py-2.5"
                             required
@@ -386,119 +336,17 @@ export default function CheckInForm({
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3 mt-2">
+                <div className="mt-2">
                     <button
                         type="submit"
-                        className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors duration-200"
+                        className="w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white py-3 rounded-lg font-bold hover:from-emerald-500 hover:to-green-500 transition-all duration-200 shadow-lg shadow-emerald-500/25"
                     >
-                        Direkt bestätigen
-                    </button>
-                    <button
-                        type="button"
-                        onClick={addToCart}
-                        className="w-full bg-violet-600 text-white py-3 rounded-lg font-semibold hover:bg-violet-700 transition-colors duration-200 flex items-center justify-center gap-2"
-                    >
-                        <ShoppingCart className="w-5 h-5" />
-                        ➕ Warenkorb
+                        Bestätigen
                     </button>
                 </div>
             </form>
 
-            {/* Shopping Cart Display */}
-            {items.length > 0 && (
-                <div className="mt-6 space-y-4 animate-fade-in">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-violet-300 flex items-center gap-2">
-                            <ShoppingCart className="w-5 h-5" />
-                            Warenkorb ({items.length} {items.length === 1 ? 'Artikel' : 'Artikel'})
-                        </h3>
-                        <div className="text-sm text-slate-400">
-                            Gesamt: <span className="text-emerald-400 font-bold">${calculateTotalEarnings().toLocaleString()}</span>
-                        </div>
-                    </div>
 
-                    <div className="space-y-2">
-                        {items.map((item) => {
-                            const itemEarnings = parseFloat(item.price.toString().split('/')[0]) || 0;
-                            const totalItemEarnings = item.quantity * itemEarnings;
-
-                            return (
-                                <div key={item.key} className="glass-panel rounded-lg p-4 flex items-center justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3">
-                                            <h4 className="font-semibold text-slate-200">{item.name}</h4>
-                                            {item.isReturn && (
-                                                <span className="text-xs px-2 py-1 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                                                    Rückgabe
-                                                </span>
-                                            )}
-                                            {item.isSelfCollected && (
-                                                <span className="text-xs px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                                    Selbst gesammelt
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="text-sm text-slate-400 mt-1">
-                                            Menge: {item.quantity} × ${item.price} = <span className="text-emerald-400 font-semibold">${totalItemEarnings.toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => removeFromCart(item.key)}
-                                        className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
-                                        title="Entfernen"
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Employee and Submit All Section */}
-                    <div className="glass-panel rounded-lg p-4 space-y-4">
-                        <div className="space-y-1">
-                            <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{depositorLabel}</label>
-                            <select
-                                value={showCustomInput ? '__custom__' : depositor}
-                                onChange={handleEmployeeChange}
-                                className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
-                                required={!showCustomInput}
-                            >
-                                <option value="">Mitarbeiter wählen...</option>
-                                {employees.map((emp, idx) => (
-                                    <option key={idx} value={emp} className="bg-slate-900">
-                                        {emp}
-                                    </option>
-                                ))}
-                                <option value="__custom__" className="bg-slate-900 text-amber-400">
-                                    ➕ Andere...
-                                </option>
-                            </select>
-                        </div>
-
-                        {showCustomInput && (
-                            <div className="space-y-1">
-                                <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Name eingeben</label>
-                                <input
-                                    type="text"
-                                    value={customName}
-                                    onChange={(e) => setCustomName(e.target.value)}
-                                    placeholder="Name..."
-                                    className="w-full glass-input rounded-lg px-4 py-2.5"
-                                    required
-                                />
-                            </div>
-                        )}
-
-                        <button
-                            onClick={submitAllItems}
-                            className="w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white py-3 rounded-lg font-bold hover:from-emerald-500 hover:to-green-500 transition-all duration-200 shadow-lg shadow-emerald-500/25"
-                        >
-                            {title} - Alle bestätigen ({items.length})
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {/* Warning Modal */}
             {
