@@ -1790,29 +1790,8 @@ app.post('/api/transaction/revert', async (req, res) => {
             await db.run('UPDATE inventory SET current = ? WHERE id = ?', newCurrent, originalLog.itemId);
         }
 
-        // Mark original log as reverted
-        await db.run("UPDATE logs SET status = 'reverted' WHERE timestamp = ?", logTimestamp);
-
-        // Create revert log entry
-        const revertLog = {
-            timestamp: new Date().toISOString(),
-            type: originalLog.type === 'in' ? 'out' : 'in',
-            category: 'revert',
-            itemId: originalLog.itemId,
-            itemName: originalLog.itemName,
-            quantity: originalLog.quantity,
-            depositor: `REVERT by ${req.user.username}`,
-            price: 0,
-            msg: `RÜCKGÄNGIG: ${originalLog.msg}`,
-            time: new Date().toLocaleTimeString(),
-            status: 'paid' // Reverts don't affect payroll
-        };
-
-        await db.run(
-            'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            revertLog.timestamp, revertLog.type, revertLog.category, revertLog.itemId, revertLog.itemName,
-            revertLog.quantity, revertLog.depositor, revertLog.price, revertLog.msg, revertLog.time, revertLog.status
-        );
+        // Delete the original log entry completely from the database
+        await db.run("DELETE FROM logs WHERE timestamp = ?", logTimestamp);
 
         await db.run('COMMIT');
 
