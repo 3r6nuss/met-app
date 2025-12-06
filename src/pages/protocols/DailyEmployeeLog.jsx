@@ -182,7 +182,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                                                     <div className="mt-1 space-y-1">
                                                         {day.logs.map((log, lIdx) => (
                                                             <div key={lIdx} className="text-[10px] flex justify-between items-center px-1 rounded text-slate-400 bg-slate-900/50 group/log">
-                                                                <span className="truncate max-w-[60px]">{log.itemName || 'Auszahlung'}</span>
+                                                                <span className="truncate max-w-[60px]" title={log.itemName || 'Auszahlung'}>{log.itemName || 'Auszahlung'}</span>
                                                                 <div className="flex items-center gap-1">
                                                                     <span>{log.quantity}</span>
                                                                     {user?.role === 'Administrator' && (
