@@ -19,7 +19,11 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
     const { currentLogs, pastLogs } = useMemo(() => {
         const current = [];
         const past = [];
-        logs.filter(l => l.itemName !== 'Korrektur Geschäftskonto' && !l.msg?.includes('Korrektur Geschäftskonto')).forEach(log => {
+        logs.filter(l =>
+            l.itemName !== 'Korrektur Geschäftskonto' &&
+            !l.msg?.includes('Korrektur Geschäftskonto') &&
+            (l.price > 0 || l.price < 0) // Exclude 0 price (Returns), but KEEP unknown items
+        ).forEach(log => {
             const date = new Date(log.timestamp);
             if (date >= currentWeekStart) {
                 current.push(log);

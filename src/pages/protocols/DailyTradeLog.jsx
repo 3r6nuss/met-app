@@ -5,7 +5,12 @@ export default function DailyTradeLog({ logs }) {
 
     // Filter for today's logs (mocking date filter for now, showing all)
     // In a real app, we'd filter by date.
-    const filteredLogs = logs.filter(l => l.itemName !== 'Korrektur Geschäftskonto' && !l.msg?.includes('Korrektur Geschäftskonto'));
+    const filteredLogs = logs.filter(l =>
+        l.itemName !== 'Korrektur Geschäftskonto' &&
+        !l.msg?.includes('Korrektur Geschäftskonto') &&
+        (l.price > 0 || l.price < 0) && // Exclude 0 price (Returns)
+        l.itemName && l.itemName !== 'Unbekannt' // Exclude unknown items
+    );
 
     const purchases = filteredLogs.filter(l => l.type === 'in' && l.category === 'trade');
     const sales = filteredLogs.filter(l => l.type === 'out' && l.category === 'trade');

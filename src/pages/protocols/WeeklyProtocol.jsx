@@ -25,7 +25,12 @@ export default function WeeklyProtocol({ logs, user }) {
     const processedData = useMemo(() => {
         const weeks = {};
 
-        logs.filter(l => l.itemName !== 'Korrektur Geschäftskonto' && !l.msg?.includes('Korrektur Geschäftskonto')).forEach(log => {
+        logs.filter(l =>
+            l.itemName !== 'Korrektur Geschäftskonto' &&
+            !l.msg?.includes('Korrektur Geschäftskonto') &&
+            (l.price > 0 || l.price < 0) && // Exclude 0 price (Returns)
+            l.itemName && l.itemName !== 'Unbekannt' // Exclude unknown items
+        ).forEach(log => {
             const date = new Date(log.timestamp);
             const weekStart = getWeekStart(date);
             const key = weekStart.toISOString();

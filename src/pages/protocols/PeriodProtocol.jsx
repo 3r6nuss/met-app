@@ -82,6 +82,8 @@ export default function PeriodProtocol({ logs }) {
         // Filter logs by date and exclude corrections
         const periodLogs = logs.filter(log => {
             if (log.itemName === 'Korrektur Geschäftskonto' || log.msg?.includes('Korrektur Geschäftskonto')) return false;
+            if (log.price === 0) return false; // Exclude Returns
+            if (!log.itemName || log.itemName === 'Unbekannt') return false; // Exclude Unknown Items
             const logDate = new Date(log.timestamp);
             return logDate >= start && logDate <= end;
         });
