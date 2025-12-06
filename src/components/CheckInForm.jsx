@@ -191,177 +191,181 @@ export default function CheckInForm({
     const calculateEarnings = () => {
         if (!quantity || !price) return 0;
         // Try to parse the first number if it's a range like "50/80"
-        return (
-            <section className="glass-panel rounded-2xl p-6 mb-8 h-full">
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-violet-300">
-                    <PackagePlus className="w-5 h-5" />
-                    {title}
-                </h2>
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-                    <div className="space-y-1">
-                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Produkt</label>
-                        <select
-                            value={selectedId}
-                            onChange={(e) => setSelectedId(e.target.value)}
-                            className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
-                            required
-                        >
-                            <option value="">Produkt wählen...</option>
-                            {sortedInventory.map(item => (
-                                <option key={item.id} value={item.id} className="bg-slate-900">
-                                    {item.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+        const numericPrice = parseFloat(price.toString().split('/')[0]) || 0;
+        return (quantity * numericPrice).toLocaleString();
+    };
 
+    return (
+        <section className="glass-panel rounded-2xl p-6 mb-8 h-full">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-violet-300">
+                <PackagePlus className="w-5 h-5" />
+                {title}
+            </h2>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Produkt</label>
+                    <select
+                        value={selectedId}
+                        onChange={(e) => setSelectedId(e.target.value)}
+                        className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
+                        required
+                    >
+                        <option value="">Produkt wählen...</option>
+                        {sortedInventory.map(item => (
+                            <option key={item.id} value={item.id} className="bg-slate-900">
+                                {item.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Datum & Zeit</label>
+                    <input
+                        type="datetime-local"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="w-full glass-input rounded-lg px-4 py-2.5 text-slate-200"
+                    />
+                </div>
+
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{depositorLabel}</label>
+                    <select
+                        value={showCustomInput ? '__custom__' : depositor}
+                        onChange={handleEmployeeChange}
+                        className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
+                        required={!showCustomInput}
+                    >
+                        <option value="">Mitarbeiter wählen...</option>
+                        {employees.map((emp, idx) => (
+                            <option key={idx} value={emp} className="bg-slate-900">
+                                {emp}
+                            </option>
+                        ))}
+                        <option value="__custom__" className="bg-slate-900 text-amber-400">
+                            ➕ Andere...
+                        </option>
+                    </select>
+                </div>
+
+                {showCustomInput && (
                     <div className="space-y-1">
-                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Datum & Zeit</label>
+                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Name eingeben</label>
                         <input
-                            type="datetime-local"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="w-full glass-input rounded-lg px-4 py-2.5 text-slate-200"
+                            type="text"
+                            value={customName}
+                            onChange={(e) => setCustomName(e.target.value)}
+                            placeholder="Name..."
+                            className="w-full glass-input rounded-lg px-4 py-2.5"
+                            required
                         />
                     </div>
+                )}
 
+                <div className={`grid ${showPrice ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
                     <div className="space-y-1">
-                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{depositorLabel}</label>
-                        <select
-                            value={showCustomInput ? '__custom__' : depositor}
-                            onChange={handleEmployeeChange}
-                            className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
-                            required={!showCustomInput}
-                        >
-                            <option value="">Mitarbeiter wählen...</option>
-                            {employees.map((emp, idx) => (
-                                <option key={idx} value={emp} className="bg-slate-900">
-                                    {emp}
-                                </option>
-                            ))}
-                            <option value="__custom__" className="bg-slate-900 text-amber-400">
-                                ➕ Andere...
-                            </option>
-                        </select>
+                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Menge</label>
+                        <input
+                            type="number"
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                            placeholder="0"
+                            className="w-full glass-input rounded-lg px-4 py-2.5"
+                            required
+                            min="1"
+                        />
                     </div>
-
-                    {showCustomInput && (
+                    {showPrice && (
                         <div className="space-y-1">
-                            <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Name eingeben</label>
-                            <input
-                                type="text"
-                                value={customName}
-                                onChange={(e) => setCustomName(e.target.value)}
-                                placeholder="Name..."
-                                className="w-full glass-input rounded-lg px-4 py-2.5"
-                                required
-                            />
-                        </div>
-                    )}
-
-                    <div className={`grid ${showPrice ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
-                        <div className="space-y-1">
-                            <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Menge</label>
-                            <input
-                                type="number"
-                                value={quantity}
-                                onChange={(e) => setQuantity(e.target.value)}
-                                placeholder="0"
-                                className="w-full glass-input rounded-lg px-4 py-2.5"
-                                required
-                                min="1"
-                            />
-                        </div>
-                        {showPrice && (
-                            <div className="space-y-1">
-                                <div className="flex justify-between items-end flex-wrap gap-2">
-                                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                                        {title.includes("Einkauf") ? "Preis (Stk)" : "Lohn (Stk)"}
-                                    </label>
-                                    {title.includes("Einlagern") && (
-                                        <div className="flex gap-3">
-                                            <label className="flex items-center gap-2 cursor-pointer group">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isSelfCollected}
-                                                    onChange={(e) => {
-                                                        setIsSelfCollected(e.target.checked);
-                                                        if (e.target.checked) setIsReturn(false);
-                                                    }}
-                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
-                                                />
-                                                <span className="text-xs text-slate-400 group-hover:text-emerald-300 transition-colors">Selbst gesammelt</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer group">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isReturn}
-                                                    onChange={(e) => {
-                                                        setIsReturn(e.target.checked);
-                                                        if (e.target.checked) setIsSelfCollected(false);
-                                                    }}
-                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500 focus:ring-violet-500 focus:ring-offset-slate-900"
-                                                />
-                                                <span className="text-xs text-slate-400 group-hover:text-violet-300 transition-colors">Rückgabe (0$)</span>
-                                            </label>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={price}
-                                        onChange={(e) => setPrice(e.target.value)}
-                                        placeholder="0"
-                                        className={`w-full glass-input rounded-lg px-4 py-2.5 pl-8 ${isReturn ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        disabled={isReturn}
-                                    />
-                                    <DollarSign className="w-4 h-4 text-slate-500 absolute left-2.5 top-3" />
-                                </div>
+                            <div className="flex justify-between items-end flex-wrap gap-2">
+                                <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+                                    {title.includes("Einkauf") ? "Preis (Stk)" : "Lohn (Stk)"}
+                                </label>
+                                {title.includes("Einlagern") && (
+                                    <div className="flex gap-3">
+                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelfCollected}
+                                                onChange={(e) => {
+                                                    setIsSelfCollected(e.target.checked);
+                                                    if (e.target.checked) setIsReturn(false);
+                                                }}
+                                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+                                            />
+                                            <span className="text-xs text-slate-400 group-hover:text-emerald-300 transition-colors">Selbst gesammelt</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                checked={isReturn}
+                                                onChange={(e) => {
+                                                    setIsReturn(e.target.checked);
+                                                    if (e.target.checked) setIsSelfCollected(false);
+                                                }}
+                                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500 focus:ring-violet-500 focus:ring-offset-slate-900"
+                                            />
+                                            <span className="text-xs text-slate-400 group-hover:text-violet-300 transition-colors">Rückgabe (0$)</span>
+                                        </label>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-
-                    {/* Estimated Earnings Display */}
-                    {showPrice && selectedId && quantity > 0 && price && (
-                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 animate-fade-in">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-400">Geschätzter Verdienst:</span>
-                                <span className="font-bold text-emerald-400">
-                                    ${calculateEarnings()}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Skip Inventory Checkbox - Only for Buchhaltung/Admin */}
-                    {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
-                        <div className="flex items-center gap-2 mt-2 p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                            <label className="flex items-center gap-2 cursor-pointer group w-full">
+                            <div className="relative">
                                 <input
-                                    type="checkbox"
-                                    checked={skipInventory}
-                                    onChange={(e) => setSkipInventory(e.target.checked)}
-                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                                    type="text"
+                                    value={price}
+                                    onChange={(e) => setPrice(e.target.value)}
+                                    placeholder="0"
+                                    className={`w-full glass-input rounded-lg px-4 py-2.5 pl-8 ${isReturn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={isReturn}
                                 />
-                                <span className="text-sm text-slate-400 group-hover:text-blue-300 transition-colors">
-                                    Nur Protokoll (Kein Lagerbestand)
-                                </span>
-                            </label>
+                                <DollarSign className="w-4 h-4 text-slate-500 absolute left-2.5 top-3" />
+                            </div>
                         </div>
                     )}
+                </div>
 
-                    <div className="grid grid-cols-2 gap-3 mt-2">
-                        <button
-                            type="submit"
-                            className={`w-full text-white py-3 rounded-lg font-semibold transition-colors duration-200 ${skipInventory
-                                ? 'bg-blue-600 hover:bg-blue-700'
-                                : 'bg-emerald-600 hover:bg-emerald-700'
-                                }`}
-                        >
-                            {skipInventory ? 'Nur Protokollieren' : 'Direkt bestätigen'}
-                        </button>
-                        {/* The original instruction had an addToCart button here, but it's not defined in the current context.
+                {/* Estimated Earnings Display */}
+                {showPrice && selectedId && quantity > 0 && price && (
+                    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 animate-fade-in">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-400">Geschätzter Verdienst:</span>
+                            <span className="font-bold text-emerald-400">
+                                ${calculateEarnings()}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Skip Inventory Checkbox - Only for Buchhaltung/Admin */}
+                {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
+                    <div className="flex items-center gap-2 mt-2 p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
+                        <label className="flex items-center gap-2 cursor-pointer group w-full">
+                            <input
+                                type="checkbox"
+                                checked={skipInventory}
+                                onChange={(e) => setSkipInventory(e.target.checked)}
+                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                            />
+                            <span className="text-sm text-slate-400 group-hover:text-blue-300 transition-colors">
+                                Nur Protokoll (Kein Lagerbestand)
+                            </span>
+                        </label>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                    <button
+                        type="submit"
+                        className={`w-full text-white py-3 rounded-lg font-semibold transition-colors duration-200 ${skipInventory
+                            ? 'bg-blue-600 hover:bg-blue-700'
+                            : 'bg-emerald-600 hover:bg-emerald-700'
+                            }`}
+                    >
+                        {skipInventory ? 'Nur Protokollieren' : 'Direkt bestätigen'}
+                    </button>
+                    {/* The original instruction had an addToCart button here, but it's not defined in the current context.
                         Keeping the original single button structure for now as per the instruction's intent to restore old style.
                         If addToCart functionality is needed, it must be added to the component.
                     <button
@@ -373,44 +377,44 @@ export default function CheckInForm({
                         ➕ Warenkorb
                     </button>
                     */}
-                    </div>
-                </form>
+                </div>
+            </form>
 
-                {/* Warning Modal */}
-                {showWarningModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                        <div className="bg-slate-900 border border-red-500/50 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in">
-                            <div className="text-center space-y-4">
-                                <h3 className="text-2xl font-bold text-red-500 uppercase tracking-wider">Achtung</h3>
+            {/* Warning Modal */}
+            {showWarningModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-red-500/50 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in">
+                        <div className="text-center space-y-4">
+                            <h3 className="text-2xl font-bold text-red-500 uppercase tracking-wider">Achtung</h3>
 
-                                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                                    <p className="text-red-200 font-medium text-lg">
-                                        {warningMessage}
-                                    </p>
-                                </div>
-
-                                <p className="text-slate-400 text-sm">
-                                    Bist du sicher, dass du fortfahren möchtest?
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                                <p className="text-red-200 font-medium text-lg">
+                                    {warningMessage}
                                 </p>
+                            </div>
 
-                                <div className="flex gap-3 pt-2">
-                                    <button
-                                        onClick={() => setShowWarningModal(false)}
-                                        className="flex-1 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors font-medium"
-                                    >
-                                        Abbrechen
-                                    </button>
-                                    <button
-                                        onClick={() => processSubmission(pendingSubmission)}
-                                        className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-bold"
-                                    >
-                                        Trotzdem bestätigen
-                                    </button>
-                                </div>
+                            <p className="text-slate-400 text-sm">
+                                Bist du sicher, dass du fortfahren möchtest?
+                            </p>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => setShowWarningModal(false)}
+                                    className="flex-1 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors font-medium"
+                                >
+                                    Abbrechen
+                                </button>
+                                <button
+                                    onClick={() => processSubmission(pendingSubmission)}
+                                    className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-bold"
+                                >
+                                    Trotzdem bestätigen
+                                </button>
                             </div>
                         </div>
                     </div>
-                )}
-            </section>
-        );
-    }
+                </div>
+            )}
+        </section>
+    );
+}
