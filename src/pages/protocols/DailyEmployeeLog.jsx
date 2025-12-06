@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Check, Banknote, RefreshCcw } from 'lucide-react';
+import { Check, Banknote, RefreshCcw, Trash2 } from 'lucide-react';
 
 export default function DailyEmployeeLog({ logs, user, onPayout }) {
     // Helper to get current week start (Saturday)
@@ -190,9 +190,38 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                                                 <>
                                                     <div className="mt-1 space-y-1">
                                                         {day.logs.map((log, lIdx) => (
-                                                            <div key={lIdx} className="text-[10px] flex justify-between px-1 rounded text-slate-400 bg-slate-900/50">
+                                                            <div key={lIdx} className="text-[10px] flex justify-between items-center px-1 rounded text-slate-400 bg-slate-900/50 group/log">
                                                                 <span className="truncate max-w-[60px]">{log.itemName || 'Auszahlung'}</span>
-                                                                <span>{log.quantity}</span>
+                                                                <div className="flex items-center gap-1">
+                                                                    <span>{log.quantity}</span>
+                                                                    {user?.role === 'Administrator' && (
+                                                                        <button
+                                                                            onClick={async (e) => {
+                                                                                e.stopPropagation();
+                                                                                if (confirm(`Eintrag "${log.itemName}" (${log.quantity}x) von ${emp.name} wirklich löschen?`)) {
+                                                                                    try {
+                                                                                        const res = await fetch(`/api/logs/${encodeURIComponent(log.timestamp)}`, {
+                                                                                            method: 'DELETE',
+                                                                                            credentials: 'include'
+                                                                                        });
+                                                                                        if (res.ok) {
+                                                                                            window.location.reload();
+                                                                                        } else {
+                                                                                            const data = await res.json();
+                                                                                            alert(data.error || 'Löschen fehlgeschlagen');
+                                                                                        }
+                                                                                    } catch (err) {
+                                                                                        alert('Netzwerkfehler');
+                                                                                    }
+                                                                                }
+                                                                            }}
+                                                                            className="opacity-0 group-hover/log:opacity-100 p-0.5 hover:bg-red-500/30 rounded text-red-400 transition-all"
+                                                                            title="Eintrag löschen"
+                                                                        >
+                                                                            <Trash2 className="w-3 h-3" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>

@@ -387,6 +387,51 @@ app.put('/api/logs', async (req, res) => {
     }
 });
 
+// DELETE Single Log Entry (Admin only)
+app.delete('/api/logs/:timestamp', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const { timestamp } = req.params;
+        const db = await getDb();
+
+        // First get the log to potentially reverse inventory changes
+        const log = await db.get('SELECT * FROM logs WHERE timestamp = ?', timestamp);
+        if (!log) {
+            return res.status(404).json({ error: 'Log not found' });
+        }
+
+        // Reverse inventory change if applicable
+        if (log.itemId) {
+            const item = await db.get('SELECT * FROM inventory WHERE id = ?', log.itemId);
+            if (item) {
+                let newCurrent = item.current;
+                if (log.type === 'in') {
+                    newCurrent = Math.max(0, newCurrent - log.quantity);
+                } else {
+                    newCurrent += log.quantity;
+                }
+                await db.run('UPDATE inventory SET current = ? WHERE id = ?', newCurrent, log.itemId);
+            }
+        }
+
+        // Delete the log
+        await db.run('DELETE FROM logs WHERE timestamp = ?', timestamp);
+
+        // Audit log
+        if (req.user) {
+            await auditLog(req.user.discordId, req.user.username, 'DELETE_LOG', `Deleted: ${log.msg}`);
+        }
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting log:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
 // GET Employees
 app.get('/api/employees', async (req, res) => {
     try {
