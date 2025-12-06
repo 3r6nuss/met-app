@@ -169,7 +169,7 @@ function App() {
     }).catch(err => console.error("Failed to save log:", err));
   };
 
-  const handleCheckIn = (id, quantity, depositor, price = 0, customDate = null, type = 'in', category = 'internal', warningIgnored = false) => {
+  const handleCheckIn = (id, quantity, depositor, price = 0, customDate = null, type = 'in', category = 'internal', warningIgnored = false, skipInventory = false) => {
     const item = inventory.find(i => i.id === id);
     if (!item) return;
 
@@ -184,7 +184,8 @@ function App() {
         depositor: depositor || 'Unbekannt',
         price,
         timestamp: customDate,
-        warningIgnored
+        warningIgnored,
+        skipInventory
       })
     })
       .then(res => res.json())
@@ -192,7 +193,7 @@ function App() {
         if (data.success) {
           // Refetch data to ensure everything is in sync (inventory, logs, employee inventory)
           fetchData();
-          addLog(`Eingelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+          addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Eingelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
         } else {
           console.error("Transaction failed:", data.error);
           alert("Fehler bei der Transaktion: " + data.error);
@@ -204,7 +205,7 @@ function App() {
       });
   };
 
-  const handleCheckOut = (id, quantity, depositor, price = 0, customDate = null, type = 'out', category = 'internal') => {
+  const handleCheckOut = (id, quantity, depositor, price = 0, customDate = null, type = 'out', category = 'internal', warningIgnored = false, skipInventory = false) => {
     const item = inventory.find(i => i.id === id);
     if (!item) return;
 
@@ -218,14 +219,15 @@ function App() {
         quantity,
         depositor: depositor || 'Unbekannt',
         price,
-        timestamp: customDate
+        timestamp: customDate,
+        skipInventory
       })
     })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
           fetchData();
-          addLog(`Ausgelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+          addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Ausgelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
         } else {
           console.error("Transaction failed:", data.error);
           alert("Fehler bei der Transaktion: " + data.error);
@@ -300,18 +302,20 @@ function App() {
     }).catch(err => console.error("Failed to save employees:", err));
   };
 
-  const handleUpdateLogs = (newLogs) => {
-    setTransactionLogs(newLogs);
-    fetch(`${API_URL}/logs`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newLogs)
-    }).catch(err => console.error("Failed to update logs:", err));
-  };
-
   const handleDeleteLog = (timestamp) => {
-    const newLogs = transactionLogs.filter(log => log.timestamp !== timestamp);
-    handleUpdateLogs(newLogs);
+    if (confirm("Eintrag wirklich löschen?")) {
+      fetch(`${API_URL}/logs/${encodeURIComponent(timestamp)}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            fetchData();
+            addLog("Eintrag gelöscht");
+          } else {
+            alert("Fehler beim Löschen: " + data.error);
+          }
+        })
+        .catch(err => alert("Netzwerkfehler"));
+    }
   };
 
   const addLog = (msg) => {
@@ -505,11 +509,12 @@ function App() {
                 prices={prices}
                 employeeInventory={employeeInventory}
                 onConsumeIngredients={handleConsumeIngredients}
-                onAction={(id, qty, dep, price, date) => handleCheckIn(id, qty, dep, price, date, 'in', 'internal')}
+                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckIn(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory)}
                 type="in"
                 title="Einlagern"
                 label="Mitarbeiter"
                 showPrice={true}
+                user={user}
               />
             } />
           )}
@@ -521,11 +526,12 @@ function App() {
                 inventory={inventory}
                 employees={employees}
                 prices={prices}
-                onAction={(id, qty, dep, price, date) => handleCheckOut(id, qty, dep, price, date, 'out', 'internal')}
+                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckOut(id, qty, dep, price, date, 'out', 'internal', warningIgnored, skipInventory)}
                 type="out"
                 title="Auslagern"
                 label="Mitarbeiter"
                 showPrice={isBuchhaltung}
+                user={user}
               />
             } />
           )}
@@ -557,10 +563,11 @@ function App() {
                   inventory={inventory}
                   employees={employees}
                   prices={prices}
-                  onAction={(id, qty, dep, price, date) => handleCheckIn(id, qty, dep, price, date, 'in', 'trade')}
+                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckIn(id, qty, dep, price, date, 'in', 'trade', warningIgnored, skipInventory)}
                   type="in"
                   title="Einkauf (Ankauf)"
                   label="Verkäufer"
+                  user={user}
                 />
               } />
               <Route path="/buchung/verkauf" element={
@@ -568,10 +575,11 @@ function App() {
                   inventory={inventory}
                   employees={employees}
                   prices={prices}
-                  onAction={(id, qty, dep, price, date) => handleCheckOut(id, qty, dep, price, date, 'out', 'trade')}
+                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckOut(id, qty, dep, price, date, 'out', 'trade', warningIgnored, skipInventory)}
                   type="out"
                   title="Verkauf (Abverkauf)"
                   label="Käufer"
+                  user={user}
                 />
               } />
             </>
@@ -588,7 +596,7 @@ function App() {
           {isBuchhaltung && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
 
           {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
-          {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} onUpdateLogs={handleUpdateLogs} user={user} onPayout={(amountOrBatch, date, depositor) => {
+          {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} user={user} onPayout={(amountOrBatch, date, depositor) => {
             if (Array.isArray(amountOrBatch)) {
               // Batch mode (Outstanding Wages)
               amountOrBatch.forEach(({ amount, date, depositor }) => {
