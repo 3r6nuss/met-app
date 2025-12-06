@@ -199,7 +199,119 @@ export default function CheckInForm({
         <section className="glass-panel rounded-2xl p-6 mb-8 h-full">
             {/* ... header ... */}
             <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-                {/* ... existing fields ... */}
+                {/* Item Selection */}
+                <div>
+                    <label className="block text-slate-400 text-sm mb-1">Item</label>
+                    <select
+                        value={selectedId}
+                        onChange={(e) => setSelectedId(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                    >
+                        <option value="">Bitte wählen...</option>
+                        {sortedInventory.map(item => (
+                            <option key={item.id} value={item.id}>
+                                {item.name} (Bestand: {item.current})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Quantity */}
+                <div>
+                    <label className="block text-slate-400 text-sm mb-1">Menge</label>
+                    <div className="relative">
+                        <input
+                            type="number"
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 pl-10 text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                            placeholder="0"
+                        />
+                        <PackagePlus className="absolute left-3 top-3.5 w-5 h-5 text-slate-500" />
+                    </div>
+                </div>
+
+                {/* Depositor */}
+                <div>
+                    <label className="block text-slate-400 text-sm mb-1">{depositorLabel}</label>
+                    <select
+                        value={showCustomInput ? '__custom__' : depositor}
+                        onChange={handleEmployeeChange}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none mb-2"
+                    >
+                        <option value="">Bitte wählen...</option>
+                        {employees.map(emp => (
+                            <option key={emp} value={emp}>{emp}</option>
+                        ))}
+                        <option value="__custom__">Andere Person...</option>
+                    </select>
+                    {showCustomInput && (
+                        <input
+                            type="text"
+                            value={customName}
+                            onChange={handleCustomNameChange}
+                            placeholder="Name eingeben"
+                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                        />
+                    )}
+                </div>
+
+                {/* Price */}
+                {showPrice && (
+                    <div>
+                        <label className="block text-slate-400 text-sm mb-1">Preis / Lohn (pro Stück)</label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                                className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 pl-10 text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                                placeholder="0.00"
+                            />
+                            <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-500" />
+                        </div>
+                        {quantity && price && (
+                            <p className="text-right text-xs text-slate-500 mt-1">
+                                Gesamt: {calculateEarnings()} $
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {/* Date */}
+                <div>
+                    <label className="block text-slate-400 text-sm mb-1">Datum & Uhrzeit</label>
+                    <input
+                        type="datetime-local"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                    />
+                </div>
+
+                {/* Checkboxes */}
+                <div className="flex flex-col gap-2">
+                    {title.includes("Einlagern") && (
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={isSelfCollected}
+                                onChange={(e) => setIsSelfCollected(e.target.checked)}
+                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+                            />
+                            <span className="text-sm text-slate-400">Selbst gesammelt (Lohn berechnen)</span>
+                        </label>
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={isReturn}
+                            onChange={(e) => setIsReturn(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+                        />
+                        <span className="text-sm text-slate-400">Rückgabe (Preis 0$)</span>
+                    </label>
+                </div>
 
                 {/* Skip Inventory Checkbox - Only for Buchhaltung/Admin */}
                 {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
