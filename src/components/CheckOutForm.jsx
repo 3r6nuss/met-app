@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { PackageMinus } from 'lucide-react';
+import { PackageMinus, DollarSign } from 'lucide-react';
 
 export default function CheckOutForm({
     inventory,
