@@ -143,102 +143,136 @@ export default function CheckOutForm({
 
     return (
         <section className="glass-panel rounded-2xl p-6 mb-8 animate-fade-in h-full">
-            {/* ... header ... */}
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-                {/* Item Selection */}
-                <div>
-                    <label className="block text-slate-400 text-sm mb-1">Item</label>
-                    <select
-                        value={selectedId}
-                        onChange={(e) => setSelectedId(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                    >
-                        <option value="">Bitte wählen...</option>
-                        {sortedInventory.map(item => (
-                            <option key={item.id} value={item.id}>
-                                {item.name} (Bestand: {item.current})
-                            </option>
-                        ))}
-                    </select>
+            <div className="flex items-center gap-3 mb-6 border-b border-slate-700/50 pb-4">
+                <div className="p-3 bg-amber-500/10 rounded-xl">
+                    <PackageMinus className="w-6 h-6 text-amber-400" />
                 </div>
-
-                {/* Quantity */}
                 <div>
-                    <label className="block text-slate-400 text-sm mb-1">Menge</label>
-                    <div className="relative">
-                        <input
-                            type="number"
-                            value={quantity}
-                            onChange={(e) => setQuantity(e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 pl-10 text-slate-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                            placeholder="0"
-                        />
-                        <PackageMinus className="absolute left-3 top-3.5 w-5 h-5 text-slate-500" />
-                    </div>
+                    <h2 className="text-xl font-bold text-white">{title}</h2>
+                    <p className="text-sm text-slate-400">Neuen Eintrag erstellen</p>
                 </div>
+            </div>
 
-                {/* Depositor */}
-                <div>
-                    <label className="block text-slate-400 text-sm mb-1">{depositorLabel}</label>
-                    <select
-                        value={showCustomInput ? '__custom__' : depositor}
-                        onChange={handleEmployeeChange}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none mb-2"
-                    >
-                        <option value="">Bitte wählen...</option>
-                        {employees.map(emp => (
-                            <option key={emp} value={emp}>{emp}</option>
-                        ))}
-                        <option value="__custom__">Andere Person...</option>
-                    </select>
-                    {showCustomInput && (
-                        <input
-                            type="text"
-                            value={customName}
-                            onChange={handleCustomNameChange}
-                            placeholder="Name eingeben"
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                        />
-                    )}
-                </div>
-
-                {/* Price */}
-                {showPrice && (
-                    <div>
-                        <label className="block text-slate-400 text-sm mb-1">Preis / Lohn (pro Stück)</label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={price}
-                                onChange={(e) => setPrice(e.target.value)}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 pl-10 text-slate-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                                placeholder="0.00"
-                            />
-                            <div className="absolute left-3 top-3.5 w-5 h-5 text-slate-500 flex items-center justify-center font-bold">$</div>
-                        </div>
-                        {quantity && price && (
-                            <p className="text-right text-xs text-slate-500 mt-1">
-                                Gesamt: {calculateEarnings()} $
-                            </p>
-                        )}
-                    </div>
-                )}
-
-                {/* Date */}
-                <div>
-                    <label className="block text-slate-400 text-sm mb-1">Datum & Uhrzeit</label>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Date Selection */}
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Datum & Uhrzeit</label>
                     <input
                         type="datetime-local"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
+                        className="w-full glass-input rounded-lg px-4 py-2.5"
                     />
                 </div>
 
+                {/* Item Selection */}
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Item</label>
+                    <div className="relative">
+                        <select
+                            value={selectedId}
+                            onChange={(e) => setSelectedId(e.target.value)}
+                            className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
+                            required
+                        >
+                            <option value="">Bitte wählen...</option>
+                            {sortedInventory.map(item => (
+                                <option key={item.id} value={item.id}>
+                                    {item.name} (Bestand: {item.current})
+                                </option>
+                            ))}
+                        </select>
+                        <div className="absolute right-4 top-3.5 pointer-events-none text-slate-500">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Depositor Selection */}
+                <div className="space-y-1">
+                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{depositorLabel}</label>
+                    <div className="relative">
+                        <select
+                            value={showCustomInput ? '__custom__' : depositor}
+                            onChange={handleEmployeeChange}
+                            className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
+                            required={!showCustomInput}
+                        >
+                            <option value="">Bitte wählen...</option>
+                            {employees.map(emp => (
+                                <option key={emp} value={emp}>{emp}</option>
+                            ))}
+                            <option value="__custom__">Andere Person...</option>
+                        </select>
+                        <div className="absolute right-4 top-3.5 pointer-events-none text-slate-500">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Custom Name Input */}
+                {showCustomInput && (
+                    <div className="space-y-1 animate-fade-in">
+                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Name eingeben</label>
+                        <input
+                            type="text"
+                            value={customName}
+                            onChange={handleCustomNameChange}
+                            placeholder="Name..."
+                            className="w-full glass-input rounded-lg px-4 py-2.5"
+                            required
+                        />
+                    </div>
+                )}
+
+                <div className={`grid ${showPrice ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+                    <div className="space-y-1">
+                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Menge</label>
+                        <input
+                            type="number"
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                            placeholder="0"
+                            className="w-full glass-input rounded-lg px-4 py-2.5"
+                            required
+                            min="1"
+                        />
+                    </div>
+                    {showPrice && (
+                        <div className="space-y-1">
+                            <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+                                {title.includes("Verkauf") ? "Preis (Stk)" : "Preis (Stk)"}
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={price}
+                                    onChange={(e) => setPrice(e.target.value)}
+                                    placeholder="0"
+                                    className="w-full glass-input rounded-lg px-4 py-2.5 pl-8"
+                                />
+                                <div className="absolute left-3 top-2.5 text-slate-500 font-bold">$</div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Estimated Earnings Display */}
+                {showPrice && selectedId && quantity > 0 && price && (
+                    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 animate-fade-in">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-400">Geschätzter Betrag:</span>
+                            <span className="font-bold text-amber-400">
+                                ${calculateEarnings()}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 {/* Skip Inventory Checkbox - Only for Buchhaltung/Admin */}
                 {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
-                    <div className="flex items-center gap-2 mt-2">
-                        <label className="flex items-center gap-2 cursor-pointer group">
+                    <div className="flex items-center gap-2 mt-2 p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
+                        <label className="flex items-center gap-2 cursor-pointer group w-full">
                             <input
                                 type="checkbox"
                                 checked={skipInventory}
@@ -264,8 +298,6 @@ export default function CheckOutForm({
                     </button>
                 </div>
             </form>
-
-
 
             {/* Warning Modal */}
             {showWarningModal && (
