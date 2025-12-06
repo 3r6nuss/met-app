@@ -578,6 +578,12 @@ const initNewTables = async () => {
         content TEXT
     )`);
 
+    // Hausordnung
+    await db.run(`CREATE TABLE IF NOT EXISTS hausordnung (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content TEXT
+    )`);
+
     // Seed Beginner Guide if empty
     const guideCount = await db.get('SELECT COUNT(*) as count FROM beginner_guide');
     if (guideCount.count === 0) {
@@ -1040,6 +1046,53 @@ app.post('/api/guide', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error("Error saving guide:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// --- HAUSORDNUNG ENDPOINTS ---
+
+// GET Hausordnung
+app.get('/api/hausordnung', async (req, res) => {
+    try {
+        const db = await getDb();
+        const data = await db.get('SELECT * FROM hausordnung LIMIT 1');
+        if (data) {
+            res.json(JSON.parse(data.content));
+        } else {
+            // Return default structure if none exists
+            res.json({
+                header: { title: "HAUSORDNUNG", subtitle: "M.E.T. Logistic" },
+                sections: []
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching hausordnung:", error);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// POST Hausordnung (Update)
+app.post('/api/hausordnung', async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'Administrator') {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+    try {
+        const content = req.body;
+        const db = await getDb();
+
+        const existing = await db.get('SELECT id FROM hausordnung LIMIT 1');
+
+        if (existing) {
+            await db.run('UPDATE hausordnung SET content = ? WHERE id = ?', JSON.stringify(content), existing.id);
+        } else {
+            await db.run('INSERT INTO hausordnung (content) VALUES (?)', JSON.stringify(content));
+        }
+
+        broadcastUpdate();
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error saving hausordnung:", error);
         res.status(500).json({ error: "Database error" });
     }
 });

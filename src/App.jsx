@@ -28,6 +28,7 @@ import PartnersPage from './pages/PartnersPage';
 import PersonnelPage from './pages/PersonnelPage';
 import BeginnerGuidePage from './pages/BeginnerGuidePage';
 import AuditLogPage from './pages/AuditLogPage';
+import HausordnungPage from './pages/HausordnungPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 
@@ -640,7 +641,7 @@ function App() {
           {/* Sonstiges Routes - Public for all users */}
           {!isPending && (
             <>
-              <Route path="/sonstiges/hausordnung" element={<ComingSoonPage title="Hausordnung" />} />
+              <Route path="/sonstiges/hausordnung" element={<HausordnungPage user={user} />} />
               <Route path="/sonstiges/beginner-guide" element={<BeginnerGuidePage user={user} />} />
             </>
           )}
