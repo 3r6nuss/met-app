@@ -153,7 +153,47 @@ export default function CheckInForm({
         setSkipInventory(false);
     };
 
-    // ... (handleSubmit remains mostly same but uses processSubmission)
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!selectedId || !quantity) return;
+
+        const finalDepositor = showCustomInput ? customName : depositor;
+        const finalPrice = showPrice ? price : 0;
+
+        const submissionData = {
+            selectedId,
+            quantity,
+            depositor: finalDepositor,
+            price: finalPrice,
+            date: selectedDate ? new Date(selectedDate).toISOString() : null
+        };
+
+        // Check for notes (only for Einkauf, not Einlagern)
+        if (selectedItem && !title.includes("Einlagern")) {
+            const priceItem = prices.find(p => p.name === selectedItem.name);
+            if (priceItem && priceItem.note) {
+                const noteLower = priceItem.note.toLowerCase();
+                if (noteLower.includes("kein einkauf") || noteLower.includes("nur einkauf bis") || noteLower.includes("kein ankauf") || noteLower.includes("nur ankauf bis")) {
+                    setWarningMessage(priceItem.note);
+                    setPendingSubmission(submissionData);
+                    setShowWarningModal(true);
+                    return;
+                }
+            }
+        }
+
+        processSubmission(submissionData);
+    };
+
+    const sortedInventory = [...inventory].sort((a, b) => a.name.localeCompare(b.name));
+
+    // Helper to calculate estimated earnings
+    const calculateEarnings = () => {
+        if (!quantity || !price) return 0;
+        // Try to parse the first number if it's a range like "50/80"
+        const numericPrice = parseFloat(price.toString().split('/')[0]) || 0;
+        return (quantity * numericPrice).toLocaleString();
+    };
 
     return (
         <section className="glass-panel rounded-2xl p-6 mb-8 h-full">
