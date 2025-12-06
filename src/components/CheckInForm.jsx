@@ -196,7 +196,7 @@ export default function CheckInForm({
     };
 
     return (
-        <section className="glass-panel rounded-2xl p-6 mb-8 h-full">
+        <section className="bg-slate-800 rounded-2xl p-6 mb-8 h-full border border-slate-700 shadow-lg">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-violet-300">
                 <PackagePlus className="w-5 h-5" />
                 {title}
@@ -207,7 +207,7 @@ export default function CheckInForm({
                     <select
                         value={selectedId}
                         onChange={(e) => setSelectedId(e.target.value)}
-                        className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 appearance-none cursor-pointer text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
                         required
                     >
                         <option value="">Produkt wählen...</option>
@@ -225,7 +225,7 @@ export default function CheckInForm({
                         type="datetime-local"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
-                        className="w-full glass-input rounded-lg px-4 py-2.5 text-slate-200"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
                     />
                 </div>
 
@@ -234,7 +234,7 @@ export default function CheckInForm({
                     <select
                         value={showCustomInput ? '__custom__' : depositor}
                         onChange={handleEmployeeChange}
-                        className="w-full glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 appearance-none cursor-pointer text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
                         required={!showCustomInput}
                     >
                         <option value="">Mitarbeiter wählen...</option>
@@ -257,7 +257,7 @@ export default function CheckInForm({
                             value={customName}
                             onChange={(e) => setCustomName(e.target.value)}
                             placeholder="Name..."
-                            className="w-full glass-input rounded-lg px-4 py-2.5"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
                             required
                         />
                     </div>
@@ -271,7 +271,7 @@ export default function CheckInForm({
                             value={quantity}
                             onChange={(e) => setQuantity(e.target.value)}
                             placeholder="0"
-                            className="w-full glass-input rounded-lg px-4 py-2.5"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
                             required
                             min="1"
                         />
@@ -317,7 +317,7 @@ export default function CheckInForm({
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
                                     placeholder="0"
-                                    className={`w-full glass-input rounded-lg px-4 py-2.5 pl-8 ${isReturn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className={`w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 pl-8 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all ${isReturn ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     disabled={isReturn}
                                 />
                                 <DollarSign className="w-4 h-4 text-slate-500 absolute left-2.5 top-3" />
@@ -355,7 +355,7 @@ export default function CheckInForm({
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3 mt-2">
+                <div className="grid grid-cols-1 gap-3 mt-2">
                     <button
                         type="submit"
                         className={`w-full text-white py-3 rounded-lg font-semibold transition-colors duration-200 ${skipInventory
@@ -365,18 +365,6 @@ export default function CheckInForm({
                     >
                         {skipInventory ? 'Nur Protokollieren' : 'Direkt bestätigen'}
                     </button>
-                    {/* The original instruction had an addToCart button here, but it's not defined in the current context.
-                        Keeping the original single button structure for now as per the instruction's intent to restore old style.
-                        If addToCart functionality is needed, it must be added to the component.
-                    <button
-                        type="button"
-                        onClick={addToCart}
-                        className="w-full bg-violet-600 text-white py-3 rounded-lg font-semibold hover:bg-violet-700 transition-colors duration-200 flex items-center justify-center gap-2"
-                    >
-                        <ShoppingCart className="w-5 h-5" />
-                        ➕ Warenkorb
-                    </button>
-                    */}
                 </div>
             </form>
 
