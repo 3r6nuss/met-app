@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Check, Banknote } from 'lucide-react';
+import { Check, Banknote, RefreshCcw } from 'lucide-react';
 
 export default function DailyEmployeeLog({ logs, user, onPayout }) {
     // Helper to get current week start (Saturday)
@@ -143,7 +143,16 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
     return (
         <div className="animate-fade-in overflow-x-auto pb-12">
             <div className="flex justify-between items-end mb-6">
-                <h2 className="text-2xl font-bold text-slate-200">Wochenprotokoll Mitarbeiter (Lohn)</h2>
+                <div className="flex items-center gap-4">
+                    <h2 className="text-2xl font-bold text-slate-200">Wochenprotokoll Mitarbeiter (Lohn)</h2>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-slate-300 hover:text-white"
+                        title="Daten aktualisieren"
+                    >
+                        <RefreshCcw className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
 
             <div className="min-w-[1000px] border border-slate-700 rounded-lg bg-slate-900/50">
