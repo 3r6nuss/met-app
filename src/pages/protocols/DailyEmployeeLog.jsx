@@ -48,6 +48,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             if (log.itemName === 'Auszahlung') return logDate >= lastWeekStart;
             return log.category !== 'trade' && logDate >= lastWeekStart;
         }).forEach(log => {
+            if (!groups[log.depositor]) groups[log.depositor] = 0;
             const value = (log.price || 0) * (log.quantity || 0);
             groups[log.depositor] += value;
         });
