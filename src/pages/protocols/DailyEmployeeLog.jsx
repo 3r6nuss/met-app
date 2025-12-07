@@ -41,14 +41,26 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         const lastWeekStart = new Date(currentWeekStart);
         lastWeekStart.setDate(lastWeekStart.getDate() - 7);
 
+        console.log('DEBUG: Calculating Outstanding Data');
+        console.log('DEBUG: Current Week Start:', currentWeekStart.toISOString());
+        console.log('DEBUG: Last Week Start:', lastWeekStart.toISOString());
+
         pastLogs.filter(log => {
             const logDate = new Date(log.timestamp);
+            // Explicitly include Auszahlung to ensure it reduces the debt
+            if (log.itemName === 'Auszahlung') {
+                const inRange = logDate >= lastWeekStart;
+                console.log(`DEBUG: Found Payout Log for ${log.depositor}: ${log.price} at ${log.timestamp}. In Range? ${inRange}`);
+                return inRange;
+            }
             return log.category !== 'trade' && logDate >= lastWeekStart;
         }).forEach(log => {
             if (!groups[log.depositor]) groups[log.depositor] = 0;
             const value = (log.price || 0) * (log.quantity || 0);
             groups[log.depositor] += value;
         });
+
+        console.log('DEBUG: Final Groups:', groups);
         return groups;
     }, [pastLogs, currentWeekStart]);
 
