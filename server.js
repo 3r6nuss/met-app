@@ -10,6 +10,7 @@ import { getDb, closeDb } from './src/db/database.js';
 import { initialInventory } from './src/data/initialData.js';
 import { initialPrices } from './src/data/initialPrices.js';
 import { initialEmployees } from './src/data/initialEmployees.js';
+import { initialPersonnel } from './src/data/initialPersonnel.js';
 import { WebSocketServer } from 'ws';
 import http from 'http';
 import { recipes as initialRecipes } from './src/data/recipes.js';
@@ -545,6 +546,13 @@ app.post('/api/reset', async (req, res) => {
         }
         await stmtPrice.finalize();
 
+        await db.run('DELETE FROM personnel');
+        const stmtPers = await db.prepare('INSERT INTO personnel (name, phone, truck_license, contract, license_plate, second_job) VALUES (?, ?, ?, ?, ?, ?)');
+        for (const p of initialPersonnel) {
+            await stmtPers.run(p.name, p.phone, p.truck_license, p.contract, p.license_plate, p.second_job);
+        }
+        await stmtPers.finalize();
+
         await db.run('COMMIT');
         broadcastUpdate();
         res.json(initialInventory);
@@ -783,6 +791,17 @@ const initNewTables = async () => {
         license_plate TEXT,
         second_job TEXT
     )`);
+
+    // Seed Personnel if empty
+    const personnelCount = await db.get('SELECT COUNT(*) as count FROM personnel');
+    if (personnelCount.count === 0) {
+        console.log("Seeding Personnel...");
+        const stmt = await db.prepare('INSERT INTO personnel (name, phone, truck_license, contract, license_plate, second_job) VALUES (?, ?, ?, ?, ?, ?)');
+        for (const p of initialPersonnel) {
+            await stmt.run(p.name, p.phone, p.truck_license, p.contract, p.license_plate, p.second_job);
+        }
+        await stmt.finalize();
+    }
 
     // Violations
     await db.run(`CREATE TABLE IF NOT EXISTS violations (
