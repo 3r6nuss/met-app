@@ -73,7 +73,9 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         // First, find the last payout timestamp for each employee
         const lastPayouts = {};
         currentLogs.forEach(log => {
-            if (log.itemName === 'Auszahlung' || (log.category === 'internal' && log.price < 0)) {
+            // Check for payout but EXCLUDE "Offen" payouts (Outstanding Wages)
+            // We only want to reset the view if a CURRENT week payout happened.
+            if ((log.itemName === 'Auszahlung' || (log.category === 'internal' && log.price < 0)) && !log.msg?.includes('(Offen)')) {
                 if (!lastPayouts[log.depositor] || log.timestamp > lastPayouts[log.depositor]) {
                     lastPayouts[log.depositor] = log.timestamp;
                 }
