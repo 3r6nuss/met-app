@@ -607,7 +607,9 @@ function App() {
                   category: 'internal',
                   timestamp: date.toISOString(),
                   depositor: depositor || 'Buchhaltung',
-                  itemName: 'Auszahlung'
+                  itemName: 'Auszahlung',
+                  type: 'in',
+                  time: new Date().toLocaleTimeString()
                 };
                 saveLogEntry(entry);
               });
