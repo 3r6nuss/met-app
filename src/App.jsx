@@ -600,16 +600,19 @@ function App() {
             if (Array.isArray(amountOrBatch)) {
               // Batch mode (Outstanding Wages)
               amountOrBatch.forEach(({ amount, date, depositor }) => {
+                // Add random offset to prevent PK collision (timestamp is PK)
+                const uniqueDate = new Date(date.getTime() - Math.floor(Math.random() * 10000));
+
                 const entry = {
                   msg: 'Wochenlohn Auszahlung (Offen)',
                   price: -amount,
                   quantity: 1,
                   category: 'internal',
-                  timestamp: date.toISOString(),
+                  timestamp: uniqueDate.toISOString(),
                   depositor: depositor || 'Buchhaltung',
                   itemName: 'Auszahlung',
                   type: 'in',
-                  time: new Date().toLocaleTimeString()
+                  time: uniqueDate.toLocaleTimeString()
                 };
                 saveLogEntry(entry);
               });
