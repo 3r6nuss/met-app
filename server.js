@@ -1769,9 +1769,22 @@ app.post('/api/transaction', async (req, res) => {
 
         // Audit log the transaction (summary)
         if (req.user) {
-            const summary = transactions.length > 1
-                ? `Batch Transaction: ${transactions.length} items`
-                : `${transactions[0].type === 'in' ? 'IN' : 'OUT'}: ${transactions[0].quantity}x ${results[0].itemName} (${transactions[0].depositor}) - $${transactions[0].price}`;
+            let summary = '';
+            if (transactions.length > 1) {
+                summary = `Batch: ${transactions.length} Items`;
+            } else {
+                const t = transactions[0];
+                const r = results[0];
+                let actionType = t.type === 'in' ? 'EINLAGERN' : 'AUSLAGERN';
+
+                if (t.category === 'trade') {
+                    actionType = t.type === 'in' ? 'EINKAUF' : 'VERKAUF';
+                } else if (t.skipInventory) {
+                    actionType = 'SONDERBUCHUNG';
+                }
+
+                summary = `${actionType}: ${t.quantity}x ${r.itemName} (${t.depositor}) - $${t.price}`;
+            }
             await auditLog(req.user.discordId, req.user.username, 'TRANSACTION', summary);
         }
 

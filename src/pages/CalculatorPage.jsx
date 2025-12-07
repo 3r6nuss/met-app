@@ -4,7 +4,7 @@ import { cn } from '../lib/utils';
 
 export default function CalculatorPage({ prices = [] }) {
     const [budget, setBudget] = useState('');
-    const [priceType, setPriceType] = useState('ek'); // 'ek', 'vk', 'lohn'
+    const [priceType, setPriceType] = useState('vk'); // 'ek', 'vk', 'lohn'
     const [selectedProducts, setSelectedProducts] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
 

@@ -635,6 +635,7 @@ function App() {
           )}
 
           {/* Calculator Route */}
+          <Route path="/rechner" element={<CalculatorPage prices={prices} />} />
           <Route path="/buchung/rechner" element={<CalculatorPage prices={prices} />} />
 
           {/* Redirect old routes */}
