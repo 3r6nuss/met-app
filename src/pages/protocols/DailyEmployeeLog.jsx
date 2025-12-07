@@ -35,6 +35,26 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
     }, [logs, currentWeekStart]);
 
     // Calculate Outstanding Wages (Past Weeks) per Employee - LIMITED TO LAST 7 DAYS
+    // Calculate Outstanding Wages (Past Weeks) per Employee - LIMITED TO LAST 7 DAYS
+    const outstandingData = useMemo(() => {
+        const groups = {};
+        // Calculate 7 days before current week start
+        const lastWeekStart = new Date(currentWeekStart);
+        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+        pastLogs.filter(log => {
+            const logDate = new Date(log.timestamp);
+            // Explicitly include Auszahlung to ensure it reduces the debt
+            if (log.itemName === 'Auszahlung') return logDate >= lastWeekStart;
+            return log.category !== 'trade' && logDate >= lastWeekStart;
+        }).forEach(log => {
+            if (!groups[log.depositor]) groups[log.depositor] = 0;
+            const value = (log.price || 0) * (log.quantity || 0);
+            groups[log.depositor] += value;
+        });
+        return groups;
+    }, [pastLogs, currentWeekStart]);
+
     // 1. Determine "Current Week" (Sat-Fri)
     const weekDays = [
         { label: 'Samstag', offset: 0 },
