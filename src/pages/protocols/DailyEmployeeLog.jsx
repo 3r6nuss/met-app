@@ -48,11 +48,24 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             if (log.itemName === 'Auszahlung') return logDate >= lastWeekStart;
             return log.category !== 'trade' && logDate >= lastWeekStart;
         }).forEach(log => {
-            if (!groups[log.depositor]) groups[log.depositor] = 0;
-            { label: 'Mittwoch', offset: 4 },
-            { label: 'Donnerstag', offset: 5 },
-            { label: 'Freitag', offset: 6 },
-];
+            const value = (log.price || 0) * (log.quantity || 0);
+            groups[log.depositor] += value;
+        });
+        return groups;
+    }, [pastLogs, currentWeekStart]);
+
+    const formatMoney = (amount) => `$${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+    // 1. Determine "Current Week" (Sat-Fri)
+    const weekDays = [
+        { label: 'Samstag', offset: 0 },
+        { label: 'Sonntag', offset: 1 },
+        { label: 'Montag', offset: 2 },
+        { label: 'Dienstag', offset: 3 },
+        { label: 'Mittwoch', offset: 4 },
+        { label: 'Donnerstag', offset: 5 },
+        { label: 'Freitag', offset: 6 },
+    ];
 
     // Group logs by Employee -> Day (Current Week) AND Merge with Outstanding
     const employeeData = useMemo(() => {
