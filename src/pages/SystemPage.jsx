@@ -475,9 +475,9 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                                         <div className="flex items-center gap-3">
                                             <Circle
                                                 className={`w-5 h-5 ${item.priority === 'high' ? 'text-red-500 fill-red-500' :
-                                                        item.priority === 'medium' ? 'text-orange-500 fill-orange-500' :
-                                                            item.priority === 'low' ? 'text-green-500 fill-green-500' :
-                                                                'text-slate-600'
+                                                    item.priority === 'medium' ? 'text-orange-500 fill-orange-500' :
+                                                        item.priority === 'low' ? 'text-green-500 fill-green-500' :
+                                                            'text-slate-600'
                                                     }`}
                                             />
                                             <div className="flex items-center gap-2">
@@ -581,6 +581,26 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                                         <div className="text-left">
                                             <div className="font-bold">System Reset</div>
                                             <div className="text-xs opacity-70">Löscht ALLE Daten (Vorsicht!)</div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            if (confirm("Möchtest du wirklich die Standard-Personalliste laden? Dies überschreibt aktuelle Daten!")) {
+                                                fetch('/api/system/seed-personnel', { method: 'POST' })
+                                                    .then(res => res.json())
+                                                    .then(data => {
+                                                        if (data.success) alert(`Erfolgreich geladen! ${data.count} Mitarbeiter hinzugefügt.`);
+                                                        else alert("Fehler: " + data.error);
+                                                    });
+                                            }
+                                        }}
+                                        className="flex items-center justify-center gap-3 bg-fuchsia-600/20 hover:bg-fuchsia-600/30 text-fuchsia-400 border border-fuchsia-600/50 p-6 rounded-xl transition-all group"
+                                    >
+                                        <Users className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                                        <div className="text-left">
+                                            <div className="font-bold">Standard Personal laden</div>
+                                            <div className="text-xs opacity-70">Lädt die Standardliste neu</div>
                                         </div>
                                     </button>
                                 </div>
