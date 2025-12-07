@@ -169,31 +169,56 @@ function App() {
     }).catch(err => console.error("Failed to save log:", err));
   };
 
-  const handleCheckIn = (id, quantity, depositor, price = 0, customDate = null, type = 'in', category = 'internal', warningIgnored = false, skipInventory = false) => {
-    const item = inventory.find(i => i.id === id);
-    if (!item) return;
+  const handleCheckIn = (idOrData, quantity, depositor, price = 0, customDate = null, type = 'in', category = 'internal', warningIgnored = false, skipInventory = false) => {
+    let payload;
 
-    fetch(`${API_URL}/transaction`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    if (Array.isArray(idOrData)) {
+      // Batch mode
+      payload = idOrData.map(item => ({
+        type: 'in',
+        category: item.category || 'internal',
+        itemId: item.id,
+        quantity: item.quantity,
+        depositor: item.depositor || 'Unbekannt',
+        price: item.price,
+        timestamp: item.date,
+        warningIgnored: item.warningIgnored,
+        skipInventory: item.skipInventory
+      }));
+    } else {
+      // Single mode
+      const item = inventory.find(i => i.id === idOrData);
+      if (!item) return;
+
+      payload = {
         type: 'in',
         category,
-        itemId: id,
+        itemId: idOrData,
         quantity,
         depositor: depositor || 'Unbekannt',
         price,
         timestamp: customDate,
         warningIgnored,
         skipInventory
-      })
+      };
+    }
+
+    fetch(`${API_URL}/transaction`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
           // Refetch data to ensure everything is in sync (inventory, logs, employee inventory)
           fetchData();
-          addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Eingelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+          if (Array.isArray(idOrData)) {
+            addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Batch Einlagerung: ${idOrData.length} Items`);
+          } else {
+            const item = inventory.find(i => i.id === idOrData);
+            addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Eingelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+          }
         } else {
           console.error("Transaction failed:", data.error);
           alert("Fehler bei der Transaktion: " + data.error);
@@ -205,29 +230,53 @@ function App() {
       });
   };
 
-  const handleCheckOut = (id, quantity, depositor, price = 0, customDate = null, type = 'out', category = 'internal', warningIgnored = false, skipInventory = false) => {
-    const item = inventory.find(i => i.id === id);
-    if (!item) return;
+  const handleCheckOut = (idOrData, quantity, depositor, price = 0, customDate = null, type = 'out', category = 'internal', warningIgnored = false, skipInventory = false) => {
+    let payload;
 
-    fetch(`${API_URL}/transaction`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    if (Array.isArray(idOrData)) {
+      // Batch mode
+      payload = idOrData.map(item => ({
+        type: 'out',
+        category: item.category || 'internal',
+        itemId: item.id,
+        quantity: item.quantity,
+        depositor: item.depositor || 'Unbekannt',
+        price: item.price,
+        timestamp: item.date,
+        skipInventory: item.skipInventory
+      }));
+    } else {
+      // Single mode
+      const item = inventory.find(i => i.id === idOrData);
+      if (!item) return;
+
+      payload = {
         type: 'out',
         category,
-        itemId: id,
+        itemId: idOrData,
         quantity,
         depositor: depositor || 'Unbekannt',
         price,
         timestamp: customDate,
         skipInventory
-      })
+      };
+    }
+
+    fetch(`${API_URL}/transaction`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
           fetchData();
-          addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Ausgelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+          if (Array.isArray(idOrData)) {
+            addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Batch Auslagerung: ${idOrData.length} Items`);
+          } else {
+            const item = inventory.find(i => i.id === idOrData);
+            addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Ausgelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+          }
         } else {
           console.error("Transaction failed:", data.error);
           alert("Fehler bei der Transaktion: " + data.error);

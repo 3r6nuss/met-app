@@ -21,6 +21,7 @@ export default function CheckOutForm({
     const [showWarningModal, setShowWarningModal] = useState(false);
     const [warningMessage, setWarningMessage] = useState('');
     const [pendingSubmission, setPendingSubmission] = useState(null);
+    const [cart, setCart] = useState([]);
 
 
     useEffect(() => {
@@ -86,22 +87,66 @@ export default function CheckOutForm({
 
     const [skipInventory, setSkipInventory] = useState(false);
 
-    const processSubmission = (submissionData) => {
-        const { selectedId, quantity, depositor, price, date } = submissionData;
-        onCheckOut(parseInt(selectedId), parseInt(quantity), depositor, price, date, skipInventory);
+    const addToCart = () => {
+        if (!selectedId || !quantity) return;
+
+        const finalDepositor = showCustomInput ? customName : depositor;
+        const finalPrice = showPrice ? price : 0;
+        const item = inventory.find(i => i.id === parseInt(selectedId));
+
+        const newItem = {
+            id: parseInt(selectedId),
+            name: item.name,
+            quantity: parseInt(quantity),
+            depositor: finalDepositor,
+            price: finalPrice,
+            date: selectedDate ? new Date(selectedDate).toISOString() : null,
+            skipInventory: skipInventory,
+            category: title.includes("Verkauf") ? 'trade' : 'internal'
+        };
+
+        setCart([...cart, newItem]);
+
+        // Reset form fields but keep depositor
         setQuantity('');
-        setDepositor('');
-        setCustomName('');
         setPrice('');
         setSelectedId('');
-        setShowCustomInput(false);
+    };
+
+    const removeFromCart = (index) => {
+        const newCart = [...cart];
+        newCart.splice(index, 1);
+        setCart(newCart);
+    };
+
+    const processSubmission = (submissionData) => {
+        if (Array.isArray(submissionData)) {
+            onCheckOut(submissionData);
+        } else {
+            const { selectedId, quantity, depositor, price, date } = submissionData;
+            onCheckOut(parseInt(selectedId), parseInt(quantity), depositor, price, date, skipInventory);
+        }
+
+        setQuantity('');
+        // setDepositor('');
+        // setCustomName('');
+        setPrice('');
+        setSelectedId('');
+        // setShowCustomInput(false);
         setShowWarningModal(false);
         setPendingSubmission(null);
         setSkipInventory(false);
+        setCart([]);
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        if (cart.length > 0) {
+            processSubmission(cart);
+            return;
+        }
+
         if (!selectedId || !quantity) return;
 
         const finalDepositor = showCustomInput ? customName : depositor;
@@ -141,6 +186,13 @@ export default function CheckOutForm({
         return (quantity * numericPrice).toLocaleString();
     };
 
+    const calculateCartTotal = () => {
+        return cart.reduce((sum, item) => {
+            const numericPrice = parseFloat(item.price.toString().split('/')[0]) || 0;
+            return sum + (item.quantity * numericPrice);
+        }, 0).toLocaleString();
+    };
+
     return (
         <section className="bg-slate-800 rounded-2xl p-6 mb-8 h-full border border-slate-700 shadow-lg">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-amber-300">
@@ -154,7 +206,7 @@ export default function CheckOutForm({
                         value={selectedId}
                         onChange={(e) => setSelectedId(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 appearance-none cursor-pointer text-slate-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
-                        required
+                        required={cart.length === 0}
                     >
                         <option value="">Produkt wählen...</option>
                         {sortedInventory.map(item => (
@@ -218,7 +270,7 @@ export default function CheckOutForm({
                             onChange={(e) => setQuantity(e.target.value)}
                             placeholder="0"
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
-                            required
+                            required={cart.length === 0}
                             min="1"
                         />
                     </div>
@@ -253,6 +305,49 @@ export default function CheckOutForm({
                     </div>
                 )}
 
+                {/* Add to Cart Button */}
+                <div className="grid grid-cols-1 gap-3 mt-2">
+                    <button
+                        type="button"
+                        onClick={addToCart}
+                        disabled={!selectedId || !quantity}
+                        className="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        <PackageMinus className="w-4 h-4" />
+                        Zur Liste hinzufügen
+                    </button>
+                </div>
+
+                {/* Cart List */}
+                {cart.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Aktuelle Liste</h3>
+                        <div className="bg-slate-900/50 rounded-lg border border-slate-700/50 overflow-hidden">
+                            {cart.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center p-3 border-b border-slate-700/50 last:border-0 hover:bg-slate-800/50 transition-colors">
+                                    <div>
+                                        <div className="font-medium text-slate-200">{item.name}</div>
+                                        <div className="text-xs text-slate-400">
+                                            {item.quantity}x • ${item.price} • {item.depositor}
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => removeFromCart(idx)}
+                                        className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-400/10 transition-colors"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            ))}
+                            <div className="p-3 bg-slate-800/30 flex justify-between items-center text-sm font-semibold">
+                                <span className="text-slate-400">Gesamt:</span>
+                                <span className="text-amber-400">${calculateCartTotal()}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Skip Inventory Checkbox - Only for Buchhaltung/Admin */}
                 {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
                     <div className="flex items-center gap-2 mt-2 p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
@@ -278,7 +373,10 @@ export default function CheckOutForm({
                             : 'bg-amber-600 hover:bg-amber-700'
                             }`}
                     >
-                        {skipInventory ? 'Nur Protokollieren' : 'Direkt bestätigen'}
+                        {cart.length > 0
+                            ? `Alle bestätigen (${cart.length})`
+                            : (skipInventory ? 'Nur Protokollieren' : 'Direkt bestätigen')
+                        }
                     </button>
                 </div>
             </form>

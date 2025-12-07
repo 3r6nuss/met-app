@@ -1653,118 +1653,130 @@ app.delete('/api/orders/:id', async (req, res) => {
 app.post('/api/transaction', async (req, res) => {
     let db;
     try {
-        const { type, itemId, quantity, depositor, price, category, timestamp, skipInventory, itemName: providedItemName, warningIgnored } = req.body;
-        // type: 'in' (Einlagern) or 'out' (Auslagern)
-        // category: 'internal' or 'trade'
-        // skipInventory: true for special bookings (Sonderbuchung)
+        const body = req.body;
+        // Normalize to array
+        const transactions = Array.isArray(body) ? body : [body];
 
         db = await getDb();
         await db.run('BEGIN TRANSACTION');
 
-        let itemName = providedItemName;
+        const results = [];
 
-        if (!skipInventory) {
-            // 1. Update Main Inventory
-            const item = await db.get('SELECT * FROM inventory WHERE id = ?', itemId);
-            if (!item) throw new Error("Item not found");
-            itemName = item.name;
+        for (const transaction of transactions) {
+            const { type, itemId, quantity, depositor, price, category, timestamp, skipInventory, itemName: providedItemName, warningIgnored } = transaction;
+            // type: 'in' (Einlagern) or 'out' (Auslagern)
+            // category: 'internal' or 'trade'
+            // skipInventory: true for special bookings (Sonderbuchung)
 
-            let newCurrent = item.current;
-            if (type === 'in') {
-                newCurrent += quantity;
-            } else {
-                newCurrent = Math.max(0, newCurrent - quantity);
-            }
-            await db.run('UPDATE inventory SET current = ? WHERE id = ?', newCurrent, itemId);
+            let itemName = providedItemName;
 
-            // 2. Update Employee Inventory (Only for internal transactions)
-            if (category === 'internal' && depositor !== 'Unbekannt') {
-                if (type === 'out') {
-                    // Auslagern: Warehouse -> Employee (Employee GAINS item)
-                    await db.run(`INSERT INTO employee_inventory (employee_name, item_id, quantity) 
+            if (!skipInventory) {
+                // 1. Update Main Inventory
+                const item = await db.get('SELECT * FROM inventory WHERE id = ?', itemId);
+                if (!item) throw new Error(`Item not found: ${itemId}`);
+                itemName = item.name;
+
+                let newCurrent = item.current;
+                if (type === 'in') {
+                    newCurrent += quantity;
+                } else {
+                    newCurrent = Math.max(0, newCurrent - quantity);
+                }
+                await db.run('UPDATE inventory SET current = ? WHERE id = ?', newCurrent, itemId);
+
+                // 2. Update Employee Inventory (Only for internal transactions)
+                if (category === 'internal' && depositor !== 'Unbekannt') {
+                    if (type === 'out') {
+                        // Auslagern: Warehouse -> Employee (Employee GAINS item)
+                        await db.run(`INSERT INTO employee_inventory (employee_name, item_id, quantity) 
                         VALUES (?, ?, ?) 
                         ON CONFLICT(employee_name, item_id) 
                         DO UPDATE SET quantity = quantity + ?`,
-                        depositor, itemId, quantity, quantity);
-                } else if (type === 'in') {
-                    // Einlagern: Employee -> Warehouse (Employee LOSES item OR ingredients)
+                            depositor, itemId, quantity, quantity);
+                    } else if (type === 'in') {
+                        // Einlagern: Employee -> Warehouse (Employee LOSES item OR ingredients)
 
-                    // Check for recipe
-                    const recipeIngredients = await db.all('SELECT * FROM recipes WHERE product_id = ?', itemId);
+                        // Check for recipe
+                        const recipeIngredients = await db.all('SELECT * FROM recipes WHERE product_id = ?', itemId);
 
-                    if (recipeIngredients.length > 0) {
-                        // It's a crafted item, deduct ingredients
-                        for (const ing of recipeIngredients) {
-                            const deductQty = ing.quantity * quantity;
-                            await db.run(`UPDATE employee_inventory 
+                        if (recipeIngredients.length > 0) {
+                            // It's a crafted item, deduct ingredients
+                            for (const ing of recipeIngredients) {
+                                const deductQty = ing.quantity * quantity;
+                                await db.run(`UPDATE employee_inventory 
                                 SET quantity = MAX(0, quantity - ?) 
                                 WHERE employee_name = ? AND item_id = ?`,
-                                deductQty, depositor, ing.ingredient_id);
-                        }
-                    } else {
-                        // Normal item, deduct item itself
-                        await db.run(`UPDATE employee_inventory 
+                                    deductQty, depositor, ing.ingredient_id);
+                            }
+                        } else {
+                            // Normal item, deduct item itself
+                            await db.run(`UPDATE employee_inventory 
                             SET quantity = MAX(0, quantity - ?) 
                             WHERE employee_name = ? AND item_id = ?`,
-                            quantity, depositor, itemId);
+                                quantity, depositor, itemId);
+                        }
+
+                        // Cleanup: Remove items with 0 quantity
+                        await db.run('DELETE FROM employee_inventory WHERE employee_name = ? AND quantity <= 0', depositor);
                     }
-
-                    // Cleanup: Remove items with 0 quantity
-                    await db.run('DELETE FROM employee_inventory WHERE employee_name = ? AND quantity <= 0', depositor);
                 }
             }
-        }
 
-        // 3. Log Transaction
-        const logEntry = {
-            timestamp: timestamp || new Date().toISOString(),
-            type,
-            category,
-            itemId: itemId || null,
-            itemName: itemName || 'Unbekannt',
-            quantity,
-            depositor,
-            price,
-            msg: `${type === 'in' ? (category === 'trade' ? 'Gekauft' : (skipInventory ? 'Sonderbuchung' : 'Eingelagert')) : (category === 'trade' ? 'Verkauft' : 'Ausgelagert')}: ${quantity}x ${itemName} (${depositor})${warningIgnored ? ' (Warnung ignoriert)' : ''}`,
-            time: new Date().toLocaleTimeString()
-        };
+            // 3. Log Transaction
+            const logEntry = {
+                timestamp: timestamp || new Date().toISOString(),
+                type,
+                category,
+                itemId: itemId || null,
+                itemName: itemName || 'Unbekannt',
+                quantity,
+                depositor,
+                price,
+                msg: `${type === 'in' ? (category === 'trade' ? 'Gekauft' : (skipInventory ? 'Sonderbuchung' : 'Eingelagert')) : (category === 'trade' ? 'Verkauft' : 'Ausgelagert')}: ${quantity}x ${itemName} (${depositor})${warningIgnored ? ' (Warnung ignoriert)' : ''}`,
+                time: new Date().toLocaleTimeString()
+            };
 
-        // Retry loop for log insertion to handle timestamp collisions
-        let logInserted = false;
-        let retries = 0;
-        let currentTimestamp = logEntry.timestamp;
+            // Retry loop for log insertion to handle timestamp collisions
+            let logInserted = false;
+            let retries = 0;
+            let currentTimestamp = logEntry.timestamp;
 
-        while (!logInserted && retries < 5) {
-            try {
-                await db.run(
-                    'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    currentTimestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time, 'pending'
-                );
-                logInserted = true;
-            } catch (err) {
-                if (err.code === 'SQLITE_CONSTRAINT' && err.message.includes('logs.timestamp')) {
-                    // Collision detected, add 1ms and retry
-                    const date = new Date(currentTimestamp);
-                    date.setMilliseconds(date.getMilliseconds() + 1 + Math.floor(Math.random() * 10)); // Add random 1-10ms
-                    currentTimestamp = date.toISOString();
-                    retries++;
-                } else {
-                    throw err; // Re-throw other errors
+            while (!logInserted && retries < 5) {
+                try {
+                    await db.run(
+                        'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        currentTimestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time, 'pending'
+                    );
+                    logInserted = true;
+                    results.push(logEntry);
+                } catch (err) {
+                    if (err.code === 'SQLITE_CONSTRAINT' && err.message.includes('logs.timestamp')) {
+                        // Collision detected, add 1ms and retry
+                        const date = new Date(currentTimestamp);
+                        date.setMilliseconds(date.getMilliseconds() + 1 + Math.floor(Math.random() * 10)); // Add random 1-10ms
+                        currentTimestamp = date.toISOString();
+                        retries++;
+                    } else {
+                        throw err; // Re-throw other errors
+                    }
                 }
             }
-        }
 
-        if (!logInserted) throw new Error("Failed to generate unique timestamp for log");
+            if (!logInserted) throw new Error("Failed to generate unique timestamp for log");
+        }
 
         await db.run('COMMIT');
 
-        // Audit log the transaction
+        // Audit log the transaction (summary)
         if (req.user) {
-            await auditLog(req.user.discordId, req.user.username, 'TRANSACTION', `${type === 'in' ? 'IN' : 'OUT'}: ${quantity}x ${itemName} (${depositor}) - $${price}`);
+            const summary = transactions.length > 1
+                ? `Batch Transaction: ${transactions.length} items`
+                : `${transactions[0].type === 'in' ? 'IN' : 'OUT'}: ${transactions[0].quantity}x ${results[0].itemName} (${transactions[0].depositor}) - $${transactions[0].price}`;
+            await auditLog(req.user.discordId, req.user.username, 'TRANSACTION', summary);
         }
 
         broadcastUpdate();
-        res.json({ success: true, log: logEntry });
+        res.json({ success: true, logs: results });
 
     } catch (error) {
         if (db) {
