@@ -1,0 +1,21 @@
+services:
+  met-app-test:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: met-app-test
+    ports:
+      - "3002:3001"
+    volumes:
+      - ./data-test:/app/data
+    environment:
+      - PORT=3001
+      - VITE_API_TARGET=http://localhost:3001
+    env_file:
+      - .env.test
+    restart: unless-stopped
+
+networks:
+  default:
+    name: nginx-proxy-manager_default
+    external: true
