@@ -283,7 +283,8 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                                                                     }
                                                                     // 2. Pay Current
                                                                     if (emp.currentTotal > 0) {
-                                                                        batch.push({ amount: emp.currentTotal, date: new Date(), depositor: emp.name });
+                                                                        // Pass NULL for date to use Server Time (prevents client clock drift issues)
+                                                                        batch.push({ amount: emp.currentTotal, date: null, depositor: emp.name });
                                                                     }
                                                                     onPayout(batch);
                                                                 }
