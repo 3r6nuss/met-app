@@ -57,6 +57,41 @@ export default function ControlPage({ employeeInventory = [], employees = [], in
                             name={emp}
                             items={getEmployeeItems(emp)}
                             allInventory={inventory}
+                            onUpdate={handleUpdateStock}
+                        />
+                    ))}
+                </div>
+            </section>
+
+            {/* System Controls Section (Test System Only) */}
+            {(typeof window !== 'undefined' && (window.location.hostname.includes('test') || window.location.port === '3002')) && (
+                <section className="mb-12">
+                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-red-400">
+                        <Save className="w-6 h-6" />
+                        System (Test-Modus)
+                    </h2>
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-6">
+                        <p className="text-slate-400 mb-4">
+                            Nutzen Sie diese Funktion nur, wenn Sie die Datenbank vollständig zurücksetzen möchten.
+                            Alle aktuellen Daten gehen verloren!
+                        </p>
+                        <button
+                            onClick={() => {
+                                if (confirm("Sind Sie sicher? ALLES wird gelöscht.")) {
+                                    fetch('/api/reset', { method: 'POST' })
+                                        .then(res => res.json())
+                                        .then(() => alert("Datenbank wurde zurückgesetzt!"))
+                                        .catch(err => alert("Fehler: " + err));
+                                }
+                            }}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 px-4 py-2 rounded-lg transition-colors font-bold"
+                        >
+                            ⚠️ Datenbank zurücksetzen
+                        </button>
+                    </div>
+                </section>
+            )}
+
             <div className="space-y-3">
                 {history.length === 0 ? (
                     <div className="text-center text-slate-500 py-12 bg-slate-900/50 rounded-xl border border-white/5">
@@ -84,123 +119,123 @@ export default function ControlPage({ employeeInventory = [], employees = [], in
                 )}
             </div>
 
-            {/* Detail Modal */ }
-            { selectedEntry && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-                                <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
-                                    <div className="p-4 border-b border-white/10 flex justify-between items-center">
-                                        <h3 className="font-bold text-lg">Kontrolle Details</h3>
-                                        <button onClick={() => setSelectedEntry(null)} className="text-slate-400 hover:text-white">
-                                            <X className="w-6 h-6" />
-                                        </button>
-                                    </div>
+            {/* Detail Modal */}
+            {selectedEntry && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
+                        <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                            <h3 className="font-bold text-lg">Kontrolle Details</h3>
+                            <button onClick={() => setSelectedEntry(null)} className="text-slate-400 hover:text-white">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
 
-                                    <div className="p-6 overflow-y-auto">
-                                        <div className="flex justify-between mb-6 bg-slate-800/50 p-4 rounded-lg">
-                                            <div>
-                                                <div className="text-xs text-slate-400 uppercase">Prüfer</div>
-                                                <div className="font-bold text-lg">{selectedEntry.verifier}</div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-xs text-slate-400 uppercase">Zeitpunkt</div>
-                                                <div className="font-mono">{new Date(selectedEntry.timestamp).toLocaleString()}</div>
-                                            </div>
-                                        </div>
-
-                                        <h4 className="font-bold text-slate-400 mb-3 text-sm uppercase">Bestand zum Zeitpunkt der Prüfung</h4>
-                                        <div className="space-y-1">
-                                            {selectedEntry.snapshot.map(item => (
-                                                <div key={item.id} className="flex justify-between p-2 hover:bg-white/5 rounded border-b border-white/5 last:border-0 text-sm">
-                                                    <span className="text-slate-300">{item.name}</span>
-                                                    <span className="font-mono text-slate-400">{item.current.toLocaleString()}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                        <div className="p-6 overflow-y-auto">
+                            <div className="flex justify-between mb-6 bg-slate-800/50 p-4 rounded-lg">
+                                <div>
+                                    <div className="text-xs text-slate-400 uppercase">Prüfer</div>
+                                    <div className="font-bold text-lg">{selectedEntry.verifier}</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xs text-slate-400 uppercase">Zeitpunkt</div>
+                                    <div className="font-mono">{new Date(selectedEntry.timestamp).toLocaleString()}</div>
                                 </div>
                             </div>
-                        )}
+
+                            <h4 className="font-bold text-slate-400 mb-3 text-sm uppercase">Bestand zum Zeitpunkt der Prüfung</h4>
+                            <div className="space-y-1">
+                                {selectedEntry.snapshot.map(item => (
+                                    <div key={item.id} className="flex justify-between p-2 hover:bg-white/5 rounded border-b border-white/5 last:border-0 text-sm">
+                                        <span className="text-slate-300">{item.name}</span>
+                                        <span className="font-mono text-slate-400">{item.current.toLocaleString()}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                );
+            )}
+        </div>
+    );
 }
 
-                function EmployeeInventoryCard({name, items, allInventory, onUpdate}) {
+function EmployeeInventoryCard({ name, items, allInventory, onUpdate }) {
     const [expanded, setExpanded] = useState(false);
-                const [editingId, setEditingId] = useState(null);
-                const [editValue, setEditValue] = useState('');
+    const [editingId, setEditingId] = useState(null);
+    const [editValue, setEditValue] = useState('');
 
     const startEdit = (id, current) => {
-                    setEditingId(id);
-                setEditValue(current);
+        setEditingId(id);
+        setEditValue(current);
     };
 
     const saveEdit = (id) => {
-                    onUpdate(name, id, editValue);
-                setEditingId(null);
+        onUpdate(name, id, editValue);
+        setEditingId(null);
     };
 
-                return (
-                <div className="bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden">
-                    <div
-                        onClick={() => setExpanded(!expanded)}
-                        className="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-800/50 transition-colors"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 font-bold">
-                                {name.charAt(0)}
-                            </div>
-                            <span className="font-medium text-slate-200">{name}</span>
-                            <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded-full">
-                                {items.length} Items
-                            </span>
-                        </div>
-                        <ChevronRight className={`w-5 h-5 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+    return (
+        <div className="bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden">
+            <div
+                onClick={() => setExpanded(!expanded)}
+                className="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-800/50 transition-colors"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 font-bold">
+                        {name.charAt(0)}
                     </div>
+                    <span className="font-medium text-slate-200">{name}</span>
+                    <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded-full">
+                        {items.length} Items
+                    </span>
+                </div>
+                <ChevronRight className={`w-5 h-5 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+            </div>
 
-                    {expanded && (
-                        <div className="border-t border-slate-800 p-4 bg-slate-950/30">
-                            {items.length === 0 ? (
-                                <div className="text-center text-slate-500 text-sm py-2">Leer</div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {items.map(item => {
-                                        const itemDef = allInventory.find(i => i.id === item.item_id);
-                                        const itemName = itemDef ? itemDef.name : `Item #${item.item_id}`;
+            {expanded && (
+                <div className="border-t border-slate-800 p-4 bg-slate-950/30">
+                    {items.length === 0 ? (
+                        <div className="text-center text-slate-500 text-sm py-2">Leer</div>
+                    ) : (
+                        <div className="space-y-2">
+                            {items.map(item => {
+                                const itemDef = allInventory.find(i => i.id === item.item_id);
+                                const itemName = itemDef ? itemDef.name : `Item #${item.item_id}`;
 
-                                        return (
-                                            <div key={item.item_id} className="flex justify-between items-center text-sm bg-slate-900/50 p-2 rounded border border-slate-800">
-                                                <span className="text-slate-300">{itemName}</span>
+                                return (
+                                    <div key={item.item_id} className="flex justify-between items-center text-sm bg-slate-900/50 p-2 rounded border border-slate-800">
+                                        <span className="text-slate-300">{itemName}</span>
 
-                                                {editingId === item.item_id ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="number"
-                                                            value={editValue}
-                                                            onChange={(e) => setEditValue(e.target.value)}
-                                                            className="w-16 bg-slate-950 border border-violet-500 rounded px-1 py-0.5 text-right text-white"
-                                                        />
-                                                        <button onClick={() => saveEdit(item.item_id)} className="text-emerald-400 hover:text-emerald-300">
-                                                            <Save className="w-4 h-4" />
-                                                        </button>
-                                                        <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-300">
-                                                            <X className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="font-mono text-violet-300 font-bold">{item.quantity}</span>
-                                                        <button onClick={() => startEdit(item.item_id, item.quantity)} className="text-slate-600 hover:text-violet-400">
-                                                            <Edit2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
-                                                )}
+                                        {editingId === item.item_id ? (
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={editValue}
+                                                    onChange={(e) => setEditValue(e.target.value)}
+                                                    className="w-16 bg-slate-950 border border-violet-500 rounded px-1 py-0.5 text-right text-white"
+                                                />
+                                                <button onClick={() => saveEdit(item.item_id)} className="text-emerald-400 hover:text-emerald-300">
+                                                    <Save className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-300">
+                                                    <X className="w-4 h-4" />
+                                                </button>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                                        ) : (
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-mono text-violet-300 font-bold">{item.quantity}</span>
+                                                <button onClick={() => startEdit(item.item_id, item.quantity)} className="text-slate-600 hover:text-violet-400">
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
-                );
+            )}
+        </div>
+    );
 }
