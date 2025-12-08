@@ -523,53 +523,54 @@ app.post('/api/reset', async (req, res) => {
         // Reset Inventory
         await db.run('DELETE FROM inventory');
         const stmtInv = await db.prepare('INSERT INTO inventory (id, name, category, current, target, min, unit, price, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        await stmtInv.run(
-            item.id,
-            item.name,
-            item.category,
-            item.current || 0,
-            item.target || null,
-            item.min || 0,
-            item.unit || '',
-            item.price || 0,
-            item.image || ''
-        );
-    }
+        for (const item of initialInventory) {
+            await stmtInv.run(
+                item.id,
+                item.name,
+                item.category,
+                item.current || 0,
+                item.target || null,
+                item.min || 0,
+                item.unit || '',
+                item.price || 0,
+                item.image || ''
+            );
+        }
         await stmtInv.finalize();
-    console.log(`Reset: Inserted ${initialInventory.length} inventory items.`);
+        console.log(`Reset: Inserted ${initialInventory.length} inventory items.`);
 
-    // Reset Others
-    await db.run('DELETE FROM logs');
-    await db.run('DELETE FROM verifications');
+        // Reset Others
+        await db.run('DELETE FROM logs');
+        await db.run('DELETE FROM verifications');
 
-    await db.run('DELETE FROM employees');
-    const stmtEmp = await db.prepare('INSERT INTO employees (name) VALUES (?)');
-    for (const name of initialEmployees) {
-        await stmtEmp.run(name);
+        await db.run('DELETE FROM employees');
+        const stmtEmp = await db.prepare('INSERT INTO employees (name) VALUES (?)');
+        for (const name of initialEmployees) {
+            await stmtEmp.run(name);
+        }
+        await stmtEmp.finalize();
+
+        await db.run('DELETE FROM prices');
+        const stmtPrice = await db.prepare('INSERT INTO prices (name, ek, vk, lohn, note, noteVK) VALUES (?, ?, ?, ?, ?, ?)');
+        for (const p of initialPrices) {
+            await stmtPrice.run(p.name, p.ek, p.vk, p.lohn, p.note, p.noteVK || '');
+        }
+        await stmtPrice.finalize();
+
+        await db.run('DELETE FROM personnel');
+        const stmtPers = await db.prepare('INSERT INTO personnel (name, phone, truck_license, contract, license_plate, second_job) VALUES (?, ?, ?, ?, ?, ?)');
+        for (const p of initialPersonnel) {
+            await stmtPers.run(p.name, p.phone, p.truck_license, p.contract, p.license_plate, p.second_job);
+        }
+        await stmtPers.finalize();
+
+        await db.run('COMMIT');
+        broadcastUpdate();
+        res.json(initialInventory);
+    } catch (error) {
+        console.error("Error resetting database:", error);
+        res.status(500).json({ error: "Database error" });
     }
-    await stmtEmp.finalize();
-
-    await db.run('DELETE FROM prices');
-    const stmtPrice = await db.prepare('INSERT INTO prices (name, ek, vk, lohn, note, noteVK) VALUES (?, ?, ?, ?, ?, ?)');
-    for (const p of initialPrices) {
-        await stmtPrice.run(p.name, p.ek, p.vk, p.lohn, p.note, p.noteVK || '');
-    }
-    await stmtPrice.finalize();
-
-    await db.run('DELETE FROM personnel');
-    const stmtPers = await db.prepare('INSERT INTO personnel (name, phone, truck_license, contract, license_plate, second_job) VALUES (?, ?, ?, ?, ?, ?)');
-    for (const p of initialPersonnel) {
-        await stmtPers.run(p.name, p.phone, p.truck_license, p.contract, p.license_plate, p.second_job);
-    }
-    await stmtPers.finalize();
-
-    await db.run('COMMIT');
-    broadcastUpdate();
-    res.json(initialInventory);
-} catch (error) {
-    console.error("Error resetting database:", error);
-    res.status(500).json({ error: "Database error" });
-}
 });
 
 // --- NEW FEATURES: Employee Inventory & Recipes ---
