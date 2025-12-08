@@ -63,35 +63,6 @@ export default function ControlPage({ employeeInventory = [], employees = [], in
                 </div>
             </section>
 
-            {/* System Controls Section (Test System Only) */}
-            {(typeof window !== 'undefined' && (window.location.hostname.includes('test') || window.location.port === '3002')) && (
-                <section className="mb-12">
-                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-red-400">
-                        <Save className="w-6 h-6" />
-                        System (Test-Modus)
-                    </h2>
-                    <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-6">
-                        <p className="text-slate-400 mb-4">
-                            Nutzen Sie diese Funktion nur, wenn Sie die Datenbank vollständig zurücksetzen möchten.
-                            Alle aktuellen Daten gehen verloren!
-                        </p>
-                        <button
-                            onClick={() => {
-                                if (confirm("Sind Sie sicher? ALLES wird gelöscht.")) {
-                                    fetch('/api/reset', { method: 'POST' })
-                                        .then(res => res.json())
-                                        .then(() => alert("Datenbank wurde zurückgesetzt!"))
-                                        .catch(err => alert("Fehler: " + err));
-                                }
-                            }}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 px-4 py-2 rounded-lg transition-colors font-bold"
-                        >
-                            ⚠️ Datenbank zurücksetzen
-                        </button>
-                    </div>
-                </section>
-            )}
-
             <div className="space-y-3">
                 {history.length === 0 ? (
                     <div className="text-center text-slate-500 py-12 bg-slate-900/50 rounded-xl border border-white/5">
