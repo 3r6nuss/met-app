@@ -149,10 +149,25 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         return result;
     }, [currentLogs, outstandingData, user]);
 
+    // Calculate Grand Total Outstanding (Sum of all positive balances)
+    const grandTotalOutstanding = useMemo(() => {
+        return employeeData.reduce((acc, emp) => {
+            const total = emp.currentTotal + emp.outstandingTotal;
+            // Only count if positive (debt to employee)
+            return acc + (total > 0 ? total : 0);
+        }, 0);
+    }, [employeeData]);
+
     return (
         <div className="animate-fade-in overflow-x-auto pb-12">
             <div className="flex justify-between items-end mb-6">
                 <h2 className="text-2xl font-bold text-slate-200">Wochenprotokoll Mitarbeiter (Lohn)</h2>
+                {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && grandTotalOutstanding > 0 && (
+                    <div className="flex flex-col items-end">
+                        <span className="text-xs uppercase text-slate-400 font-bold tracking-wider">Gesamt Offen</span>
+                        <span className="text-2xl font-bold text-red-400">{formatMoney(grandTotalOutstanding)}</span>
+                    </div>
+                )}
             </div>
 
             <div className="min-w-[1000px] border border-slate-700 rounded-lg bg-slate-900/50">
