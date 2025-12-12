@@ -115,6 +115,14 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         // 2. Merge Outstanding Data
         Object.entries(outstandingData).forEach(([name, amount]) => {
             if (amount === 0) return; // Skip if balanced
+
+            // NEW: If a payout happened THIS week (lastPayouts exists), 
+            // we assume it cleared the PAST outstanding debt.
+            // So we DO NOT add the outstanding amount to the view.
+            if (lastPayouts[name]) {
+                return;
+            }
+
             if (!groups[name]) {
                 groups[name] = {
                     name: name,
@@ -134,6 +142,9 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         if (!isPrivileged) {
             result = result.filter(g => g.name === user?.employeeName);
         }
+
+        // Filter out employees with 0 balance (Hidden after payout until next check-in)
+        result = result.filter(g => (g.currentTotal + g.outstandingTotal) !== 0);
 
         // Sort: Current User first, then alphabetical
         if (user?.employeeName) {
