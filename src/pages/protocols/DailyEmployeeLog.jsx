@@ -46,7 +46,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             const logDate = new Date(log.timestamp);
             // Explicitly include Auszahlung to ensure it reduces the debt
             if (log.itemName === 'Auszahlung') return logDate >= lastWeekStart;
-            return log.category !== 'trade' && logDate >= lastWeekStart;
+            return logDate >= lastWeekStart; // Allow all categories (internal & trade)
         }).forEach(log => {
             if (!groups[log.depositor]) groups[log.depositor] = 0;
             const value = (log.price || 0) * (log.quantity || 0);
@@ -93,7 +93,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             return log.timestamp > lastPayout; // Show only if newer than last payout
         });
 
-        filteredLogs.filter(log => log.category !== 'trade' && log.type === 'in').forEach(log => {
+        filteredLogs.filter(log => log.type === 'in').forEach(log => {
             if (!groups[log.depositor]) {
                 groups[log.depositor] = {
                     name: log.depositor,
