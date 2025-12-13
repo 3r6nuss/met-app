@@ -72,25 +72,9 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
     const employeeData = useMemo(() => {
         const groups = {};
 
-        // 1. Process Current Week Logs
-        // First, find the last payout timestamp for each employee
-        const lastPayouts = {};
-        currentLogs.forEach(log => {
-            // Check for payout but EXCLUDE "Offen" payouts (Outstanding Wages)
-            // We only want to reset the view if a CURRENT week payout happened.
-            if ((log.itemName === 'Auszahlung' || (log.category === 'internal' && log.price < 0)) && !log.msg?.includes('(Offen)')) {
-                if (!lastPayouts[log.depositor] || log.timestamp > lastPayouts[log.depositor]) {
-                    lastPayouts[log.depositor] = log.timestamp;
-                }
-            }
-        });
-
-        // Filter logs to only show those AFTER the last payout
-        const filteredLogs = currentLogs.filter(log => {
-            const lastPayout = lastPayouts[log.depositor];
-            if (!lastPayout) return true; // No payout, show all
-            return log.timestamp > lastPayout; // Show only if newer than last payout
-        });
+        // REMOVED 'Clean Slate' Logic: Show all logs for the current week.
+        // This prevents issues where paying old debt hides new items, or partial payouts hide remaining balance.
+        const filteredLogs = currentLogs;
 
         filteredLogs.filter(log => log.category !== 'trade' && log.type === 'in').forEach(log => {
             if (!groups[log.depositor]) {
@@ -119,12 +103,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             // NEW: If a payout happened THIS week (lastPayouts exists), 
             // we assume it cleared the PAST outstanding debt.
             // So we DO NOT add the outstanding amount to the view.
-            // FIX: This logic was incorrect. Payouts are just transactions. 
-            // If the balance is still positive, it should be shown.
-            // Removing the early return.
-            // if (lastPayouts[name]) {
-            //    return;
-            // }
+
 
             if (!groups[name]) {
                 groups[name] = {
