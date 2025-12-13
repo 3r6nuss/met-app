@@ -143,9 +143,6 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             result = result.filter(g => g.name === user?.employeeName);
         }
 
-        // Filter out employees with 0 balance (Hidden after payout until next check-in)
-        result = result.filter(g => (g.currentTotal + g.outstandingTotal) !== 0);
-
         // Sort: Current User first, then alphabetical
         if (user?.employeeName) {
             result.sort((a, b) => {
