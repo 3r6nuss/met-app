@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Check, Banknote, Trash2 } from 'lucide-react';
 
 export default function DailyEmployeeLog({ logs, user, onPayout }) {
@@ -14,6 +14,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
     };
 
     const currentWeekStart = getCurrentWeekStart();
+    const [showFullHistory, setShowFullHistory] = useState(false);
 
     // Split logs into Current Week and Past Weeks (Outstanding)
     const { currentLogs, pastLogs } = useMemo(() => {
@@ -87,6 +88,8 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
 
         // Filter logs to only show those AFTER (or at same time as) the last payout
         const filteredLogs = currentLogs.filter(log => {
+            if (showFullHistory) return true; // RECHECK LOGIC: Show everything if requested
+
             const lastPayout = lastPayouts[log.depositor];
             if (!lastPayout) return true; // No payout, show all
 
@@ -127,7 +130,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             // NEW: If a payout happened THIS week (lastPayouts exists), 
             // we assume it cleared the PAST outstanding debt.
             // So we DO NOT add the outstanding amount to the view.
-            if (lastPayouts[name]) {
+            if (lastPayouts[name] && !showFullHistory) {
                 return;
             }
 
@@ -184,6 +187,18 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                         <span className="text-2xl font-bold text-red-400">{formatMoney(grandTotalOutstanding)}</span>
                     </div>
                 )}
+            </div>
+
+            <div className="mb-4 flex justify-end">
+                <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer bg-slate-800/50 px-3 py-1.5 rounded border border-slate-700 hover:bg-slate-800 transition-colors">
+                    <input
+                        type="checkbox"
+                        checked={showFullHistory}
+                        onChange={(e) => setShowFullHistory(e.target.checked)}
+                        className="rounded border-slate-600 bg-slate-700 text-violet-500 focus:ring-violet-500"
+                    />
+                    <span>Verlauf prüfen (Alles anzeigen)</span>
+                </label>
             </div>
 
             <div className="min-w-[1000px] border border-slate-700 rounded-lg bg-slate-900/50">
