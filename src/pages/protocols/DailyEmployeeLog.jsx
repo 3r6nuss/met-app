@@ -72,9 +72,28 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
     const employeeData = useMemo(() => {
         const groups = {};
 
-        // REMOVED 'Clean Slate' Logic: Show all logs for the current week.
-        // This prevents issues where paying old debt hides new items, or partial payouts hide remaining balance.
-        const filteredLogs = currentLogs;
+        // 1. Process Current Week Logs
+        // First, find the last payout timestamp for each employee
+        const lastPayouts = {};
+        currentLogs.forEach(log => {
+            // STRICTER PAYOUT CHECK: Only "Auszahlung" resets the view.
+            // Generic negative "internal" items (like penalties) should NOT hide history.
+            if (log.itemName === 'Auszahlung' && !log.msg?.includes('(Offen)')) {
+                if (!lastPayouts[log.depositor] || log.timestamp > lastPayouts[log.depositor]) {
+                    lastPayouts[log.depositor] = log.timestamp;
+                }
+            }
+        });
+
+        // Filter logs to only show those AFTER (or at same time as) the last payout
+        const filteredLogs = currentLogs.filter(log => {
+            const lastPayout = lastPayouts[log.depositor];
+            if (!lastPayout) return true; // No payout, show all
+
+            // Fix for "same timestamp" bug:
+            // Use >= to include items that happened in the exact same second (batch processing).
+            return log.timestamp >= lastPayout;
+        });
 
         filteredLogs.filter(log => log.category !== 'trade' && log.type === 'in').forEach(log => {
             if (!groups[log.depositor]) {
@@ -104,6 +123,13 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             // we assume it cleared the PAST outstanding debt.
             // So we DO NOT add the outstanding amount to the view.
 
+
+            // NEW: If a payout happened THIS week (lastPayouts exists), 
+            // we assume it cleared the PAST outstanding debt.
+            // So we DO NOT add the outstanding amount to the view.
+            if (lastPayouts[name]) {
+                return;
+            }
 
             if (!groups[name]) {
                 groups[name] = {
