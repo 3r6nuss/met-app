@@ -78,7 +78,8 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         currentLogs.forEach(log => {
             // Check for payout but EXCLUDE "Offen" payouts (Outstanding Wages)
             // We only want to reset the view if a CURRENT week payout happened.
-            if ((log.itemName === 'Auszahlung' || (log.category === 'internal' && log.price < 0)) && !log.msg?.includes('(Offen)')) {
+            // FIXED: Only trigger reset on explicit "Auszahlung", not just any negative internal entry (corrections).
+            if (log.itemName === 'Auszahlung' && !log.msg?.includes('(Offen)')) {
                 if (!lastPayouts[log.depositor] || log.timestamp > lastPayouts[log.depositor]) {
                     lastPayouts[log.depositor] = log.timestamp;
                 }
