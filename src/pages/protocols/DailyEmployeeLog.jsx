@@ -21,8 +21,8 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         const past = [];
         logs.filter(l =>
             l.itemName !== 'Korrektur Geschäftskonto' &&
-            !l.msg?.includes('Korrektur Geschäftskonto') &&
-            (l.price > 0 || l.price < 0) // Exclude 0 price (Returns), but KEEP unknown items
+            !l.msg?.includes('Korrektur Geschäftskonto')
+            // (l.price > 0 || l.price < 0) // Exclude 0 price -> REMOVED to show employees with 0$ items
         ).forEach(log => {
             const date = new Date(log.timestamp);
             if (date >= currentWeekStart) {
@@ -46,7 +46,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             const logDate = new Date(log.timestamp);
             // Explicitly include Auszahlung to ensure it reduces the debt
             if (log.itemName === 'Auszahlung') return logDate >= lastWeekStart;
-            return logDate >= lastWeekStart; // Allow all categories (internal & trade)
+            return log.category !== 'trade' && logDate >= lastWeekStart;
         }).forEach(log => {
             if (!groups[log.depositor]) groups[log.depositor] = 0;
             const value = (log.price || 0) * (log.quantity || 0);
@@ -78,8 +78,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         currentLogs.forEach(log => {
             // Check for payout but EXCLUDE "Offen" payouts (Outstanding Wages)
             // We only want to reset the view if a CURRENT week payout happened.
-            // FIXED: Only trigger reset on explicit "Auszahlung", not just any negative internal entry (corrections).
-            if (log.itemName === 'Auszahlung' && !log.msg?.includes('(Offen)')) {
+            if ((log.itemName === 'Auszahlung' || (log.category === 'internal' && log.price < 0)) && !log.msg?.includes('(Offen)')) {
                 if (!lastPayouts[log.depositor] || log.timestamp > lastPayouts[log.depositor]) {
                     lastPayouts[log.depositor] = log.timestamp;
                 }
@@ -93,7 +92,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             return log.timestamp > lastPayout; // Show only if newer than last payout
         });
 
-        filteredLogs.filter(log => log.type === 'in').forEach(log => {
+        filteredLogs.filter(log => log.category !== 'trade' && log.type === 'in').forEach(log => {
             if (!groups[log.depositor]) {
                 groups[log.depositor] = {
                     name: log.depositor,
@@ -120,9 +119,12 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             // NEW: If a payout happened THIS week (lastPayouts exists), 
             // we assume it cleared the PAST outstanding debt.
             // So we DO NOT add the outstanding amount to the view.
-            if (lastPayouts[name]) {
-                return;
-            }
+            // FIX: This logic was incorrect. Payouts are just transactions. 
+            // If the balance is still positive, it should be shown.
+            // Removing the early return.
+            // if (lastPayouts[name]) {
+            //    return;
+            // }
 
             if (!groups[name]) {
                 groups[name] = {
@@ -213,7 +215,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                                             {!isPaid && (
                                                 <>
                                                     <div className="mt-1 space-y-1">
-                                                        {day.logs.map((log, lIdx) => (
+                                                        {day.logs.filter(l => l.price !== 0).map((log, lIdx) => (
                                                             <div key={lIdx} className="text-[10px] flex justify-between items-center px-1 rounded text-slate-400 bg-slate-900/50 group/log">
                                                                 <span className="truncate max-w-[60px]" title={log.itemName || 'Auszahlung'}>{log.itemName || 'Auszahlung'}</span>
                                                                 <div className="flex items-center gap-1">
