@@ -11,10 +11,10 @@ export default function Navbar({ onOpenPriceList, user }) {
     const isHaendler = (user?.isHaendler === 1 || user?.isHaendler === true) || user?.role === 'Händler' || isBuchhaltung;
 
     const navLinkClass = ({ isActive }) => cn(
-        "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all whitespace-nowrap flex-1",
+        "nav-item flex items-center justify-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap flex-1 rounded-lg border border-transparent",
         isActive
-            ? "bg-violet-600 text-white shadow-lg shadow-violet-500/25"
-            : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+            ? "bg-white/5 text-white border-white/5 shadow-inner"
+            : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
     );
 
     const dropdownItemClass = ({ isActive }) => cn(

@@ -4,12 +4,25 @@
   --font-sans: 'Outfit', sans-serif;
   --color-slate-850: #151f32;
   --color-slate-900: #0f172a;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
 }
 
 @layer base {
   body {
-    @apply bg-slate-900 text-slate-200 min-h-screen;
-    background-image: url('/bg.png');
+    @apply bg-slate-950 text-slate-200 min-h-screen selection:bg-violet-500/30 selection:text-violet-200;
+    background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 60%, #020617 100%);
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -18,33 +31,47 @@
 
 @layer components {
   .glass-panel {
-    @apply bg-slate-900/70 backdrop-blur-xl border border-white/10 shadow-xl;
+    @apply bg-slate-900/60 backdrop-blur-md border border-white/5 shadow-2xl;
+    box-shadow: 0 0 40px -10px rgba(124, 58, 237, 0.1);
   }
 
   .glass-input {
-    @apply bg-slate-900/60 border border-white/10 text-white placeholder-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all;
+    @apply bg-slate-950/50 border border-white/5 text-slate-200 placeholder-slate-600 focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all rounded-lg;
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-medium shadow-lg shadow-violet-500/25 transition-all transform hover:scale-[1.02] active:scale-[0.98];
+    @apply bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium shadow-lg shadow-violet-900/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] rounded-lg border-t border-white/10;
+  }
+
+  .nav-item {
+    @apply relative overflow-hidden transition-all duration-300;
+  }
+
+  .nav-item::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-violet-500 to-transparent scale-x-0 transition-transform duration-300;
+  }
+
+  .nav-item:hover::after {
+    @apply scale-x-100;
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #475569;
-  border-radius: 4px;
+  background: #334155;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #475569;
 }
