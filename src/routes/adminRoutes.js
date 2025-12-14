@@ -17,6 +17,11 @@ const isAdmin = (req, res, next) => {
     return res.status(403).json({ error: 'Unauthorized' });
 };
 
+const isBuchhaltungOrAdmin = (req, res, next) => {
+    if (req.isAuthenticated() && (req.user.role === 'Buchhaltung' || req.user.role === 'Administrator')) return next();
+    return res.status(403).json({ error: 'Unauthorized' });
+};
+
 // USERS
 router.get('/users', isAdmin, async (req, res) => {
     try {
