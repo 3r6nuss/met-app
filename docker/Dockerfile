@@ -19,6 +19,8 @@ COPY --from=builder /app/dist ./dist
 COPY server.js ./
 COPY src/data ./src/data
 COPY src/db ./src/db
+COPY src/routes ./src/routes
+COPY src/middleware ./src/middleware
 COPY scripts ./scripts
 
 # Expose the port
