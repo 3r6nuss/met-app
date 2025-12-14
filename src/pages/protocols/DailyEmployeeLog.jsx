@@ -74,37 +74,25 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         const groups = {};
 
         // 1. Process Current Week Logs
-        // First, find the last payout timestamp for each employee
         const lastPayouts = {};
+
+        // Find last payout timestamp for each employee
         currentLogs.forEach(log => {
-            // STRICTER PAYOUT CHECK: Only "Auszahlung" resets the view.
-            // Generic negative "internal" items (like penalties) should NOT hide history.
-            if (log.itemName === 'Auszahlung' && !log.msg?.includes('(Offen)')) {
+            if (log.itemName === 'Auszahlung' && !log.msg?.includes('(Offen)')) { // (Offen) check might be needed if we add distinguishing msg
                 if (!lastPayouts[log.depositor] || log.timestamp > lastPayouts[log.depositor]) {
                     lastPayouts[log.depositor] = log.timestamp;
                 }
             }
         });
 
-        // Filter logs to only show those AFTER (or at same time as) the last payout
-        const filteredLogs = currentLogs.filter(log => {
-            if (showFullHistory) return true; // RECHECK LOGIC: Show everything if requested
-
-            const lastPayout = lastPayouts[log.depositor];
-            if (!lastPayout) return true; // No payout, show all
-
-            // Fix for "same timestamp" bug:
-            // Use >= to include items that happened in the exact same second (batch processing).
-            return log.timestamp >= lastPayout;
-        });
-
-        filteredLogs.filter(log => log.category !== 'trade' && log.type === 'in').forEach(log => {
+        currentLogs.filter(log => log.category !== 'trade' && log.type === 'in').forEach(log => {
             if (!groups[log.depositor]) {
                 groups[log.depositor] = {
                     name: log.depositor,
                     days: Array(7).fill().map(() => ({ logs: [], total: 0 })),
-                    currentTotal: 0,
-                    outstandingTotal: 0
+                    weekTotal: 0,   // "Diese Woche Gesamt"
+                    currentOpen: 0, // "Aktuell Offene von dieser Woche"
+                    outstandingTotal: 0 // "Offene Zahlung letzte Wochen"
                 };
             }
 
@@ -112,33 +100,35 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             const satIndex = (date.getDay() + 1) % 7;
             const dayGroup = groups[log.depositor].days[satIndex];
 
-            dayGroup.logs.push(log);
+            // Check if log is paid
+            const lastPayout = lastPayouts[log.depositor];
+            // Fix: items with SAME timestamp as payout are PAID (contained in the payout batch)
+            const isPaid = lastPayout && log.timestamp <= lastPayout;
+
+            // Add 'isPaid' flag to log for UI
+            const logWithStatus = { ...log, isPaid };
+
+            dayGroup.logs.push(logWithStatus);
+
             const value = (log.price || 0) * (log.quantity || 0);
             dayGroup.total += value;
-            groups[log.depositor].currentTotal += value;
+
+            groups[log.depositor].weekTotal += value;
+            if (!isPaid) {
+                groups[log.depositor].currentOpen += value;
+            }
         });
 
-        // 2. Merge Outstanding Data
+        // 2. Merge Outstanding Data (Independent)
         Object.entries(outstandingData).forEach(([name, amount]) => {
-            if (amount === 0) return; // Skip if balanced
-
-            // NEW: If a payout happened THIS week (lastPayouts exists), 
-            // we assume it cleared the PAST outstanding debt.
-            // So we DO NOT add the outstanding amount to the view.
-
-
-            // NEW: If a payout happened THIS week (lastPayouts exists), 
-            // we assume it cleared the PAST outstanding debt.
-            // So we DO NOT add the outstanding amount to the view.
-            if (lastPayouts[name] && !showFullHistory) {
-                return;
-            }
+            if (amount === 0) return;
 
             if (!groups[name]) {
                 groups[name] = {
                     name: name,
                     days: Array(7).fill().map(() => ({ logs: [], total: 0 })),
-                    currentTotal: 0,
+                    weekTotal: 0,
+                    currentOpen: 0,
                     outstandingTotal: 0
                 };
             }
@@ -171,7 +161,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
     // Calculate Grand Total Outstanding (Sum of all positive balances)
     const grandTotalOutstanding = useMemo(() => {
         return employeeData.reduce((acc, emp) => {
-            const total = emp.currentTotal + emp.outstandingTotal;
+            const total = emp.currentOpen + emp.outstandingTotal;
             // Only count if positive (debt to employee)
             return acc + (total > 0 ? total : 0);
         }, 0);
@@ -187,18 +177,6 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                         <span className="text-2xl font-bold text-red-400">{formatMoney(grandTotalOutstanding)}</span>
                     </div>
                 )}
-            </div>
-
-            <div className="mb-4 flex justify-end">
-                <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer bg-slate-800/50 px-3 py-1.5 rounded border border-slate-700 hover:bg-slate-800 transition-colors">
-                    <input
-                        type="checkbox"
-                        checked={showFullHistory}
-                        onChange={(e) => setShowFullHistory(e.target.checked)}
-                        className="rounded border-slate-600 bg-slate-700 text-violet-500 focus:ring-violet-500"
-                    />
-                    <span>Verlauf prüfen (Alles anzeigen)</span>
-                </label>
             </div>
 
             <div className="min-w-[1000px] border border-slate-700 rounded-lg bg-slate-900/50">
@@ -218,8 +196,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                 {/* Rows */}
                 <div className="divide-y divide-slate-700">
                     {employeeData.map((emp, idx) => {
-                        const totalBalance = emp.currentTotal + emp.outstandingTotal;
-                        const isPaid = totalBalance <= 0;
+                        const totalBalance = emp.currentOpen + emp.outstandingTotal;
 
                         return (
                             <div key={idx} className="group">
@@ -232,51 +209,47 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                                     {/* Days */}
                                     {emp.days.map((day, dayIdx) => (
                                         <div key={dayIdx} className="p-2 border-r border-slate-700 flex flex-col justify-between min-h-[60px] relative">
-                                            {!isPaid && (
-                                                <>
-                                                    <div className="mt-1 space-y-1">
-                                                        {day.logs.filter(l => l.price !== 0).map((log, lIdx) => (
-                                                            <div key={lIdx} className="text-[10px] flex justify-between items-center px-1 rounded text-slate-400 bg-slate-900/50 group/log">
-                                                                <span className="truncate max-w-[60px]" title={log.itemName || 'Auszahlung'}>{log.itemName || 'Auszahlung'}</span>
-                                                                <div className="flex items-center gap-1">
-                                                                    <span>{log.quantity}</span>
-                                                                    {user?.role === 'Administrator' && (
-                                                                        <button
-                                                                            onClick={async (e) => {
-                                                                                e.stopPropagation();
-                                                                                if (confirm(`Eintrag "${log.itemName}" (${log.quantity}x) von ${emp.name} wirklich löschen?`)) {
-                                                                                    try {
-                                                                                        const res = await fetch(`/api/logs/${encodeURIComponent(log.timestamp)}`, {
-                                                                                            method: 'DELETE',
-                                                                                            credentials: 'include'
-                                                                                        });
-                                                                                        if (res.ok) {
-                                                                                            window.location.reload();
-                                                                                        } else {
-                                                                                            const data = await res.json();
-                                                                                            alert(data.error || 'Löschen fehlgeschlagen');
-                                                                                        }
-                                                                                    } catch (err) {
-                                                                                        alert('Netzwerkfehler');
-                                                                                    }
+                                            <div className="mt-1 space-y-1">
+                                                {day.logs.filter(l => l.price !== 0).map((log, lIdx) => (
+                                                    <div key={lIdx} className={`text-[10px] flex justify-between items-center px-1 rounded bg-slate-900/50 group/log ${log.isPaid ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                                        <span className="truncate max-w-[60px]" title={log.itemName || 'Auszahlung'}>{log.itemName || 'Auszahlung'}</span>
+                                                        <div className="flex items-center gap-1">
+                                                            <span>{log.quantity}</span>
+                                                            {user?.role === 'Administrator' && (
+                                                                <button
+                                                                    onClick={async (e) => {
+                                                                        e.stopPropagation();
+                                                                        if (confirm(`Eintrag "${log.itemName}" (${log.quantity}x) von ${emp.name} wirklich löschen?`)) {
+                                                                            try {
+                                                                                const res = await fetch(`/api/logs/${encodeURIComponent(log.timestamp)}`, {
+                                                                                    method: 'DELETE',
+                                                                                    credentials: 'include'
+                                                                                });
+                                                                                if (res.ok) {
+                                                                                    window.location.reload();
+                                                                                } else {
+                                                                                    const data = await res.json();
+                                                                                    alert(data.error || 'Löschen fehlgeschlagen');
                                                                                 }
-                                                                            }}
-                                                                            className="opacity-0 group-hover/log:opacity-100 p-0.5 hover:bg-red-500/30 rounded text-red-400 transition-all"
-                                                                            title="Eintrag löschen"
-                                                                        >
-                                                                            <Trash2 className="w-3 h-3" />
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                    {day.total > 0 && (
-                                                        <div className="text-xs font-bold text-right mt-1 pt-1 border-t border-slate-700/50 text-emerald-400">
-                                                            {formatMoney(day.total)}
+                                                                            } catch (err) {
+                                                                                alert('Netzwerkfehler');
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    className="opacity-0 group-hover/log:opacity-100 p-0.5 hover:bg-red-500/30 rounded text-red-400 transition-all"
+                                                                    title="Eintrag löschen"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                </button>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {day.total > 0 && (
+                                                <div className="text-xs font-bold text-right mt-1 pt-1 border-t border-slate-700/50 text-emerald-400">
+                                                    {formatMoney(day.total)}
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -284,28 +257,31 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                                     {/* Status / Checkbox */}
                                     <div className="p-3 font-bold text-emerald-400 text-right flex flex-col items-end justify-center gap-2 bg-emerald-900/10">
                                         {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
-                                            <div className="flex items-center gap-2">
-                                                {emp.outstandingTotal > 0 && !isPaid && (
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-[10px] text-slate-400 uppercase">Offen</span>
+                                            <div className="flex flex-col items-end gap-1 w-full">
+
+                                                {/* 1. Offene Zahlung Lezte Wochen (ALT) */}
+                                                {emp.outstandingTotal > 0 && (
+                                                    <div className="flex items-center justify-between w-full gap-2 text-xs">
+                                                        <span className="text-slate-500 uppercase text-[10px]">Alt</span>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-red-400">{formatMoney(emp.outstandingTotal)}</span>
                                                             <button
                                                                 onClick={(e) => {
-                                                                    e.stopPropagation(); // Prevent row click if any
-                                                                    if (confirm(`${emp.name}: Nur offenes Gehalt (letzte Woche) von ${formatMoney(emp.outstandingTotal)} auszahlen?`)) {
+                                                                    e.stopPropagation();
+                                                                    if (confirm(`${emp.name}: Nur offenes Gehalt (letzte Wochen) von ${formatMoney(emp.outstandingTotal)} auszahlen?`)) {
                                                                         const payoutDate = new Date(currentWeekStart);
                                                                         payoutDate.setSeconds(payoutDate.getSeconds() - 1);
 
                                                                         onPayout([{
                                                                             amount: emp.outstandingTotal,
                                                                             date: payoutDate,
-                                                                            depositor: emp.name
+                                                                            depositor: emp.name,
+                                                                            msg: 'Auszahlung Altlasten'
                                                                         }]);
                                                                     }
                                                                 }}
-                                                                className="p-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition-colors"
-                                                                title="Nur offenes Gehalt auszahlen"
+                                                                className="p-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
+                                                                title="Alte Schulden auszahlen"
                                                             >
                                                                 <Banknote className="w-3 h-3" />
                                                             </button>
@@ -313,38 +289,45 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                                                     </div>
                                                 )}
 
-                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isPaid}
-                                                        onChange={() => {
-                                                            if (!isPaid && onPayout) {
-                                                                if (confirm(`${emp.name}: Gesamten offenen Betrag von ${formatMoney(totalBalance)} auszahlen?`)) {
-                                                                    const batch = [];
-                                                                    // 1. Pay Outstanding (Past)
-                                                                    if (emp.outstandingTotal > 0) {
-                                                                        const payoutDate = new Date(currentWeekStart);
-                                                                        payoutDate.setSeconds(payoutDate.getSeconds() - 1);
-                                                                        batch.push({ amount: emp.outstandingTotal, date: payoutDate, depositor: emp.name });
+                                                {/* 2. Diese Woche Gesamt (STATISTIC ONLY) */}
+                                                <div className="flex items-center justify-between w-full gap-2 text-xs border-t border-slate-700/50 pt-1 mt-1">
+                                                    <span className="text-slate-500 uppercase text-[10px]">Gesamt</span>
+                                                    <span className="text-emerald-400/70">{formatMoney(emp.weekTotal)}</span>
+                                                </div>
+
+                                                {/* 3. Aktuell Offene von dieser Woche (NEW) */}
+                                                {emp.currentOpen > 0 && (
+                                                    <div className="flex items-center justify-between w-full gap-2 text-xs">
+                                                        <span className="text-slate-200 uppercase text-[10px] font-bold">Ofen</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-emerald-400">{formatMoney(emp.currentOpen)}</span>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (confirm(`${emp.name}: Aktuelles Wochengehalt von ${formatMoney(emp.currentOpen)} auszahlen?`)) {
+                                                                        // Pass NULL date to imply Server Time (RIGHT NOW)
+                                                                        onPayout([{
+                                                                            amount: emp.currentOpen,
+                                                                            date: null,
+                                                                            depositor: emp.name,
+                                                                            msg: 'Auszahlung Woche' // Optional msg
+                                                                        }]);
                                                                     }
-                                                                    // 2. Pay Current
-                                                                    if (emp.currentTotal > 0) {
-                                                                        // Pass NULL for date to use Server Time (prevents client clock drift issues)
-                                                                        batch.push({ amount: emp.currentTotal, date: null, depositor: emp.name });
-                                                                    }
-                                                                    onPayout(batch);
-                                                                }
-                                                            }
-                                                        }}
-                                                        className="w-5 h-5 rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
-                                                        disabled={isPaid} // Disable if already paid (for now, unless undo is needed)
-                                                    />
-                                                </label>
-                                            </div>
-                                        )}
-                                        {!isPaid && (
-                                            <div className="text-sm">
-                                                Summe: {formatMoney(totalBalance)}
+                                                                }}
+                                                                className="p-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition-colors"
+                                                                title="Wochengehalt auszahlen"
+                                                            >
+                                                                <Banknote className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {emp.currentOpen <= 0 && emp.outstandingTotal <= 0 && (
+                                                    <div className="text-xs text-slate-500 flex items-center gap-1">
+                                                        <Check className="w-3 h-3" /> Bezahlt
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
