@@ -35,26 +35,21 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         return { currentLogs: current, pastLogs: past };
     }, [logs, currentWeekStart]);
 
-    // Calculate Outstanding Wages (Past Weeks) per Employee - LIMITED TO LAST 7 DAYS
-    // Calculate Outstanding Wages (Past Weeks) per Employee - LIMITED TO LAST 7 DAYS
+    // Calculate Outstanding Wages (Past Weeks) per Employee - ALL TIME HISTORY
     const outstandingData = useMemo(() => {
         const groups = {};
-        // Calculate 7 days before current week start
-        const lastWeekStart = new Date(currentWeekStart);
-        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
 
         pastLogs.filter(log => {
-            const logDate = new Date(log.timestamp);
             // Explicitly include Auszahlung to ensure it reduces the debt
-            if (log.itemName === 'Auszahlung') return logDate >= lastWeekStart;
-            return log.category !== 'trade' && logDate >= lastWeekStart;
+            if (log.itemName === 'Auszahlung') return true;
+            return log.category !== 'trade';
         }).forEach(log => {
             if (!groups[log.depositor]) groups[log.depositor] = 0;
             const value = (log.price || 0) * (log.quantity || 0);
             groups[log.depositor] += value;
         });
         return groups;
-    }, [pastLogs, currentWeekStart]);
+    }, [pastLogs]);
 
     const formatMoney = (amount) => `$${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -343,6 +338,42 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
                     )}
                 </div>
             </div>
-        </div>
+
+            {/* DEBUG SECTION FOR ADMINS */}
+            {
+                user?.role === 'Administrator' && (
+                    <div className="mt-8 border border-slate-700 rounded p-4 bg-slate-900/50">
+                        <details>
+                            <summary className="cursor-pointer text-slate-400 text-xs font-bold uppercase tracking-wider hover:text-slate-200">
+                                Debug: Ausgeblendete Einträge (Vergangenheit)
+                            </summary>
+                            <div className="mt-4 space-y-2">
+                                {(() => {
+                                    // Calculate hidden logs directly here for debug display
+                                    const debugHidden = pastLogs.filter(log => {
+                                        // The INCLUSION logic used above:
+                                        const included = (log.itemName === 'Auszahlung') || (log.category !== 'trade');
+                                        // We want to show what is EXCLUDED
+                                        return !included;
+                                    });
+
+                                    if (debugHidden.length === 0) return <div className="text-slate-500 text-xs">Keine ausgeblendeten Einträge.</div>;
+
+                                    return debugHidden.map((log, idx) => (
+                                        <div key={idx} className="flex items-center gap-4 text-xs text-slate-500 border-b border-slate-800 pb-1">
+                                            <span className="w-32">{new Date(log.timestamp).toLocaleDateString()}</span>
+                                            <span className="w-32 font-bold">{log.depositor}</span>
+                                            <span className="w-24 text-amber-500">{log.category}</span>
+                                            <span className="flex-1">{log.itemName} ({log.quantity}x)</span>
+                                            <span className="w-24 text-right">{log.price} €</span>
+                                        </div>
+                                    ));
+                                })()}
+                            </div>
+                        </details>
+                    </div>
+                )
+            }
+        </div >
     );
 }
