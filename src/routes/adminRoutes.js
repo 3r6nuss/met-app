@@ -343,10 +343,7 @@ router.get('/audit-logs', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "DB Error" }); }
 });
 
-const isBuchhaltungOrAdmin = (req, res, next) => {
-    if (req.isAuthenticated() && (req.user.role === 'Buchhaltung' || req.user.role === 'Administrator')) return next();
-    return res.status(403).json({ error: 'Unauthorized' });
-};
+
 
 // VERIFICATIONS
 router.get('/verifications', async (req, res) => {
