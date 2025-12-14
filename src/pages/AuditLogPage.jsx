@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Activity, Search, Filter, RefreshCw, LogIn, ArrowRightLeft, Undo2, FileText, AlertTriangle } from 'lucide-react';
+import { Activity, Search, Filter, RefreshCw, LogIn, ArrowRightLeft, Undo2, FileText, AlertTriangle, X } from 'lucide-react';
 
 const API_URL = '/api';
 
@@ -78,6 +78,8 @@ export default function AuditLogPage() {
         });
     }, [logs, searchTerm, actionFilter]);
 
+    const [selectedDebugLog, setSelectedDebugLog] = useState(null);
+
     const filteredTransactions = useMemo(() => {
         return transactionLogs.filter(log => {
             return log.msg?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,7 +118,59 @@ export default function AuditLogPage() {
     };
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6 animate-fade-in relative">
+            {/* Debug Log Modal */}
+            {selectedDebugLog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="glass-panel w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl shadow-2xl">
+                        <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-violet-400" />
+                                Debug Details
+                            </h2>
+                            <button
+                                onClick={() => setSelectedDebugLog(null)}
+                                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                            >
+                                <X className="w-5 h-5 text-slate-400" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 font-mono text-sm space-y-2">
+                            {(() => {
+                                try {
+                                    const steps = JSON.parse(selectedDebugLog.debug_log || '[]');
+                                    if (!steps || steps.length === 0) return <p className="text-slate-500 italic">Keine Debug-Daten vorhanden.</p>;
+
+                                    return steps.map((step, idx) => {
+                                        if (typeof step === 'string') {
+                                            return (
+                                                <div key={idx} className="text-slate-300 border-l-2 border-slate-700 pl-3 py-1">
+                                                    {step}
+                                                </div>
+                                            );
+                                        } else if (step.transactionIndex !== undefined) {
+                                            return (
+                                                <div key={idx} className="mt-4 first:mt-0">
+                                                    <h4 className="text-violet-400 font-bold mb-2">Transaktion #{step.transactionIndex + 1}</h4>
+                                                    {step.steps.map((subStep, sIdx) => (
+                                                        <div key={sIdx} className={`border-l-2 pl-3 py-1 ${subStep.includes('ERROR') ? 'border-red-500 text-red-400 bg-red-500/10' : 'border-slate-700 text-slate-300'}`}>
+                                                            {subStep}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )
+                                        }
+                                        return null;
+                                    });
+                                } catch (e) {
+                                    return <p className="text-red-400">Fehler beim Parsen der Debug-Daten.</p>;
+                                }
+                            })()}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="glass-panel rounded-2xl p-6">
                 <div className="flex items-center justify-between flex-wrap gap-4">
@@ -144,8 +198,8 @@ export default function AuditLogPage() {
                 <button
                     onClick={() => setActiveTab('audit')}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'audit'
-                            ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/25'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/25'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
                 >
                     <Activity className="w-5 h-5" />
@@ -154,8 +208,8 @@ export default function AuditLogPage() {
                 <button
                     onClick={() => setActiveTab('transactions')}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'transactions'
-                            ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/25'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/25'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
                 >
                     <FileText className="w-5 h-5" />
@@ -184,7 +238,7 @@ export default function AuditLogPage() {
                                 onChange={(e) => setActionFilter(e.target.value)}
                                 className="glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
                             >
-                                {actionTypes.map(type => (
+                                <{actionTypes.map(type => (
                                     <option key={type} value={type} className="bg-slate-900">
                                         {type === 'all' ? 'Alle Aktionen' : type}
                                     </option>
@@ -241,6 +295,7 @@ export default function AuditLogPage() {
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Benutzer</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Aktion</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Details</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase">Debug</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800">
@@ -263,6 +318,17 @@ export default function AuditLogPage() {
                                             </td>
                                             <td className="px-4 py-3 text-sm text-slate-300 max-w-md truncate">
                                                 {log.details}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                {log.debug_log && (
+                                                    <button
+                                                        onClick={() => setSelectedDebugLog(log)}
+                                                        className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors border border-slate-700"
+                                                        title="View Debug Details"
+                                                    >
+                                                        <FileText className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -323,8 +389,8 @@ export default function AuditLogPage() {
                                                     </span>
                                                 ) : (
                                                     <span className={`px-2 py-1 rounded text-xs font-medium ${log.status === 'paid' ? 'bg-emerald-500/20 text-emerald-300' :
-                                                            log.status === 'outstanding' ? 'bg-amber-500/20 text-amber-300' :
-                                                                'bg-slate-500/20 text-slate-300'
+                                                        log.status === 'outstanding' ? 'bg-amber-500/20 text-amber-300' :
+                                                            'bg-slate-500/20 text-slate-300'
                                                         }`}>
                                                         {log.status === 'paid' ? 'BEZAHLT' : log.status === 'outstanding' ? 'OFFEN' : 'PENDING'}
                                                     </span>

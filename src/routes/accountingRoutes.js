@@ -10,34 +10,76 @@ const isBuchhaltungOrAdmin = (req, res, next) => {
     return res.status(403).json({ error: 'Unauthorized' });
 };
 
+const auditLog = async (req, action, details, debugSteps = []) => {
+    if (!req.user) return;
+    try {
+        const db = await getDb();
+        await db.run(
+            'INSERT INTO audit_logs (timestamp, user_id, username, action, details, debug_log) VALUES (?, ?, ?, ?, ?, ?)',
+            new Date().toISOString(), req.user.discordId || req.user.id, req.user.username, action, details, JSON.stringify(debugSteps)
+        );
+    } catch (e) {
+        console.error('Audit log error:', e);
+    }
+}
+
 // PAY LOGS
 router.post('/accounting/pay', isBuchhaltungOrAdmin, async (req, res) => {
+    const debugSteps = [];
     try {
         const { logIds, status } = req.body;
         const targetStatus = status || 'paid';
+        debugSteps.push(`Starting payout process for ${logIds.length} logs. Target Status: ${targetStatus}`);
+
         const db = await getDb();
         await db.run('BEGIN TRANSACTION');
+
         const placeholders = logIds.map(() => '?').join(',');
-        await db.run(`UPDATE logs SET status = ? WHERE timestamp IN (${placeholders})`, targetStatus, ...logIds);
+        const query = `UPDATE logs SET status = ? WHERE timestamp IN (${placeholders})`;
+        debugSteps.push(`Executing Query: ${query} with values [${targetStatus}, ${logIds.join(', ')}]`);
+
+        await db.run(query, targetStatus, ...logIds);
+        debugSteps.push(`Successfully updated status of ${logIds.length} logs to '${targetStatus}'.`);
+
         await db.run('COMMIT');
+
+        await auditLog(req, 'PAYOUT', `Paid/Updated ${logIds.length} logs`, debugSteps);
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
         console.error("Error paying logs:", error);
+        debugSteps.push(`ERROR: ${error.message}`);
+        await auditLog(req, 'PAYOUT_ERROR', `Error paying logs`, debugSteps);
         res.status(500).json({ error: "Database error" });
     }
 });
 
 // CLOSE WEEK
 router.post('/accounting/close-week', isBuchhaltungOrAdmin, async (req, res) => {
+    const debugSteps = [];
     try {
         const { weekEnd, employeeName } = req.body;
+        debugSteps.push(`Closing week for ${employeeName} until ${weekEnd}`);
+
         const db = await getDb();
+
+        // Find affected logs first for better debugging
+        const logsToUpdate = await db.all(`SELECT timestamp, itemName, price, quantity FROM logs WHERE depositor = ? AND status = 'pending' AND timestamp <= ?`, employeeName, weekEnd);
+        debugSteps.push(`Found ${logsToUpdate.length} pending logs to set to 'outstanding'.`);
+        logsToUpdate.forEach(l => debugSteps.push(`- ${l.itemName}: ${l.quantity}x @ ${l.price} (${l.timestamp})`));
+
         await db.run(`UPDATE logs SET status = 'outstanding' WHERE depositor = ? AND status = 'pending' AND timestamp <= ?`, employeeName, weekEnd);
+        debugSteps.push(`Update executed successfully.`);
+
+        await auditLog(req, 'CLOSE_WEEK', `Closed week for ${employeeName}`, debugSteps);
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
         console.error("Error closing week:", error);
+        debugSteps.push(`ERROR: ${error.message}`);
+        await auditLog(req, 'CLOSE_WEEK_ERROR', `Error closing week for ${employeeName}`, debugSteps);
         res.status(500).json({ error: "Database error" });
     }
 });

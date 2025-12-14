@@ -106,6 +106,18 @@ export async function getDb() {
         console.error("Migration error:", error);
     }
 
+    // Migration: Add debug_log column to audit_logs if it doesn't exist
+    try {
+        const auditInfo = await dbInstance.all("PRAGMA table_info(audit_logs)");
+        const hasDebugLog = auditInfo.some(col => col.name === 'debug_log');
+        if (!hasDebugLog) {
+            await dbInstance.run("ALTER TABLE audit_logs ADD COLUMN debug_log TEXT DEFAULT NULL");
+            console.log("Migrated database: Added debug_log column to audit_logs table.");
+        }
+    } catch (error) {
+        console.error("Migration error (audit_logs):", error);
+    }
+
     return dbInstance;
 }
 
