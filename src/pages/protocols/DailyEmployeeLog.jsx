@@ -78,14 +78,14 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
 
         // Find last payout timestamp for each employee
         currentLogs.forEach(log => {
-            if (log.itemName === 'Auszahlung' && !log.msg?.includes('(Offen)')) { // (Offen) check might be needed if we add distinguishing msg
+            if (log.itemName === 'Auszahlung') {
                 if (!lastPayouts[log.depositor] || log.timestamp > lastPayouts[log.depositor]) {
                     lastPayouts[log.depositor] = log.timestamp;
                 }
             }
         });
 
-        currentLogs.filter(log => log.category !== 'trade' && log.type === 'in').forEach(log => {
+        currentLogs.filter(log => log.category !== 'trade' && log.type === 'in' && log.itemName !== 'Auszahlung').forEach(log => {
             if (!groups[log.depositor]) {
                 groups[log.depositor] = {
                     name: log.depositor,
