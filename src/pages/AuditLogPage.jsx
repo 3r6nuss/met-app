@@ -238,7 +238,7 @@ export default function AuditLogPage() {
                                 onChange={(e) => setActionFilter(e.target.value)}
                                 className="glass-input rounded-lg px-4 py-2.5 appearance-none cursor-pointer"
                             >
-                                <{actionTypes.map(type => (
+                                {actionTypes.map(type => (
                                     <option key={type} value={type} className="bg-slate-900">
                                         {type === 'all' ? 'Alle Aktionen' : type}
                                     </option>
