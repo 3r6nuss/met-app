@@ -74,6 +74,11 @@ export async function getDb() {
             isHaendler BOOLEAN DEFAULT 0,
             isLagerist BOOLEAN DEFAULT 0
         );
+
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
     `);
 
     // Migration: Add isHaendler column if it doesn't exist

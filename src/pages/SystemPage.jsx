@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus, Circle } from 'lucide-react';
 import UserManagement from '../components/UserManagement';
 
-export default function SystemPage({ employees = [], onUpdateEmployees, logs = [], onDeleteLog, onReset, user, inventory = [] }) {
+export default function SystemPage({ employees = [], onUpdateEmployees, logs = [], onDeleteLog, onReset, user, inventory = [], maintenanceSettings, isSuperAdmin }) {
     console.log("SystemPage Mounted", { employees, logs, user, inventory });
     const [newEmployeeName, setNewEmployeeName] = useState('');
     const [activeTab, setActiveTab] = useState('employees'); // 'employees', 'system', 'logs', 'recipes'
@@ -145,6 +145,35 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
             fetchBackups();
         }
     }, [activeTab]);
+
+    const [mSettings, setMSettings] = useState({
+        maintenance_mode: 'false',
+        maintenance_text: '',
+        maintenance_image: ''
+    });
+
+    useEffect(() => {
+        if (maintenanceSettings) {
+            setMSettings({
+                maintenance_mode: maintenanceSettings.maintenance_mode || 'false',
+                maintenance_text: maintenanceSettings.maintenance_text || '',
+                maintenance_image: maintenanceSettings.maintenance_image || ''
+            });
+        }
+    }, [maintenanceSettings]);
+
+    const handleSaveMaintenance = () => {
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mSettings)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) alert("Einstellungen gespeichert!");
+                else alert("Fehler beim Speichern");
+            });
+    };
 
     const handleBackup = () => {
         fetch('/api/backup', { method: 'POST' })
@@ -561,6 +590,62 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                         <div className="space-y-6">
                             <div>
                                 <h3 className="text-lg font-bold text-slate-300 mb-4">Datenbank & Backup</h3>
+
+                                {/* MAINTENANCE MODE - SUPER ADMIN ONLY */}
+                                {isSuperAdmin && (
+                                    <div className="mb-8 bg-violet-900/20 border border-violet-500/30 rounded-xl p-6">
+                                        <h4 className="text-violet-400 font-bold mb-4 flex items-center gap-2">
+                                            <ShieldAlert className="w-5 h-5" />
+                                            Wartungsmodus
+                                        </h4>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between bg-slate-900/50 p-4 rounded-lg">
+                                                <span className="text-slate-300 font-medium">Wartungsmodus aktiv</span>
+                                                <button
+                                                    onClick={() => setMSettings(prev => ({ ...prev, maintenance_mode: prev.maintenance_mode === 'true' ? 'false' : 'true' }))}
+                                                    className={`w-14 h-7 rounded-full transition-colors relative ${mSettings.maintenance_mode === 'true' ? 'bg-violet-500' : 'bg-slate-700'}`}
+                                                >
+                                                    <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-transform ${mSettings.maintenance_mode === 'true' ? 'left-8' : 'left-1'}`} />
+                                                </button>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs text-slate-400 block mb-1">Nachricht</label>
+                                                <input
+                                                    type="text"
+                                                    value={mSettings.maintenance_text}
+                                                    onChange={e => setMSettings(prev => ({ ...prev, maintenance_text: e.target.value }))}
+                                                    placeholder="Es wird gerade am System gearbeitet..."
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs text-slate-400 block mb-1">Bild / GIF URL</label>
+                                                <input
+                                                    type="text"
+                                                    value={mSettings.maintenance_image}
+                                                    onChange={e => setMSettings(prev => ({ ...prev, maintenance_image: e.target.value }))}
+                                                    placeholder="https://..."
+                                                    className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white mb-2"
+                                                />
+                                                {mSettings.maintenance_image && (
+                                                    <div className="w-full h-32 bg-black/50 rounded flex items-center justify-center overflow-hidden border border-slate-700">
+                                                        <img src={mSettings.maintenance_image} alt="Preview" className="h-full object-contain" />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <button
+                                                onClick={handleSaveMaintenance}
+                                                className="w-full bg-violet-600 hover:bg-violet-700 text-white py-2 rounded font-bold transition-colors"
+                                            >
+                                                Speichern
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                                     <button
                                         onClick={handleBackup}

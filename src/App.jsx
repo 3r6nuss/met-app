@@ -19,6 +19,7 @@ import Login from './components/Login';
 import { Activity } from 'lucide-react';
 import UserManagement from './components/UserManagement';
 import SystemAlert from './components/SystemAlert';
+import MaintenanceOverlay from './components/MaintenanceOverlay';
 import CalculatorPage from './pages/CalculatorPage';
 import SpecialBookingPage from './pages/SpecialBookingPage';
 import ComingSoonPage from './pages/ComingSoonPage';
@@ -44,6 +45,7 @@ function App() {
   const [prices, setPrices] = useState([]); // Price list
   const [orders, setOrders] = useState([]); // Orders
   const [personnel, setPersonnel] = useState([]); // Personnel list (from /api/personnel)
+  const [maintenanceSettings, setMaintenanceSettings] = useState({ maintenance_mode: 'false', maintenance_text: '', maintenance_image: '' });
   const [showPriceList, setShowPriceList] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState('idle');
@@ -61,6 +63,10 @@ function App() {
       fetch(`${API_URL}/employee-inventory`).then(res => res.json()),
       fetch(`${API_URL}/prices`).then(res => res.json()),
       fetch(`${API_URL}/orders`).then(res => res.json()),
+      fetch(`${API_URL}/settings`).then(res => {
+        if (res.ok) return res.json();
+        return {};
+      }),
       fetch(`${API_URL}/personnel`).then(res => {
         if (res.ok) return res.json();
         return [];
@@ -70,13 +76,14 @@ function App() {
         return null;
       })
     ])
-      .then(([invData, logsData, empData, empInvData, priceData, ordersData, personnelData, userData]) => {
+      .then(([invData, logsData, empData, empInvData, priceData, ordersData, settingsData, personnelData, userData]) => {
         setInventory(invData);
         setTransactionLogs(logsData);
         setEmployees(empData);
         setEmployeeInventory(empInvData);
         setPrices(priceData);
         setOrders(ordersData || []);
+        if (settingsData) setMaintenanceSettings(settingsData);
         setPersonnel(personnelData || []);
         if (userData) setUser(userData); // Only update user if fetched successfully
         setLoading(false);
@@ -521,6 +528,7 @@ function App() {
   const isLager = (user?.isLagerist === 1 || user?.isLagerist === true) || user.role === 'Lager' || isBuchhaltung;
   const isHaendler = (user?.isHaendler === 1 || user?.isHaendler === true) || user?.role === 'Händler' || isBuchhaltung;
   const isPending = user.role === 'Pending';
+  const isSuperAdmin = user?.discordId === '823276402320998450' || user?.discordId === '690510884639866960';
 
   if (isPending) {
     return (
@@ -540,6 +548,12 @@ function App() {
 
   return (
     <Router>
+      <MaintenanceOverlay
+        active={maintenanceSettings.maintenance_mode === 'true'}
+        text={maintenanceSettings.maintenance_text}
+        image={maintenanceSettings.maintenance_image}
+        isSuperAdmin={isSuperAdmin}
+      />
       <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto">
         <header className="mb-6 flex justify-between items-center">
           <div className="flex items-center gap-4">
@@ -731,12 +745,32 @@ function App() {
             <>
               <Route path="/system" element={
                 <ErrorBoundary>
-                  <SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />
+                  <SystemPage
+                    employees={employees}
+                    onUpdateEmployees={handleUpdateEmployees}
+                    logs={transactionLogs}
+                    onDeleteLog={handleDeleteLog}
+                    onReset={handleReset}
+                    user={user}
+                    inventory={inventory}
+                    maintenanceSettings={maintenanceSettings}
+                    isSuperAdmin={isSuperAdmin}
+                  />
                 </ErrorBoundary>
               } />
               <Route path="/system/employees" element={
                 <ErrorBoundary>
-                  <SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />
+                  <SystemPage
+                    employees={employees}
+                    onUpdateEmployees={handleUpdateEmployees}
+                    logs={transactionLogs}
+                    onDeleteLog={handleDeleteLog}
+                    onReset={handleReset}
+                    user={user}
+                    inventory={inventory}
+                    maintenanceSettings={maintenanceSettings}
+                    isSuperAdmin={isSuperAdmin}
+                  />
                 </ErrorBoundary>
               } />
             </>

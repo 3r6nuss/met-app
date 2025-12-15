@@ -343,6 +343,41 @@ router.get('/audit-logs', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "DB Error" }); }
 });
 
+// SETTINGS / MAINTENANCE
+router.get('/settings', async (req, res) => {
+    try {
+        const db = await getDb();
+        const settings = await db.all('SELECT * FROM settings');
+        const settingsObj = settings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {});
+        res.json(settingsObj);
+    } catch (e) { res.status(500).json({ error: "DB Error" }); }
+});
+
+router.post('/settings', async (req, res) => {
+    // Only Super Admins can toggle maintenance
+    if (!req.isAuthenticated() || !SUPER_ADMIN_IDS.includes(req.user.discordId)) return res.status(403).json({ error: 'Unauthorized' });
+    try {
+        const db = await getDb();
+        const { maintenance_mode, maintenance_text, maintenance_image } = req.body;
+
+        await db.run('BEGIN TRANSACTION');
+        const stmt = await db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+
+        if (maintenance_mode !== undefined) await stmt.run('maintenance_mode', String(maintenance_mode));
+        if (maintenance_text !== undefined) await stmt.run('maintenance_text', maintenance_text);
+        if (maintenance_image !== undefined) await stmt.run('maintenance_image', maintenance_image);
+
+        await stmt.finalize();
+        await db.run('COMMIT');
+
+        if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Settings error:", e);
+        res.status(500).json({ error: "DB Error" });
+    }
+});
+
 
 
 // VERIFICATIONS
