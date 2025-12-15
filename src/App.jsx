@@ -692,7 +692,7 @@ function App() {
 
           {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
           {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} user={user} onPayout={handleEmployeePayout} />} />}
-          {isBuchhaltung && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} onPayout={handleEmployeePayout} />} />}
+          {isBuchhaltung && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} employees={employees} onPayout={handleEmployeePayout} />} />}
           {isBuchhaltung && <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />}
           {isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 

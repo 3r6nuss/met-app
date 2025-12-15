@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Banknote, AlertCircle } from 'lucide-react';
 
-export default function InternalStorageProtocol({ logs, user, onPayout }) {
+export default function InternalStorageProtocol({ logs, user, employees, onPayout }) {
     const [weekOffset, setWeekOffset] = useState(0);
 
     // Helpers for Date Management
@@ -32,14 +32,21 @@ export default function InternalStorageProtocol({ logs, user, onPayout }) {
     // Helper: Format Money
     const formatMoney = (amount) => `$${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+    // 0. Valid Employees Set
+    const validEmployeeNames = useMemo(() => {
+        if (!employees) return new Set();
+        return new Set(employees.map(e => e.name));
+    }, [employees]);
+
     // 1. Filter Logs: Category 'internal' AND Action 'in' (Einlagerung) OR 'Auszahlung'
     // We need all history to calculate "Open Status", but we only DISPLAY the view week.
     const relevantLogs = useMemo(() => {
         return logs.filter(l =>
-            (l.category === 'internal' && l.type === 'in') ||
-            (l.itemName === 'Auszahlung' && l.category === 'internal')
+            ((l.category === 'internal' && l.type === 'in') ||
+                (l.itemName === 'Auszahlung' && l.category === 'internal')) &&
+            (validEmployeeNames.size === 0 || validEmployeeNames.has(l.depositor))
         );
-    }, [logs]);
+    }, [logs, validEmployeeNames]);
 
     // 2. Calculate Open Balances (Global)
     const employeeBalances = useMemo(() => {
