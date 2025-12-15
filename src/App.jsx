@@ -18,7 +18,6 @@ import SystemPage from './pages/SystemPage'; import PriceListModal from './compo
 import Login from './components/Login';
 import { Activity } from 'lucide-react';
 import UserManagement from './components/UserManagement';
-import SystemAlert from './components/SystemAlert';
 import MaintenanceOverlay from './components/MaintenanceOverlay';
 import CalculatorPage from './pages/CalculatorPage';
 import SpecialBookingPage from './pages/SpecialBookingPage';
@@ -564,7 +563,6 @@ function App() {
               </h1>
               <p className="text-slate-400 mt-1">MET System Dashboard</p>
             </div>
-            <SystemAlert />
           </div>
           <div className="text-right hidden md:block">
             <div className="text-sm text-slate-500 mb-1">System Status</div>
