@@ -13,8 +13,8 @@ import DailyEmployeeLog from './pages/protocols/DailyEmployeeLog';
 import WeeklyProtocol from './pages/protocols/WeeklyProtocol';
 import PeriodProtocol from './pages/protocols/PeriodProtocol';
 import StorageProtocol from './pages/protocols/StorageProtocol';
-import SystemPage from './pages/SystemPage';
-import PriceListModal from './components/PriceListModal';
+import InternalStorageProtocol from './pages/protocols/InternalStorageProtocol';
+import SystemPage from './pages/SystemPage'; import PriceListModal from './components/PriceListModal';
 import Login from './components/Login';
 import { Activity } from 'lucide-react';
 import UserManagement from './components/UserManagement';
@@ -461,6 +461,49 @@ function App() {
       .catch(err => ({ success: false, error: "Netzwerkfehler" }));
   };
 
+  const handleEmployeePayout = (amountOrBatch, date, depositor) => {
+    if (Array.isArray(amountOrBatch)) {
+      // Batch mode (Outstanding Wages)
+      amountOrBatch.forEach(({ amount, date, depositor }) => {
+        // Add random offset to prevent PK collision (timestamp is PK)
+        // Only if date is provided (Past Payout). If null (Current), let server decide.
+        let uniqueDateStr = null;
+
+        if (date) {
+          const uniqueDate = new Date(date.getTime() - Math.floor(Math.random() * 10000));
+          uniqueDateStr = uniqueDate.toISOString();
+        }
+
+        const entry = {
+          msg: 'Wochenlohn Auszahlung (Offen)',
+          price: -amount,
+          quantity: 1,
+          category: 'internal',
+          timestamp: uniqueDateStr, // null means server time
+          depositor: depositor || 'Buchhaltung',
+          itemName: 'Auszahlung',
+          type: 'in',
+          time: date ? date.toLocaleTimeString() : new Date().toLocaleTimeString()
+        };
+        saveLogEntry(entry);
+      });
+      addLog(`${amountOrBatch.length} offene Wochenlöhne ausgezahlt`);
+    } else {
+      // Single mode (Current Week Employee Payout)
+      const entry = {
+        msg: 'Wochenlohn Auszahlung',
+        price: -amountOrBatch,
+        quantity: 1,
+        category: 'internal',
+        timestamp: date ? date.toISOString() : null, // null means server time
+        depositor: depositor || user?.username || 'Buchhaltung',
+        itemName: 'Auszahlung'
+      };
+      saveLogEntry(entry);
+      addLog(`Wochenlohn ausgezahlt: ${amountOrBatch}€ (${depositor})`);
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-screen text-violet-400">Lade Daten...</div>;
 
   if (!user) {
@@ -648,48 +691,8 @@ function App() {
           {isBuchhaltung && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
 
           {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
-          {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} user={user} onPayout={(amountOrBatch, date, depositor) => {
-            if (Array.isArray(amountOrBatch)) {
-              // Batch mode (Outstanding Wages)
-              amountOrBatch.forEach(({ amount, date, depositor }) => {
-                // Add random offset to prevent PK collision (timestamp is PK)
-                // Only if date is provided (Past Payout). If null (Current), let server decide.
-                let uniqueDateStr = null;
-
-                if (date) {
-                  const uniqueDate = new Date(date.getTime() - Math.floor(Math.random() * 10000));
-                  uniqueDateStr = uniqueDate.toISOString();
-                }
-
-                const entry = {
-                  msg: 'Wochenlohn Auszahlung (Offen)',
-                  price: -amount,
-                  quantity: 1,
-                  category: 'internal',
-                  timestamp: uniqueDateStr, // null means server time
-                  depositor: depositor || 'Buchhaltung',
-                  itemName: 'Auszahlung',
-                  type: 'in',
-                  time: date ? date.toLocaleTimeString() : new Date().toLocaleTimeString()
-                };
-                saveLogEntry(entry);
-              });
-              addLog(`${amountOrBatch.length} offene Wochenlöhne ausgezahlt`);
-            } else {
-              // Single mode (Current Week Employee Payout)
-              const entry = {
-                msg: 'Wochenlohn Auszahlung',
-                price: -amountOrBatch,
-                quantity: 1,
-                category: 'internal',
-                timestamp: date ? date.toISOString() : null, // null means server time
-                depositor: depositor || user?.username || 'Buchhaltung',
-                itemName: 'Auszahlung'
-              };
-              saveLogEntry(entry);
-              addLog(`Wochenlohn ausgezahlt: ${amountOrBatch}€ (${depositor})`);
-            }
-          }} />} />}
+          {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} user={user} onPayout={handleEmployeePayout} />} />}
+          {isBuchhaltung && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} onPayout={handleEmployeePayout} />} />}
           {isBuchhaltung && <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />}
           {isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 
