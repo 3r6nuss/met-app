@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Activity, Search, Filter, RefreshCw, LogIn, ArrowRightLeft, Undo2, FileText, AlertTriangle, X } from 'lucide-react';
+import { Activity, Search, Filter, RefreshCw, LogIn, ArrowRightLeft, Undo2, FileText, AlertTriangle, X, Download } from 'lucide-react';
 
 const API_URL = '/api';
 
@@ -117,6 +117,58 @@ export default function AuditLogPage() {
         });
     };
 
+    const downloadCSV = () => {
+        const dataToExport = activeTab === 'audit' ? filteredLogs : filteredTransactions;
+        if (!dataToExport || dataToExport.length === 0) {
+            alert('Keine Daten zum Exportieren vorhanden.');
+            return;
+        }
+
+        const headers = activeTab === 'audit'
+            ? ['Zeitstempel', 'Benutzer', 'User ID', 'Aktion', 'Details']
+            : ['Zeitstempel', 'Typ', 'Produkt', 'Menge', 'Preis', 'Einzahler', 'Status', 'Kategorie'];
+
+        const rows = dataToExport.map(row => {
+            const escape = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+
+            if (activeTab === 'audit') {
+                return [
+                    formatDate(row.timestamp),
+                    escape(row.username),
+                    escape(row.user_id),
+                    escape(row.action),
+                    escape(row.details)
+                ];
+            } else {
+                return [
+                    formatDate(row.timestamp),
+                    escape(row.type === 'in' ? 'IN' : 'OUT'),
+                    escape(row.itemName),
+                    row.quantity,
+                    row.price,
+                    escape(row.depositor),
+                    escape(row.status),
+                    escape(row.category)
+                ];
+            }
+        });
+
+        const csvContent = [
+            headers.join(';'),
+            ...rows.map(r => r.join(';'))
+        ].join('\n');
+
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${activeTab}_export_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="space-y-6 animate-fade-in relative">
             {/* Debug Log Modal */}
@@ -189,6 +241,13 @@ export default function AuditLogPage() {
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         Aktualisieren
+                    </button>
+                    <button
+                        onClick={downloadCSV}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+                    >
+                        <Download className="w-4 h-4" />
+                        Export CSV
                     </button>
                 </div>
             </div>
