@@ -61,7 +61,10 @@ function App() {
       fetch(`${API_URL}/employee-inventory`).then(res => res.json()),
       fetch(`${API_URL}/prices`).then(res => res.json()),
       fetch(`${API_URL}/orders`).then(res => res.json()),
-      fetch(`${API_URL}/personnel`).then(res => res.json()),
+      fetch(`${API_URL}/personnel`).then(res => {
+        if (res.ok) return res.json();
+        return [];
+      }),
       fetch(`${API_URL}/user`).then(res => {
         if (res.ok) return res.json();
         return null;

@@ -139,7 +139,7 @@ const createContentRoutes = (table, pathName) => {
 };
 
 // PERSONNEL
-router.get('/personnel', isAdmin, async (req, res) => {
+router.get('/personnel', async (req, res) => {
     try {
         const db = await getDb();
         const personnel = await db.all('SELECT * FROM personnel');
