@@ -118,8 +118,16 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
         });
 
         // Sort by name
-        return Object.values(groups).sort((a, b) => a.name.localeCompare(b.name));
-    }, [relevantLogs, viewStart, viewEnd]);
+        let result = Object.values(groups).sort((a, b) => a.name.localeCompare(b.name));
+
+        // Filter for specific user if not Admin/Buchhaltung
+        const isPrivileged = user?.role === 'Administrator' || user?.role === 'Buchhaltung';
+        if (!isPrivileged && user?.employeeName) {
+            result = result.filter(r => r.name === user.employeeName);
+        }
+
+        return result;
+    }, [relevantLogs, viewStart, viewEnd, user]);
 
     // WEEK DAYS headers
     const weekDays = [
