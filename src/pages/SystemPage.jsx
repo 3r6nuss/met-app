@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus, Circle } from 'lucide-react';
+import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus, Circle, Download } from 'lucide-react';
 import UserManagement from '../components/UserManagement';
 
 export default function SystemPage({ employees = [], onUpdateEmployees, logs = [], onDeleteLog, onReset, user, inventory = [] }) {
@@ -641,10 +641,51 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                 {
                     activeTab === 'logs' && isAdmin && (
                         <div>
-                            <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
-                                <FileText className="w-5 h-5" />
-                                Letzte System-Logs ({logs.length})
-                            </h3>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-bold text-slate-300 flex items-center gap-2">
+                                    <FileText className="w-5 h-5" />
+                                    Letzte System-Logs ({logs.length})
+                                </h3>
+                                <button
+                                    onClick={() => {
+                                        if (!logs || logs.length === 0) {
+                                            alert('Keine Logs zum Exportieren vorhanden.');
+                                            return;
+                                        }
+
+                                        const headers = ['Zeitstempel', 'Menge', 'Produkt', 'Einlagerer', 'Geld', 'Aktion', 'Kategorie'];
+                                        const escape = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+
+                                        const rows = logs.map(log => [
+                                            new Date(log.timestamp).toLocaleString('de-DE'),
+                                            log.quantity,
+                                            escape(log.itemName),
+                                            escape(log.depositor),
+                                            log.price,
+                                            escape(log.type === 'in' ? 'Einlagerung' : 'Auslagerung'),
+                                            escape(log.category)
+                                        ]);
+
+                                        const csvContent = [
+                                            headers.join(';'),
+                                            ...rows.map(r => r.join(';'))
+                                        ].join('\n');
+
+                                        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                                        const link = document.createElement('a');
+                                        const url = URL.createObjectURL(blob);
+                                        link.setAttribute('href', url);
+                                        link.setAttribute('download', `system_logs_${new Date().toISOString().slice(0, 10)}.csv`);
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors text-sm"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Export CSV
+                                </button>
+                            </div>
                             <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
                                 {logs.map((log, idx) => (
                                     <div key={idx} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 text-sm hover:bg-slate-800/50 transition-colors group">
