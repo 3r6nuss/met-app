@@ -43,6 +43,7 @@ function App() {
   const [employeeInventory, setEmployeeInventory] = useState([]); // Employee inventory
   const [prices, setPrices] = useState([]); // Price list
   const [orders, setOrders] = useState([]); // Orders
+  const [personnel, setPersonnel] = useState([]); // Personnel list (from /api/personnel)
   const [showPriceList, setShowPriceList] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState('idle');
@@ -60,18 +61,20 @@ function App() {
       fetch(`${API_URL}/employee-inventory`).then(res => res.json()),
       fetch(`${API_URL}/prices`).then(res => res.json()),
       fetch(`${API_URL}/orders`).then(res => res.json()),
+      fetch(`${API_URL}/personnel`).then(res => res.json()),
       fetch(`${API_URL}/user`).then(res => {
         if (res.ok) return res.json();
         return null;
       })
     ])
-      .then(([invData, logsData, empData, empInvData, priceData, ordersData, userData]) => {
+      .then(([invData, logsData, empData, empInvData, priceData, ordersData, personnelData, userData]) => {
         setInventory(invData);
         setTransactionLogs(logsData);
         setEmployees(empData);
         setEmployeeInventory(empInvData);
         setPrices(priceData);
         setOrders(ordersData || []);
+        setPersonnel(personnelData || []);
         if (userData) setUser(userData); // Only update user if fetched successfully
         setLoading(false);
       })
@@ -692,7 +695,7 @@ function App() {
 
           {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
           {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} user={user} onPayout={handleEmployeePayout} />} />}
-          {isBuchhaltung && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} employees={employees} onPayout={handleEmployeePayout} />} />}
+          {isBuchhaltung && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} employees={personnel} onPayout={handleEmployeePayout} />} />}
           {isBuchhaltung && <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} />} />}
           {isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 
