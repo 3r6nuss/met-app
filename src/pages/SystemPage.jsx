@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus, Circle } from 'lucide-react';
 import UserManagement from '../components/UserManagement';
 
-export default function SystemPage({ employees = [], onUpdateEmployees, logs = [], onDeleteLog, onReset, user, inventory = [], maintenanceSettings, isSuperAdmin }) {
+export default function SystemPage({ employees = [], onUpdateEmployees, logs = [], onDeleteLog, onReset, user, inventory = [] }) {
     console.log("SystemPage Mounted", { employees, logs, user, inventory });
     const [newEmployeeName, setNewEmployeeName] = useState('');
     const [activeTab, setActiveTab] = useState('employees'); // 'employees', 'system', 'logs', 'recipes'
@@ -97,7 +97,11 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
     const saveEdit = (index) => {
         if (editName.trim()) {
             const updatedEmployees = [...employees];
-            updatedEmployees[index] = editName.trim();
+            const current = typeof updatedEmployees[index] === 'string'
+                ? { name: updatedEmployees[index], status: 'active' }
+                : updatedEmployees[index];
+
+            updatedEmployees[index] = { ...current, name: editName.trim() };
             onUpdateEmployees(updatedEmployees);
             setEditingIndex(null);
         }
@@ -110,18 +114,13 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
 
     const handleAddEmployee = () => {
         if (newEmployeeName.trim()) {
-            const updatedEmployees = [...employees, newEmployeeName.trim()];
+            const updatedEmployees = [...employees, { name: newEmployeeName.trim(), status: 'active' }];
             onUpdateEmployees(updatedEmployees);
             setNewEmployeeName('');
         }
     };
 
-    const handleDeleteEmployee = (index) => {
-        if (window.confirm(`Mitarbeiter "${employees[index]}" wirklich löschen?`)) {
-            const updatedEmployees = employees.filter((_, i) => i !== index);
-            onUpdateEmployees(updatedEmployees);
-        }
-    };
+    // handleDeleteEmployee replaced by inline fire logic
 
     const [backups, setBackups] = useState([]);
     const [loadingBackups, setLoadingBackups] = useState(false);
@@ -145,35 +144,6 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
             fetchBackups();
         }
     }, [activeTab]);
-
-    const [mSettings, setMSettings] = useState({
-        maintenance_mode: 'false',
-        maintenance_text: '',
-        maintenance_image: ''
-    });
-
-    useEffect(() => {
-        if (maintenanceSettings) {
-            setMSettings({
-                maintenance_mode: maintenanceSettings.maintenance_mode || 'false',
-                maintenance_text: maintenanceSettings.maintenance_text || '',
-                maintenance_image: maintenanceSettings.maintenance_image || ''
-            });
-        }
-    }, [maintenanceSettings]);
-
-    const handleSaveMaintenance = () => {
-        fetch('/api/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(mSettings)
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) alert("Einstellungen gespeichert!");
-                else alert("Fehler beim Speichern");
-            });
-    };
 
     const handleBackup = () => {
         fetch('/api/backup', { method: 'POST' })
@@ -307,46 +277,80 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                             </button>
                         </div>
 
-
-
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {Array.isArray(employees) && employees.map((emp, idx) => (
-                                <div key={idx} className="flex justify-between items-center bg-slate-800/50 px-4 py-3 rounded-lg border border-slate-700/50">
-                                    {editingIndex === idx ? (
-                                        <div className="flex gap-2 flex-1 mr-2">
-                                            <input
-                                                type="text"
-                                                value={editName}
-                                                onChange={(e) => setEditName(e.target.value)}
-                                                className="flex-1 bg-slate-950 border border-slate-600 rounded px-2 py-1 text-sm text-white"
-                                                autoFocus
-                                            />
-                                            <button onClick={() => saveEdit(idx)} className="text-emerald-400 hover:text-emerald-300"><Save className="w-4 h-4" /></button>
-                                            <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-300"><X className="w-4 h-4" /></button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <span className="text-slate-300">{emp}</span>
-                                            <div className="flex gap-1">
-                                                <button
-                                                    onClick={() => startEdit(idx, emp)}
-                                                    className="text-slate-500 hover:text-violet-400 p-2 transition-colors"
-                                                    title="Umbenennen"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteEmployee(idx)}
-                                                    className="text-slate-500 hover:text-red-400 p-2 transition-colors"
-                                                    title="Löschen"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                            {Array.isArray(employees) && employees.map((empData, idx) => {
+                                // Handle both string (legacy) and object formats
+                                const emp = typeof empData === 'string' ? { name: empData, status: 'active' } : empData;
+                                const isFired = emp.status === 'fired';
+
+                                return (
+                                    <div key={idx} className={`flex justify-between items-center px-4 py-3 rounded-lg border transition-colors ${isFired ? 'bg-red-900/10 border-red-900/30' : 'bg-slate-800/50 border-slate-700/50'}`}>
+                                        {editingIndex === idx ? (
+                                            <div className="flex gap-2 flex-1 mr-2">
+                                                <input
+                                                    type="text"
+                                                    value={editName}
+                                                    onChange={(e) => setEditName(e.target.value)}
+                                                    className="flex-1 bg-slate-950 border border-slate-600 rounded px-2 py-1 text-sm text-white"
+                                                    autoFocus
+                                                />
+                                                <button onClick={() => saveEdit(idx)} className="text-emerald-400 hover:text-emerald-300"><Save className="w-4 h-4" /></button>
+                                                <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-300"><X className="w-4 h-4" /></button>
                                             </div>
-                                        </>
-                                    )}
-                                </div>
-                            ))}
+                                        ) : (
+                                            <>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`font-medium ${isFired ? 'text-red-400 line-through decoration-red-500/50' : 'text-slate-200'}`}>
+                                                        {emp.name}
+                                                    </span>
+                                                    {isFired && <span className="text-[10px] uppercase bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded font-bold">Gefeuert</span>}
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => startEdit(idx, emp.name)}
+                                                        className="text-slate-500 hover:text-violet-400 p-2 transition-colors"
+                                                        title="Umbenennen"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+
+                                                    {isFired ? (
+                                                        <button
+                                                            onClick={() => {
+                                                                if (window.confirm(`Mitarbeiter "${emp.name}" wieder einstellen?`)) {
+                                                                    const updated = [...employees];
+                                                                    const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active' } : updated[idx];
+                                                                    updated[idx] = { ...current, status: 'active' };
+                                                                    onUpdateEmployees(updated);
+                                                                }
+                                                            }}
+                                                            className="text-slate-500 hover:text-emerald-400 p-2 transition-colors"
+                                                            title="Wieder einstellen"
+                                                        >
+                                                            <UserPlus className="w-4 h-4" />
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => {
+                                                                if (window.confirm(`Mitarbeiter "${emp.name}" wirklich feuern? Er wird aus Listen entfernt, bleibt aber in der Historie.`)) {
+                                                                    const updated = [...employees];
+                                                                    const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active' } : updated[idx];
+                                                                    updated[idx] = { ...current, status: 'fired' };
+                                                                    onUpdateEmployees(updated);
+                                                                }
+                                                            }}
+                                                            className="text-slate-500 hover:text-red-400 p-2 transition-colors"
+                                                            title="Feuern"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })}
                             {(!employees || employees.length === 0) && (
                                 <div className="text-slate-500 italic col-span-2 text-center py-4">Keine Mitarbeiter angelegt.</div>
                             )}
@@ -590,62 +594,6 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                         <div className="space-y-6">
                             <div>
                                 <h3 className="text-lg font-bold text-slate-300 mb-4">Datenbank & Backup</h3>
-
-                                {/* MAINTENANCE MODE - SUPER ADMIN ONLY */}
-                                {isSuperAdmin && (
-                                    <div className="mb-8 bg-violet-900/20 border border-violet-500/30 rounded-xl p-6">
-                                        <h4 className="text-violet-400 font-bold mb-4 flex items-center gap-2">
-                                            <ShieldAlert className="w-5 h-5" />
-                                            Wartungsmodus
-                                        </h4>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between bg-slate-900/50 p-4 rounded-lg">
-                                                <span className="text-slate-300 font-medium">Wartungsmodus aktiv</span>
-                                                <button
-                                                    onClick={() => setMSettings(prev => ({ ...prev, maintenance_mode: prev.maintenance_mode === 'true' ? 'false' : 'true' }))}
-                                                    className={`w-14 h-7 rounded-full transition-colors relative ${mSettings.maintenance_mode === 'true' ? 'bg-violet-500' : 'bg-slate-700'}`}
-                                                >
-                                                    <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-transform ${mSettings.maintenance_mode === 'true' ? 'left-8' : 'left-1'}`} />
-                                                </button>
-                                            </div>
-
-                                            <div>
-                                                <label className="text-xs text-slate-400 block mb-1">Nachricht</label>
-                                                <input
-                                                    type="text"
-                                                    value={mSettings.maintenance_text}
-                                                    onChange={e => setMSettings(prev => ({ ...prev, maintenance_text: e.target.value }))}
-                                                    placeholder="Es wird gerade am System gearbeitet..."
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="text-xs text-slate-400 block mb-1">Bild / GIF URL</label>
-                                                <input
-                                                    type="text"
-                                                    value={mSettings.maintenance_image}
-                                                    onChange={e => setMSettings(prev => ({ ...prev, maintenance_image: e.target.value }))}
-                                                    placeholder="https://..."
-                                                    className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white mb-2"
-                                                />
-                                                {mSettings.maintenance_image && (
-                                                    <div className="w-full h-32 bg-black/50 rounded flex items-center justify-center overflow-hidden border border-slate-700">
-                                                        <img src={mSettings.maintenance_image} alt="Preview" className="h-full object-contain" />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <button
-                                                onClick={handleSaveMaintenance}
-                                                className="w-full bg-violet-600 hover:bg-violet-700 text-white py-2 rounded font-bold transition-colors"
-                                            >
-                                                Speichern
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                                     <button
                                         onClick={handleBackup}

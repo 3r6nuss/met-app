@@ -35,7 +35,7 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
     // 0. Valid Employees Set
     const validEmployeeNames = useMemo(() => {
         if (!employees) return new Set();
-        return new Set(employees.map(e => e.name));
+        return new Set(employees.map(e => typeof e === 'string' ? e : e.name));
     }, [employees]);
 
     // 1. Filter Logs: Category 'internal' AND Action 'in' (Einlagerung) OR 'Auszahlung'

@@ -74,7 +74,7 @@ export default function Navbar({ onOpenPriceList, user }) {
                         </button>
                         <div className="absolute left-0 mt-2 w-full min-w-[240px] bg-slate-900 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2">
                             {isBuchhaltung && <NavLink to="/protokolle/trade" className={dropdownItemClass}>Tagesprotokolle An & Verkauf</NavLink>}
-                            {isAdmin && <NavLink to="/protokolle/employee" className={dropdownItemClass}>Tagesprotokolle Mitarbeiter</NavLink>}
+                            <NavLink to="/protokolle/employee" className={dropdownItemClass}>Tagesprotokolle Mitarbeiter</NavLink>
                             <NavLink to="/protokolle/internal-storage" className={dropdownItemClass}>Internes Lagerprotokoll</NavLink>
                             {isBuchhaltung && (
                                 <>

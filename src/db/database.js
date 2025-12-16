@@ -74,11 +74,6 @@ export async function getDb() {
             isHaendler BOOLEAN DEFAULT 0,
             isLagerist BOOLEAN DEFAULT 0
         );
-
-        CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT
-        );
     `);
 
     // Migration: Add isHaendler column if it doesn't exist
@@ -121,6 +116,18 @@ export async function getDb() {
         }
     } catch (error) {
         console.error("Migration error (audit_logs):", error);
+    }
+
+    // Migration: Add status column to employees if it doesn't exist
+    try {
+        const empInfo = await dbInstance.all("PRAGMA table_info(employees)");
+        const hasStatus = empInfo.some(col => col.name === 'status');
+        if (!hasStatus) {
+            await dbInstance.run("ALTER TABLE employees ADD COLUMN status TEXT DEFAULT 'active'");
+            console.log("Migrated database: Added status column to employees table.");
+        }
+    } catch (error) {
+        console.error("Migration error (employees):", error);
     }
 
     return dbInstance;

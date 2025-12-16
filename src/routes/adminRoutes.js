@@ -65,9 +65,9 @@ router.delete('/users/:discordId', isAdmin, async (req, res) => {
 router.get('/employees', async (req, res) => {
     try {
         const db = await getDb();
-        const employees = await db.all('SELECT name FROM employees');
-        if (employees.length === 0) res.json(initialEmployees);
-        else res.json(employees.map(e => e.name));
+        const employees = await db.all('SELECT * FROM employees');
+        if (employees.length === 0) res.json(initialEmployees.map(name => ({ name, status: 'active' })));
+        else res.json(employees);
     } catch (error) {
         console.error("Error fetching employees:", error);
         res.status(500).json({ error: "Database error" });
@@ -76,12 +76,27 @@ router.get('/employees', async (req, res) => {
 
 router.post('/employees', async (req, res) => {
     try {
-        const newEmployees = req.body;
+        const newEmployees = req.body; // Expects [{ name, status }] or [strings] (compat)
         const db = await getDb();
         await db.run('BEGIN TRANSACTION');
+
+        // Strategy: We want to sync the list.
+        // If we just DELETE everything, we lose history IDs (if ID was used). 
+        // But employees table has ID? 
+        // "id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL"
+        // If we delete and re-insert, IDs change. This breaks foreign keys if any table references peronnel_id (like violations? No, that's 'personnel' table).
+        // 'employees' table is mostly referenced by NAME in logs (text).
+        // So deleting and re-inserting is "safe" for logs, BUT checking 'status' persistence.
+
         await db.run('DELETE FROM employees');
-        const stmt = await db.prepare('INSERT INTO employees (name) VALUES (?)');
-        for (const name of newEmployees) await stmt.run(name);
+        const stmt = await db.prepare('INSERT INTO employees (name, status) VALUES (?, ?)');
+
+        for (const emp of newEmployees) {
+            const name = typeof emp === 'string' ? emp : emp.name;
+            const status = (typeof emp === 'object' && emp.status) ? emp.status : 'active';
+            await stmt.run(name, status);
+        }
+
         await stmt.finalize();
         await db.run('COMMIT');
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
@@ -341,41 +356,6 @@ router.get('/audit-logs', async (req, res) => {
         const logs = await db.all('SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 1000');
         res.json(logs);
     } catch (e) { res.status(500).json({ error: "DB Error" }); }
-});
-
-// SETTINGS / MAINTENANCE
-router.get('/settings', async (req, res) => {
-    try {
-        const db = await getDb();
-        const settings = await db.all('SELECT * FROM settings');
-        const settingsObj = settings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {});
-        res.json(settingsObj);
-    } catch (e) { res.status(500).json({ error: "DB Error" }); }
-});
-
-router.post('/settings', async (req, res) => {
-    // Only Super Admins can toggle maintenance
-    if (!req.isAuthenticated() || !SUPER_ADMIN_IDS.includes(req.user.discordId)) return res.status(403).json({ error: 'Unauthorized' });
-    try {
-        const db = await getDb();
-        const { maintenance_mode, maintenance_text, maintenance_image } = req.body;
-
-        await db.run('BEGIN TRANSACTION');
-        const stmt = await db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-
-        if (maintenance_mode !== undefined) await stmt.run('maintenance_mode', String(maintenance_mode));
-        if (maintenance_text !== undefined) await stmt.run('maintenance_text', maintenance_text);
-        if (maintenance_image !== undefined) await stmt.run('maintenance_image', maintenance_image);
-
-        await stmt.finalize();
-        await db.run('COMMIT');
-
-        if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
-        res.json({ success: true });
-    } catch (e) {
-        console.error("Settings error:", e);
-        res.status(500).json({ error: "DB Error" });
-    }
 });
 
 

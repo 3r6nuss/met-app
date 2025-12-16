@@ -122,9 +122,10 @@ export default function UserManagement({ employees = [] }) {
                                         className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 w-full focus:border-violet-500 outline-none"
                                     >
                                         <option value="">-- Keine Verknüpfung --</option>
-                                        {Array.isArray(employees) && employees.map(emp => (
-                                            <option key={emp} value={emp}>{emp}</option>
-                                        ))}
+                                        {Array.isArray(employees) && employees.map(emp => {
+                                            const name = typeof emp === 'string' ? emp : emp.name;
+                                            return <option key={name} value={name}>{name}</option>;
+                                        })}
                                     </select>
                                 </td>
                                 <td className="p-3">
