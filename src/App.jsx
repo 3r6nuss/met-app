@@ -29,7 +29,7 @@ import PartnersPage from './pages/PartnersPage';
 import PersonnelPage from './pages/PersonnelPage';
 import BeginnerGuidePage from './pages/BeginnerGuidePage';
 import AuditLogPage from './pages/AuditLogPage';
-import AuditLogPage from './pages/AuditLogPage';
+
 import HausordnungPage from './pages/HausordnungPage';
 import VisibilityControlPage from './pages/VisibilityControlPage';
 
