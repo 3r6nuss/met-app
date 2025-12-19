@@ -379,4 +379,53 @@ router.post('/verifications', async (req, res) => {
     } catch (e) { res.status(500).json({ error: "DB Error" }); }
 });
 
+// VISIBILITY RULES
+router.get('/visibility-rules', async (req, res) => {
+    try {
+        const db = await getDb();
+        const rules = await db.all('SELECT * FROM visibility_rules');
+        res.json(rules);
+    } catch (e) { res.status(500).json({ error: "DB Error" }); }
+});
+
+router.post('/visibility-rules', isAdmin, async (req, res) => {
+    try {
+        const { item_name, employee_name, view_employee_log, view_period_protocol } = req.body;
+        const db = await getDb();
+
+        // upsert logic
+        const existing = await db.get('SELECT id FROM visibility_rules WHERE item_name = ? AND employee_name = ?', item_name, employee_name);
+        if (existing) {
+            await db.run('UPDATE visibility_rules SET view_employee_log = ?, view_period_protocol = ? WHERE id = ?',
+                view_employee_log ? 1 : 0,
+                view_period_protocol ? 1 : 0,
+                existing.id
+            );
+        } else {
+            await db.run('INSERT INTO visibility_rules (item_name, employee_name, view_employee_log, view_period_protocol) VALUES (?, ?, ?, ?)',
+                item_name,
+                employee_name,
+                view_employee_log ? 1 : 0,
+                view_period_protocol ? 1 : 0
+            );
+        }
+
+        if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
+        res.json({ success: true });
+    } catch (e) {
+        console.error("VisRule Error:", e);
+        res.status(500).json({ error: "DB Error" });
+    }
+});
+
+router.delete('/visibility-rules/:id', isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const db = await getDb();
+        await db.run('DELETE FROM visibility_rules WHERE id = ?', id);
+        if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: "DB Error" }); }
+});
+
 export default router;

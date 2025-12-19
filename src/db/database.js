@@ -130,6 +130,26 @@ export async function getDb() {
         console.error("Migration error (employees):", error);
     }
 
+    // Migration: Add visibility_rules table if it doesn't exist
+    try {
+        const tableInfo = await dbInstance.all("PRAGMA table_info(visibility_rules)");
+        if (tableInfo.length === 0) {
+            await dbInstance.exec(`
+                CREATE TABLE IF NOT EXISTS visibility_rules (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    item_name TEXT NOT NULL,
+                    employee_name TEXT NOT NULL,
+                    view_employee_log BOOLEAN DEFAULT 1,
+                    view_period_protocol BOOLEAN DEFAULT 1,
+                    UNIQUE(item_name, employee_name)
+                );
+            `);
+            console.log("Migrated database: Created visibility_rules table.");
+        }
+    } catch (error) {
+        console.error("Migration error (visibility_rules):", error);
+    }
+
     return dbInstance;
 }
 

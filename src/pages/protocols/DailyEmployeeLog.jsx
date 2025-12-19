@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { Check, Banknote, Trash2 } from 'lucide-react';
 
 export default function DailyEmployeeLog({ logs, user, onPayout }) {
-    // Helper to get current week start (Saturday)
     const getCurrentWeekStart = () => {
         const now = new Date();
         const day = now.getDay(); // 0=Sun, 6=Sat
@@ -15,16 +14,40 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
 
     const currentWeekStart = getCurrentWeekStart();
     const [showFullHistory, setShowFullHistory] = useState(false);
+    const [visibilityRules, setVisibilityRules] = useState([]);
+
+    React.useEffect(() => {
+        fetch('/api/visibility-rules')
+            .then(res => res.json())
+            .then(data => setVisibilityRules(data || []))
+            .catch(err => console.error("Failed to fetch visibility rules", err));
+    }, []);
 
     // Split logs into Current Week and Past Weeks (Outstanding)
     const { currentLogs, pastLogs } = useMemo(() => {
         const current = [];
         const past = [];
-        logs.filter(l =>
-            l.itemName !== 'Korrektur Geschäftskonto' &&
-            !l.msg?.includes('Korrektur Geschäftskonto')
-            // (l.price > 0 || l.price < 0) // Exclude 0 price -> REMOVED to show employees with 0$ items
-        ).forEach(log => {
+
+        // Helper to check visibility
+        const isVisible = (log) => {
+            const item = log.itemName;
+            const emp = log.depositor;
+
+            // 1. Check specific rule
+            const specificRule = visibilityRules.find(r => r.item_name === item && r.employee_name === emp);
+            if (specificRule) return specificRule.view_employee_log === 1;
+
+            // 2. Check global rule
+            const globalRule = visibilityRules.find(r => r.item_name === item && r.employee_name === 'GLOBAL');
+            if (globalRule) return globalRule.view_employee_log === 1;
+
+            // 3. Default Logic
+            if (item === 'Korrektur Geschäftskonto' || log.msg?.includes('Korrektur Geschäftskonto')) return false;
+            // Removed price check as per previous logic
+            return true;
+        };
+
+        logs.filter(l => isVisible(l)).forEach(log => {
             const date = new Date(log.timestamp);
             if (date >= currentWeekStart) {
                 current.push(log);
@@ -33,7 +56,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             }
         });
         return { currentLogs: current, pastLogs: past };
-    }, [logs, currentWeekStart]);
+    }, [logs, currentWeekStart, visibilityRules]);
 
     // Calculate Outstanding Wages (Past Weeks) per Employee - ALL TIME HISTORY
     const outstandingData = useMemo(() => {
