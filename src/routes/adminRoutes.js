@@ -76,7 +76,7 @@ router.get('/employees', async (req, res) => {
 
 router.post('/employees', async (req, res) => {
     try {
-        const newEmployees = req.body; // Expects [{ name, status }] or [strings] (compat)
+        const newEmployees = req.body; // Expects [{ name, status, visible_in_protocol, protocol_name }] or [strings] (compat)
         const db = await getDb();
         await db.run('BEGIN TRANSACTION');
 
@@ -89,12 +89,14 @@ router.post('/employees', async (req, res) => {
         // So deleting and re-inserting is "safe" for logs, BUT checking 'status' persistence.
 
         await db.run('DELETE FROM employees');
-        const stmt = await db.prepare('INSERT INTO employees (name, status) VALUES (?, ?)');
+        const stmt = await db.prepare('INSERT INTO employees (name, status, visible_in_protocol, protocol_name) VALUES (?, ?, ?, ?)');
 
         for (const emp of newEmployees) {
             const name = typeof emp === 'string' ? emp : emp.name;
             const status = (typeof emp === 'object' && emp.status) ? emp.status : 'active';
-            await stmt.run(name, status);
+            const visibleInProtocol = (typeof emp === 'object' && emp.visible_in_protocol !== undefined) ? emp.visible_in_protocol : 1;
+            const protocolName = (typeof emp === 'object' && emp.protocol_name) ? emp.protocol_name : null;
+            await stmt.run(name, status, visibleInProtocol, protocolName);
         }
 
         await stmt.finalize();
@@ -374,90 +376,6 @@ router.post('/verifications', async (req, res) => {
         const { timestamp, verifier, snapshot } = req.body;
         const db = await getDb();
         await db.run('INSERT INTO verifications (timestamp, verifier, snapshot) VALUES (?, ?, ?)', timestamp || new Date().toISOString(), verifier, JSON.stringify(snapshot));
-        if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: "DB Error" }); }
-});
-
-// VISIBILITY RULES
-router.post('/visibility-rules/generate', isAdmin, async (req, res) => {
-    try {
-        const db = await getDb();
-
-        // 1. Get all unique items from logs and inventory
-        const logItems = await db.all('SELECT DISTINCT itemName FROM logs WHERE itemName IS NOT NULL');
-        const invItems = await db.all('SELECT name FROM inventory');
-
-        const allItems = new Set([
-            ...logItems.map(i => i.itemName),
-            ...invItems.map(i => i.name)
-        ]);
-
-        let addedCount = 0;
-
-        for (const item of allItems) {
-            if (!item) continue;
-            // Check if GLOBAL rule exists
-            const existing = await db.get('SELECT id FROM visibility_rules WHERE item_name = ? AND employee_name = ?', item, 'GLOBAL');
-            if (!existing) {
-                await db.run('INSERT INTO visibility_rules (item_name, employee_name, view_employee_log, view_period_protocol) VALUES (?, ?, ?, ?)',
-                    item, 'GLOBAL', 1, 1
-                );
-                addedCount++;
-            }
-        }
-
-        if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
-        res.json({ success: true, count: addedCount });
-    } catch (e) {
-        console.error("Generate Rules Error:", e);
-        res.status(500).json({ error: "DB Error" });
-    }
-});
-
-router.get('/visibility-rules', async (req, res) => {
-    try {
-        const db = await getDb();
-        const rules = await db.all('SELECT * FROM visibility_rules');
-        res.json(rules);
-    } catch (e) { res.status(500).json({ error: "DB Error" }); }
-});
-
-router.post('/visibility-rules', isAdmin, async (req, res) => {
-    try {
-        const { item_name, employee_name, view_employee_log, view_period_protocol } = req.body;
-        const db = await getDb();
-
-        // upsert logic
-        const existing = await db.get('SELECT id FROM visibility_rules WHERE item_name = ? AND employee_name = ?', item_name, employee_name);
-        if (existing) {
-            await db.run('UPDATE visibility_rules SET view_employee_log = ?, view_period_protocol = ? WHERE id = ?',
-                view_employee_log ? 1 : 0,
-                view_period_protocol ? 1 : 0,
-                existing.id
-            );
-        } else {
-            await db.run('INSERT INTO visibility_rules (item_name, employee_name, view_employee_log, view_period_protocol) VALUES (?, ?, ?, ?)',
-                item_name,
-                employee_name,
-                view_employee_log ? 1 : 0,
-                view_period_protocol ? 1 : 0
-            );
-        }
-
-        if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
-        res.json({ success: true });
-    } catch (e) {
-        console.error("VisRule Error:", e);
-        res.status(500).json({ error: "DB Error" });
-    }
-});
-
-router.delete('/visibility-rules/:id', isAdmin, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const db = await getDb();
-        await db.run('DELETE FROM visibility_rules WHERE id = ?', id);
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: "DB Error" }); }

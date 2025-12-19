@@ -22,40 +22,14 @@ export default function WeeklyProtocol({ logs, user }) {
         return `${startDate.getDate()}.${startDate.getMonth() + 1}.${startDate.getFullYear().toString().slice(-2)} - ${end.getDate()}.${end.getMonth() + 1}.${end.getFullYear().toString().slice(-2)}`;
     };
 
-    const [visibilityRules, setVisibilityRules] = React.useState([]);
-
-    React.useEffect(() => {
-        fetch('/api/visibility-rules')
-            .then(res => res.json())
-            .then(data => setVisibilityRules(data || []))
-            .catch(err => console.error("Failed to fetch visibility rules", err));
-    }, []);
-
     const processedData = useMemo(() => {
         const weeks = {};
-
-        // Helper to check visibility
-        const isVisible = (log) => {
-            const item = log.itemName;
-            const emp = log.depositor;
-
-            // 1. Check specific rule
-            const specificRule = visibilityRules.find(r => r.item_name === item && r.employee_name === emp);
-            if (specificRule) return specificRule.view_period_protocol === 1; // Reuse logic mainly for hidden employees/stats
-
-            // 2. Check global rule
-            const globalRule = visibilityRules.find(r => r.item_name === item && r.employee_name === 'GLOBAL');
-            if (globalRule) return globalRule.view_period_protocol === 1;
-
-            return true;
-        };
 
         logs.filter(l =>
             l.itemName !== 'Korrektur Geschäftskonto' &&
             !l.msg?.includes('Korrektur Geschäftskonto') &&
             (l.price > 0 || l.price < 0) && // Exclude 0 price
-            l.itemName && l.itemName !== 'Unbekannt' &&
-            isVisible(l)
+            l.itemName && l.itemName !== 'Unbekannt'
         ).forEach(log => {
             const date = new Date(log.timestamp);
             const weekStart = getWeekStart(date);

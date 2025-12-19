@@ -10,14 +10,6 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
     const [filterProduct, setFilterProduct] = useState('');
     const [filterEmployee, setFilterEmployee] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
-    const [visibilityRules, setVisibilityRules] = useState([]);
-
-    React.useEffect(() => {
-        fetch('/api/visibility-rules')
-            .then(res => res.json())
-            .then(data => setVisibilityRules(data || []))
-            .catch(err => console.error("Failed to fetch visibility rules", err));
-    }, []);
 
     // Valid Sets
     const validEmployeeNames = useMemo(() => {
@@ -99,26 +91,8 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
     const { processedData, tradeIncomeData, tradeOutcomeData } = useMemo(() => {
         const { start, end } = getPeriodRange(currentDate, periodType);
 
-        // Helper to check visibility
-        const isVisible = (log) => {
-            const item = log.itemName;
-            const emp = log.depositor;
-
-            // 1. Check specific rule
-            const specificRule = visibilityRules.find(r => r.item_name === item && r.employee_name === emp);
-            if (specificRule) return specificRule.view_period_protocol === 1;
-
-            // 2. Check global rule
-            const globalRule = visibilityRules.find(r => r.item_name === item && r.employee_name === 'GLOBAL');
-            if (globalRule) return globalRule.view_period_protocol === 1;
-
-            return true; // Default visible in Period Protocol (unless filtered below)
-        };
-
         // Filter logs by date and exclude corrections
         const periodLogs = logs.filter(log => {
-            if (!isVisible(log)) return false;
-
             if (log.itemName === 'Korrektur Geschäftskonto' || log.msg?.includes('Korrektur Geschäftskonto')) return false;
             if (log.price === 0) return false;
 

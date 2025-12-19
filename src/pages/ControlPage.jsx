@@ -54,8 +54,8 @@ export default function ControlPage({ employeeInventory = [], employees = [], in
                     {employees.map((emp, idx) => (
                         <EmployeeInventoryCard
                             key={idx}
-                            name={typeof emp === 'string' ? emp : emp.name}
-                            items={getEmployeeItems(typeof emp === 'string' ? emp : emp.name)}
+                            name={emp}
+                            items={getEmployeeItems(emp)}
                             allInventory={inventory}
                             onUpdate={handleUpdateStock}
                         />

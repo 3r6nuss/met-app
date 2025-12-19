@@ -29,9 +29,7 @@ import PartnersPage from './pages/PartnersPage';
 import PersonnelPage from './pages/PersonnelPage';
 import BeginnerGuidePage from './pages/BeginnerGuidePage';
 import AuditLogPage from './pages/AuditLogPage';
-
 import HausordnungPage from './pages/HausordnungPage';
-import VisibilityControlPage from './pages/VisibilityControlPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 
@@ -699,7 +697,7 @@ function App() {
           {isBuchhaltung && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
 
           {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
-          {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} user={user} onPayout={handleEmployeePayout} />} />}
+          {!isPending && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} user={user} employees={employees} onPayout={handleEmployeePayout} />} />}
           {!isPending && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} employees={personnel} onPayout={handleEmployeePayout} />} />}
           {(isBuchhaltung) && (
             <Route path="/protokolle/period" element={<PeriodProtocol logs={logs} inventory={inventory} employees={employees} />} />
@@ -717,7 +715,6 @@ function App() {
               <Route path="/sonstiges/kontakte" element={<ContactsPage />} />
               <Route path="/sonstiges/partner" element={<PartnersPage />} />
               <Route path="/sonstiges/personal" element={<PersonnelPage />} />
-              <Route path="/sonstiges/sichtbarkeit" element={<VisibilityControlPage user={user} />} />
             </>
           )}
 

@@ -126,28 +126,22 @@ export async function getDb() {
             await dbInstance.run("ALTER TABLE employees ADD COLUMN status TEXT DEFAULT 'active'");
             console.log("Migrated database: Added status column to employees table.");
         }
-    } catch (error) {
-        console.error("Migration error (employees):", error);
-    }
 
-    // Migration: Add visibility_rules table if it doesn't exist
-    try {
-        const tableInfo = await dbInstance.all("PRAGMA table_info(visibility_rules)");
-        if (tableInfo.length === 0) {
-            await dbInstance.exec(`
-                CREATE TABLE IF NOT EXISTS visibility_rules (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    item_name TEXT NOT NULL,
-                    employee_name TEXT NOT NULL,
-                    view_employee_log BOOLEAN DEFAULT 1,
-                    view_period_protocol BOOLEAN DEFAULT 1,
-                    UNIQUE(item_name, employee_name)
-                );
-            `);
-            console.log("Migrated database: Created visibility_rules table.");
+        // Migration: Add visible_in_protocol column to employees
+        const hasVisibleInProtocol = empInfo.some(col => col.name === 'visible_in_protocol');
+        if (!hasVisibleInProtocol) {
+            await dbInstance.run("ALTER TABLE employees ADD COLUMN visible_in_protocol INTEGER DEFAULT 1");
+            console.log("Migrated database: Added visible_in_protocol column to employees table.");
+        }
+
+        // Migration: Add protocol_name column to employees
+        const hasProtocolName = empInfo.some(col => col.name === 'protocol_name');
+        if (!hasProtocolName) {
+            await dbInstance.run("ALTER TABLE employees ADD COLUMN protocol_name TEXT DEFAULT NULL");
+            console.log("Migrated database: Added protocol_name column to employees table.");
         }
     } catch (error) {
-        console.error("Migration error (visibility_rules):", error);
+        console.error("Migration error (employees):", error);
     }
 
     return dbInstance;

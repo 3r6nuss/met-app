@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus, Circle } from 'lucide-react';
+import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus, Circle, Eye, EyeOff } from 'lucide-react';
 import UserManagement from '../components/UserManagement';
 
 export default function SystemPage({ employees = [], onUpdateEmployees, logs = [], onDeleteLog, onReset, user, inventory = [] }) {
@@ -229,12 +229,20 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                     </>
                 )}
                 {(isAdmin || user?.role === 'Buchhaltung') && (
-                    <button
-                        onClick={() => setActiveTab('priorities')}
-                        className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'priorities' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
-                    >
-                        Prioritäten
-                    </button>
+                    <>
+                        <button
+                            onClick={() => setActiveTab('protokoll')}
+                            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'protokoll' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            Protokoll-Zuordnung
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('priorities')}
+                            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'priorities' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            Prioritäten
+                        </button>
+                    </>
                 )}
                 {isAdmin && (
                     <>
@@ -361,6 +369,98 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                 {/* User Management (Admin Only) */}
                 {activeTab === 'users' && isAdmin && (
                     <UserManagement employees={employees} />
+                )}
+
+                {/* Protokoll-Zuordnung (Admin/Buchhaltung) */}
+                {activeTab === 'protokoll' && (isAdmin || user?.role === 'Buchhaltung') && (
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
+                            <Eye className="w-5 h-5 text-violet-400" />
+                            Protokoll-Zuordnung
+                        </h3>
+                        <p className="text-slate-400 text-sm mb-6">
+                            Steuere, welche Mitarbeiter in Protokollen angezeigt werden und unter welchem Namen.
+                            Mehrere Mitarbeiter mit gleichem Protokoll-Namen werden zusammengefasst.
+                        </p>
+                        <div className="space-y-2">
+                            <div className="grid grid-cols-[1fr_80px_200px] gap-4 px-4 py-2 text-xs text-slate-400 uppercase font-bold border-b border-slate-700">
+                                <span>Mitarbeiter</span>
+                                <span className="text-center">Sichtbar</span>
+                                <span>Protokoll-Name</span>
+                            </div>
+                            {Array.isArray(employees) && employees.map((empData, idx) => {
+                                const emp = typeof empData === 'string' ? { name: empData, status: 'active', visible_in_protocol: 1, protocol_name: null } : empData;
+                                const isFired = emp.status === 'fired';
+                                const isVisible = emp.visible_in_protocol === 1 || emp.visible_in_protocol === true;
+
+                                // Get all unique protocol names for dropdown
+                                const existingProtocolNames = [...new Set(
+                                    employees
+                                        .map(e => typeof e === 'object' ? e.protocol_name : null)
+                                        .filter(n => n && n.trim())
+                                )];
+
+                                return (
+                                    <div key={idx} className={`grid grid-cols-[1fr_80px_200px] gap-4 px-4 py-3 rounded-lg border transition-colors ${isFired ? 'bg-red-900/10 border-red-900/30 opacity-50' : 'bg-slate-800/30 border-slate-700/50'}`}>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`font-medium ${isFired ? 'text-red-400 line-through' : 'text-slate-200'}`}>
+                                                {emp.name}
+                                            </span>
+                                            {isFired && <span className="text-[10px] uppercase bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded font-bold">Gefeuert</span>}
+                                        </div>
+                                        <div className="flex justify-center">
+                                            <button
+                                                onClick={() => {
+                                                    const updated = [...employees];
+                                                    const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active', visible_in_protocol: 1, protocol_name: null } : updated[idx];
+                                                    updated[idx] = { ...current, visible_in_protocol: isVisible ? 0 : 1 };
+                                                    onUpdateEmployees(updated);
+                                                }}
+                                                className={`p-2 rounded-lg transition-colors ${isVisible ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-slate-700 text-slate-500 hover:bg-slate-600'}`}
+                                                title={isVisible ? 'Sichtbar - Klicken zum Ausblenden' : 'Ausgeblendet - Klicken zum Einblenden'}
+                                            >
+                                                {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <select
+                                                value={emp.protocol_name || ''}
+                                                onChange={(e) => {
+                                                    const updated = [...employees];
+                                                    const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active', visible_in_protocol: 1, protocol_name: null } : updated[idx];
+                                                    updated[idx] = { ...current, protocol_name: e.target.value || null };
+                                                    onUpdateEmployees(updated);
+                                                }}
+                                                className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
+                                            >
+                                                <option value="">— Eigener Name —</option>
+                                                {existingProtocolNames.map(name => (
+                                                    <option key={name} value={name}>{name}</option>
+                                                ))}
+                                            </select>
+                                            <input
+                                                type="text"
+                                                placeholder="Neuer Name..."
+                                                className="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-3 py-1 text-white text-xs focus:outline-none focus:border-violet-500"
+                                                onKeyPress={(e) => {
+                                                    if (e.key === 'Enter' && e.target.value.trim()) {
+                                                        const updated = [...employees];
+                                                        const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active', visible_in_protocol: 1, protocol_name: null } : updated[idx];
+                                                        updated[idx] = { ...current, protocol_name: e.target.value.trim() };
+                                                        onUpdateEmployees(updated);
+                                                        e.target.value = '';
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {(!employees || employees.length === 0) && (
+                                <div className="text-slate-500 italic text-center py-4">Keine Mitarbeiter angelegt.</div>
+                            )}
+                        </div>
+                    </div>
                 )}
 
                 {/* Recipe Management */}

@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Check, Banknote, Trash2 } from 'lucide-react';
 
-export default function DailyEmployeeLog({ logs, user, onPayout }) {
+export default function DailyEmployeeLog({ logs, user, employees = [], onPayout }) {
+    // Helper to get current week start (Saturday)
     const getCurrentWeekStart = () => {
         const now = new Date();
         const day = now.getDay(); // 0=Sun, 6=Sat
@@ -14,40 +15,41 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
 
     const currentWeekStart = getCurrentWeekStart();
     const [showFullHistory, setShowFullHistory] = useState(false);
-    const [visibilityRules, setVisibilityRules] = useState([]);
 
-    React.useEffect(() => {
-        fetch('/api/visibility-rules')
-            .then(res => res.json())
-            .then(data => setVisibilityRules(data || []))
-            .catch(err => console.error("Failed to fetch visibility rules", err));
-    }, []);
+    // Build mapping: depositor name -> protocol display name
+    // Also track visibility status
+    const employeeMapping = useMemo(() => {
+        const mapping = {};
+        employees.forEach(emp => {
+            const empObj = typeof emp === 'string' ? { name: emp, visible_in_protocol: 1, protocol_name: null } : emp;
+            const isVisible = empObj.visible_in_protocol === 1 || empObj.visible_in_protocol === true || empObj.visible_in_protocol === undefined;
+            const displayName = empObj.protocol_name || empObj.name;
+            mapping[empObj.name] = { displayName, isVisible };
+        });
+        return mapping;
+    }, [employees]);
+
+    // Helper to get display name for a depositor
+    const getDisplayName = (depositor) => {
+        return employeeMapping[depositor]?.displayName || depositor;
+    };
+
+    // Check if a depositor should be displayed
+    const isDepositorVisible = (depositor) => {
+        // If no mapping exists (unknown employee), show by default
+        if (!employeeMapping[depositor]) return true;
+        return employeeMapping[depositor].isVisible;
+    };
 
     // Split logs into Current Week and Past Weeks (Outstanding)
     const { currentLogs, pastLogs } = useMemo(() => {
         const current = [];
         const past = [];
-
-        // Helper to check visibility
-        const isVisible = (log) => {
-            const item = log.itemName;
-            const emp = log.depositor;
-
-            // 1. Check specific rule
-            const specificRule = visibilityRules.find(r => r.item_name === item && r.employee_name === emp);
-            if (specificRule) return specificRule.view_employee_log === 1;
-
-            // 2. Check global rule
-            const globalRule = visibilityRules.find(r => r.item_name === item && r.employee_name === 'GLOBAL');
-            if (globalRule) return globalRule.view_employee_log === 1;
-
-            // 3. Default Logic
-            if (item === 'Korrektur Geschäftskonto' || log.msg?.includes('Korrektur Geschäftskonto')) return false;
-            // Removed price check as per previous logic
-            return true;
-        };
-
-        logs.filter(l => isVisible(l)).forEach(log => {
+        logs.filter(l =>
+            l.itemName !== 'Korrektur Geschäftskonto' &&
+            !l.msg?.includes('Korrektur Geschäftskonto')
+            // (l.price > 0 || l.price < 0) // Exclude 0 price -> REMOVED to show employees with 0$ items
+        ).forEach(log => {
             const date = new Date(log.timestamp);
             if (date >= currentWeekStart) {
                 current.push(log);
@@ -56,9 +58,9 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             }
         });
         return { currentLogs: current, pastLogs: past };
-    }, [logs, currentWeekStart, visibilityRules]);
+    }, [logs, currentWeekStart]);
 
-    // Calculate Outstanding Wages (Past Weeks) per Employee - ALL TIME HISTORY
+    // Calculate Outstanding Wages (Past Weeks) per Protocol Name - ALL TIME HISTORY
     const outstandingData = useMemo(() => {
         const groups = {};
 
@@ -67,12 +69,13 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             if (log.itemName === 'Auszahlung') return true;
             return log.category !== 'trade';
         }).forEach(log => {
-            if (!groups[log.depositor]) groups[log.depositor] = 0;
+            const displayName = getDisplayName(log.depositor);
+            if (!groups[displayName]) groups[displayName] = 0;
             const value = (log.price || 0) * (log.quantity || 0);
-            groups[log.depositor] += value;
+            groups[displayName] += value;
         });
         return groups;
-    }, [pastLogs]);
+    }, [pastLogs, employeeMapping]);
 
     const formatMoney = (amount) => `$${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -87,26 +90,29 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         { label: 'Freitag', offset: 6 },
     ];
 
-    // Group logs by Employee -> Day (Current Week) AND Merge with Outstanding
+    // Group logs by Protocol Name -> Day (Current Week) AND Merge with Outstanding
     const employeeData = useMemo(() => {
         const groups = {};
 
         // 1. Process Current Week Logs
         const lastPayouts = {};
 
-        // Find last payout timestamp for each employee
+        // Find last payout timestamp for each protocol name
         currentLogs.forEach(log => {
             if (log.itemName === 'Auszahlung') {
-                if (!lastPayouts[log.depositor] || log.timestamp > lastPayouts[log.depositor]) {
-                    lastPayouts[log.depositor] = log.timestamp;
+                const displayName = getDisplayName(log.depositor);
+                if (!lastPayouts[displayName] || log.timestamp > lastPayouts[displayName]) {
+                    lastPayouts[displayName] = log.timestamp;
                 }
             }
         });
 
         currentLogs.filter(log => log.category !== 'trade' && log.type === 'in' && log.itemName !== 'Auszahlung').forEach(log => {
-            if (!groups[log.depositor]) {
-                groups[log.depositor] = {
-                    name: log.depositor,
+            const displayName = getDisplayName(log.depositor);
+
+            if (!groups[displayName]) {
+                groups[displayName] = {
+                    name: displayName,
                     days: Array(7).fill().map(() => ({ logs: [], total: 0 })),
                     weekTotal: 0,   // "Diese Woche Gesamt"
                     currentOpen: 0, // "Aktuell Offene von dieser Woche"
@@ -116,10 +122,10 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
 
             const date = new Date(log.timestamp);
             const satIndex = (date.getDay() + 1) % 7;
-            const dayGroup = groups[log.depositor].days[satIndex];
+            const dayGroup = groups[displayName].days[satIndex];
 
             // Check if log is paid
-            const lastPayout = lastPayouts[log.depositor];
+            const lastPayout = lastPayouts[displayName];
             // Fix: items with SAME timestamp as payout are PAID (contained in the payout batch)
             const isPaid = lastPayout && log.timestamp <= lastPayout;
 
@@ -131,9 +137,9 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             const value = (log.price || 0) * (log.quantity || 0);
             dayGroup.total += value;
 
-            groups[log.depositor].weekTotal += value;
+            groups[displayName].weekTotal += value;
             if (!isPaid) {
-                groups[log.depositor].currentOpen += value;
+                groups[displayName].currentOpen += value;
             }
         });
 
@@ -153,20 +159,32 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
             groups[name].outstandingTotal = amount;
         });
 
-        // 3. Filter by Permissions & Sort
-        let result = Object.values(groups);
+        // 3. Filter by Visibility (check if ANY depositor in this protocol group is visible)
+        let result = Object.values(groups).filter(group => {
+            // Find all original depositors that map to this protocol name
+            const mappedDepositors = Object.entries(employeeMapping)
+                .filter(([, data]) => data.displayName === group.name)
+                .map(([depositor]) => depositor);
 
-        // Permission Filter
+            // If any mapped depositor is visible, show the group
+            // Or if no mapping exists (unknown employees), show by default
+            if (mappedDepositors.length === 0) return true;
+            return mappedDepositors.some(dep => isDepositorVisible(dep));
+        });
+
+        // 4. Filter by Permissions
         const isPrivileged = ['Administrator', 'Buchhaltung', 'Lager'].includes(user?.role);
         if (!isPrivileged) {
-            result = result.filter(g => g.name === user?.employeeName);
+            const userDisplayName = getDisplayName(user?.employeeName);
+            result = result.filter(g => g.name === userDisplayName);
         }
 
         // Sort: Current User first, then alphabetical
-        if (user?.employeeName) {
+        const userDisplayName = getDisplayName(user?.employeeName);
+        if (userDisplayName) {
             result.sort((a, b) => {
-                if (a.name === user.employeeName) return -1;
-                if (b.name === user.employeeName) return 1;
+                if (a.name === userDisplayName) return -1;
+                if (b.name === userDisplayName) return 1;
                 return a.name.localeCompare(b.name);
             });
         } else {
@@ -174,7 +192,7 @@ export default function DailyEmployeeLog({ logs, user, onPayout }) {
         }
 
         return result;
-    }, [currentLogs, outstandingData, user]);
+    }, [currentLogs, outstandingData, user, employeeMapping]);
 
     // Calculate Grand Total Outstanding (Sum of all positive balances)
     const grandTotalOutstanding = useMemo(() => {
