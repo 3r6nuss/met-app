@@ -31,12 +31,14 @@ export default function DailyEmployeeLog({ logs, user, employees = [], onPayout 
 
     // Helper to get display name for a depositor
     const getDisplayName = (depositor) => {
+        if (!depositor || typeof depositor !== 'string') return depositor || 'Unbekannt';
         return employeeMapping[depositor]?.displayName || depositor;
     };
 
     // Check if a depositor should be displayed
     const isDepositorVisible = (depositor) => {
         // If no mapping exists (unknown employee), show by default
+        if (!depositor || typeof depositor !== 'string') return true;
         if (!employeeMapping[depositor]) return true;
         return employeeMapping[depositor].isVisible;
     };
