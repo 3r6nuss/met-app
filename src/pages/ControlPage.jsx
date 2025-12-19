@@ -51,15 +51,18 @@ export default function ControlPage({ employeeInventory = [], employees = [], in
                 </h2>
 
                 <div className="grid grid-cols-1 gap-4">
-                    {employees.map((emp, idx) => (
-                        <EmployeeInventoryCard
-                            key={idx}
-                            name={emp}
-                            items={getEmployeeItems(emp)}
-                            allInventory={inventory}
-                            onUpdate={handleUpdateStock}
-                        />
-                    ))}
+                    {employees.map((emp, idx) => {
+                        const empName = typeof emp === 'string' ? emp : emp.name;
+                        return (
+                            <EmployeeInventoryCard
+                                key={idx}
+                                name={empName}
+                                items={getEmployeeItems(empName)}
+                                allInventory={inventory}
+                                onUpdate={handleUpdateStock}
+                            />
+                        );
+                    })}
                 </div>
             </section>
 

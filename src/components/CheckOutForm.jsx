@@ -33,7 +33,9 @@ export default function CheckOutForm({
         // Load saved depositor from localStorage
         const savedDepositor = localStorage.getItem('met_depositor');
         if (savedDepositor) {
-            if (employees.includes(savedDepositor)) {
+            // Check if saved depositor matches any employee name
+            const employeeNames = employees.map(e => typeof e === 'string' ? e : e.name);
+            if (employeeNames.includes(savedDepositor)) {
                 setDepositor(savedDepositor);
             } else {
                 // Custom name was saved
@@ -236,11 +238,14 @@ export default function CheckOutForm({
                         required={!showCustomInput}
                     >
                         <option value="">Mitarbeiter wählen...</option>
-                        {employees.map((emp, idx) => (
-                            <option key={idx} value={emp} className="bg-slate-900">
-                                {emp}
-                            </option>
-                        ))}
+                        {employees.map((emp, idx) => {
+                            const empName = typeof emp === 'string' ? emp : emp.name;
+                            return (
+                                <option key={idx} value={empName} className="bg-slate-900">
+                                    {empName}
+                                </option>
+                            );
+                        })}
                         <option value="__custom__" className="bg-slate-900 text-amber-400">
                             ➕ Andere...
                         </option>
