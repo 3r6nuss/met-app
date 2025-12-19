@@ -155,13 +155,40 @@ export default function VisibilityControlPage({ user }) {
                         </label>
                     </div>
 
-                    <button
-                        onClick={handleSave}
-                        disabled={!newItem}
-                        className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-500/20"
-                    >
-                        <Save className="w-4 h-4" /> Regel Speichern
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleSave}
+                            disabled={!newItem}
+                            className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-500/20 flex-1"
+                        >
+                            <Save className="w-4 h-4" /> Regel Speichern
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (confirm("Daraus werden für ALLE bekannten Items Standard-Regeln (Sichtbar) generiert, falls noch keine existieren. Fortfahren?")) {
+                                    setLoading(true);
+                                    fetch('/api/visibility-rules/generate', { method: 'POST' })
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            alert(`Fertig! ${data.count} neue Regeln erstellt.`);
+                                            // Reload
+                                            window.location.reload();
+                                        })
+                                        .catch(() => {
+                                            setLoading(false);
+                                            alert("Fehler");
+                                        });
+                                }
+                            }}
+                            className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-3 rounded transition-all flex items-center justify-center gap-2"
+                            title="Regeln aus DB generieren"
+                        >
+                            <div className="flex flex-col items-center leading-none">
+                                <span className="text-xs">⚡</span>
+                                <span className="text-[10px]">Auto</span>
+                            </div>
+                        </button>
+                    </div>
                 </div>
             </div>
 
