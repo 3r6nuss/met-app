@@ -380,6 +380,41 @@ router.post('/verifications', async (req, res) => {
 });
 
 // VISIBILITY RULES
+router.post('/visibility-rules/generate', isAdmin, async (req, res) => {
+    try {
+        const db = await getDb();
+
+        // 1. Get all unique items from logs and inventory
+        const logItems = await db.all('SELECT DISTINCT itemName FROM logs WHERE itemName IS NOT NULL');
+        const invItems = await db.all('SELECT name FROM inventory');
+
+        const allItems = new Set([
+            ...logItems.map(i => i.itemName),
+            ...invItems.map(i => i.name)
+        ]);
+
+        let addedCount = 0;
+
+        for (const item of allItems) {
+            if (!item) continue;
+            // Check if GLOBAL rule exists
+            const existing = await db.get('SELECT id FROM visibility_rules WHERE item_name = ? AND employee_name = ?', item, 'GLOBAL');
+            if (!existing) {
+                await db.run('INSERT INTO visibility_rules (item_name, employee_name, view_employee_log, view_period_protocol) VALUES (?, ?, ?, ?)',
+                    item, 'GLOBAL', 1, 1
+                );
+                addedCount++;
+            }
+        }
+
+        if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
+        res.json({ success: true, count: addedCount });
+    } catch (e) {
+        console.error("Generate Rules Error:", e);
+        res.status(500).json({ error: "DB Error" });
+    }
+});
+
 router.get('/visibility-rules', async (req, res) => {
     try {
         const db = await getDb();
