@@ -96,6 +96,22 @@ export default function DailyEmployeeLog({ logs, user, employees = [], onPayout 
     const employeeData = useMemo(() => {
         const groups = {};
 
+        // 0. PRE-INITIALIZE: Add ALL visible employees to groups (so they always appear)
+        Object.entries(employeeMapping).forEach(([depositorName, data]) => {
+            if (data.isVisible) {
+                const displayName = data.displayName;
+                if (!groups[displayName]) {
+                    groups[displayName] = {
+                        name: displayName,
+                        days: Array(7).fill().map(() => ({ logs: [], total: 0 })),
+                        weekTotal: 0,
+                        currentOpen: 0,
+                        outstandingTotal: 0
+                    };
+                }
+            }
+        });
+
         // 1. Process Current Week Logs
         const lastPayouts = {};
 
@@ -161,7 +177,7 @@ export default function DailyEmployeeLog({ logs, user, employees = [], onPayout 
             groups[name].outstandingTotal = amount;
         });
 
-        // 3. Filter by Visibility (check if ANY depositor in this protocol group is visible)
+        // 3. Filter by Visibility (already pre-filtered above, but also filter unknown depositors)
         let result = Object.values(groups).filter(group => {
             // Find all original depositors that map to this protocol name
             const mappedDepositors = Object.entries(employeeMapping)
