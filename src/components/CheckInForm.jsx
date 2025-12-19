@@ -295,11 +295,14 @@ export default function CheckInForm({
                         required={!showCustomInput}
                     >
                         <option value="">Mitarbeiter wählen...</option>
-                        {employees.map((emp, idx) => (
-                            <option key={idx} value={emp} className="bg-slate-900">
-                                {emp}
-                            </option>
-                        ))}
+                        {employees.map((emp, idx) => {
+                            const empName = typeof emp === 'string' ? emp : emp.name;
+                            return (
+                                <option key={emp.id || idx} value={empName} className="bg-slate-900">
+                                    {empName}
+                                </option>
+                            );
+                        })}
                         <option value="__custom__" className="bg-slate-900 text-amber-400">
                             ➕ Andere...
                         </option>
