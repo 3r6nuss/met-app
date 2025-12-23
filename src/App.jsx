@@ -30,10 +30,11 @@ import PersonnelPage from './pages/PersonnelPage';
 import BeginnerGuidePage from './pages/BeginnerGuidePage';
 import AuditLogPage from './pages/AuditLogPage';
 import HausordnungPage from './pages/HausordnungPage';
+import BelegPage from './pages/BelegPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
+import { api } from './services/api';
 
-const API_URL = '/api';
 
 function App() {
   const [inventory, setInventory] = useState(initialInventory);
@@ -55,20 +56,14 @@ function App() {
     // setLoading(true); 
 
     Promise.all([
-      fetch(`${API_URL}/inventory`).then(res => res.json()),
-      fetch(`${API_URL}/logs`).then(res => res.json()),
-      fetch(`${API_URL}/employees`).then(res => res.json()),
-      fetch(`${API_URL}/employee-inventory`).then(res => res.json()),
-      fetch(`${API_URL}/prices`).then(res => res.json()),
-      fetch(`${API_URL}/orders`).then(res => res.json()),
-      fetch(`${API_URL}/personnel`).then(res => {
-        if (res.ok) return res.json();
-        return [];
-      }),
-      fetch(`${API_URL}/user`).then(res => {
-        if (res.ok) return res.json();
-        return null;
-      })
+      api.getInventory(),
+      api.getLogs(),
+      api.getEmployees(),
+      api.getEmployeeInventory(),
+      api.getPrices(),
+      api.getOrders(),
+      api.getPersonnel(),
+      api.getUser()
     ])
       .then(([invData, logsData, empData, empInvData, priceData, ordersData, personnelData, userData]) => {
         setInventory(invData);
@@ -150,11 +145,7 @@ function App() {
     setInventory(newData);
     setSaveStatus('saving');
 
-    fetch(`${API_URL}/inventory`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newData)
-    })
+    api.saveInventory(newData)
       .then(() => {
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2000);
@@ -169,11 +160,7 @@ function App() {
     const newLog = { ...entry, timestamp: entry.timestamp || new Date().toISOString() };
     setTransactionLogs(prev => [newLog, ...prev]);
 
-    fetch(`${API_URL}/logs`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newLog)
-    }).catch(err => console.error("Failed to save log:", err));
+    api.saveLog(newLog).catch(err => console.error("Failed to save log:", err));
   };
 
   const handleCheckIn = (idOrData, quantity, depositor, price = 0, customDate = null, type = 'in', category = 'internal', warningIgnored = false, skipInventory = false) => {
@@ -210,12 +197,7 @@ function App() {
       };
     }
 
-    fetch(`${API_URL}/transaction`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-      .then(res => res.json())
+    api.performTransaction(payload)
       .then(data => {
         if (data.success) {
           // Refetch data to ensure everything is in sync (inventory, logs, employee inventory)
@@ -269,12 +251,7 @@ function App() {
       };
     }
 
-    fetch(`${API_URL}/transaction`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-      .then(res => res.json())
+    api.performTransaction(payload)
       .then(data => {
         if (data.success) {
           fetchData();
@@ -326,24 +303,19 @@ function App() {
       snapshot: inventory
     };
 
-    fetch(`${API_URL}/verifications`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(verificationEntry)
-    })
+    api.saveVerification(verificationEntry)
       .then(() => addLog(`Lagerliste bestätigt von ${name}`))
       .catch(err => console.error("Failed to save verification:", err));
   };
 
   const handleReset = () => {
     if (confirm("Wirklich alles zurücksetzen?")) {
-      fetch(`${API_URL}/reset`, { method: 'POST' })
-        .then(res => res.json())
+      api.resetDatabase()
         .then(data => {
           setInventory(data);
           setTransactionLogs([]);
           // Refetch employees
-          fetch(`${API_URL}/employees`).then(res => res.json()).then(setEmployees);
+          api.getEmployees().then(setEmployees);
           addLog("Datenbank zurückgesetzt");
         });
     }
@@ -351,17 +323,12 @@ function App() {
 
   const handleUpdateEmployees = (newEmployees) => {
     setEmployees(newEmployees);
-    fetch(`${API_URL}/employees`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newEmployees)
-    }).catch(err => console.error("Failed to save employees:", err));
+    api.saveEmployees(newEmployees).catch(err => console.error("Failed to save employees:", err));
   };
 
   const handleDeleteLog = (timestamp) => {
     if (confirm("Eintrag wirklich löschen?")) {
-      fetch(`${API_URL}/logs/${encodeURIComponent(timestamp)}`, { method: 'DELETE' })
-        .then(res => res.json())
+      api.deleteLog(timestamp)
         .then(data => {
           if (data.success) {
             fetchData();
@@ -381,12 +348,7 @@ function App() {
 
   // Order Handlers
   const handleCreateOrder = (orderData) => {
-    fetch(`${API_URL}/orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData)
-    })
-      .then(res => res.json())
+    api.createOrder(orderData)
       .then(data => {
         if (data.success) {
           fetchData();
@@ -400,12 +362,7 @@ function App() {
   };
 
   const handleUpdateOrderStatus = (id, status) => {
-    fetch(`${API_URL}/orders/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
-    })
-      .then(res => res.json())
+    api.updateOrderStatus(id, status)
       .then(data => {
         if (data.success) fetchData();
       });
@@ -413,8 +370,7 @@ function App() {
 
   const handleDeleteOrder = (id) => {
     if (confirm("Auftrag wirklich löschen?")) {
-      fetch(`${API_URL}/orders/${id}`, { method: 'DELETE' })
-        .then(res => res.json())
+      api.deleteOrder(id)
         .then(data => {
           if (data.success) fetchData();
         });
@@ -422,21 +378,16 @@ function App() {
   };
 
   const handleSpecialBooking = ({ employee, reason, amount }) => {
-    fetch(`${API_URL}/transaction`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'in', // Treat as 'in' so it counts as positive wage (or negative if price is negative)
-        category: 'internal',
-        itemId: null,
-        itemName: reason,
-        quantity: 1,
-        depositor: employee,
-        price: amount,
-        skipInventory: true
-      })
+    api.performTransaction({
+      type: 'in', // Treat as 'in' so it counts as positive wage (or negative if price is negative)
+      category: 'internal',
+      itemId: null,
+      itemName: reason,
+      quantity: 1,
+      depositor: employee,
+      price: amount,
+      skipInventory: true
     })
-      .then(res => res.json())
       .then(data => {
         if (data.success) {
           fetchData();
@@ -450,12 +401,7 @@ function App() {
   };
 
   const handleConsumeIngredients = (employeeName, items) => {
-    return fetch(`${API_URL}/employee-inventory/consume`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employeeName, items })
-    })
-      .then(res => res.json())
+    return api.consumeIngredients(employeeName, items)
       .then(data => {
         if (data.success) {
           fetchData(); // Refresh inventory
@@ -715,6 +661,7 @@ function App() {
               <Route path="/sonstiges/kontakte" element={<ContactsPage />} />
               <Route path="/sonstiges/partner" element={<PartnersPage />} />
               <Route path="/sonstiges/personal" element={<PersonnelPage />} />
+              <Route path="/beleg" element={<BelegPage prices={prices} />} />
             </>
           )}
 

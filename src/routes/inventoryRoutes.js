@@ -44,6 +44,7 @@ router.post('/', async (req, res) => {
 
         res.json({ success: true });
     } catch (error) {
+        try { await db.run('ROLLBACK'); } catch (e) { }
         console.error("Error updating inventory:", error);
         res.status(500).json({ error: "Database error" });
     }

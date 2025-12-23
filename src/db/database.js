@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DB_PATH = path.join(__dirname, '../../data/database.sqlite');
+const DB_PATH = process.env.TEST_DB_PATH || path.join(__dirname, '../../data/database.sqlite');
 
 let dbInstance = null;
 
@@ -28,7 +28,9 @@ export async function getDb() {
             min INTEGER DEFAULT 0,
             unit TEXT,
             price REAL DEFAULT 0,
-            image TEXT
+            image TEXT,
+            priority TEXT DEFAULT NULL,
+            sortOrder INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS logs (
@@ -41,7 +43,8 @@ export async function getDb() {
             depositor TEXT,
             price REAL,
             msg TEXT,
-            time TEXT
+            time TEXT,
+            status TEXT DEFAULT 'pending'
         );
 
         CREATE TABLE IF NOT EXISTS employees (
@@ -74,6 +77,18 @@ export async function getDb() {
             isHaendler BOOLEAN DEFAULT 0,
             isLagerist BOOLEAN DEFAULT 0
         );
+
+        CREATE TABLE IF NOT EXISTS employee_inventory (employee_name TEXT, item_id INTEGER, quantity INTEGER, PRIMARY KEY (employee_name, item_id));
+        CREATE TABLE IF NOT EXISTS recipes (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER, ingredient_id INTEGER, quantity INTEGER);
+        CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT, name TEXT, second_name TEXT, plz TEXT, info TEXT);
+        CREATE TABLE IF NOT EXISTS ads (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT, description TEXT);
+        CREATE TABLE IF NOT EXISTS beginner_guide (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT);
+        CREATE TABLE IF NOT EXISTS hausordnung (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT);
+        CREATE TABLE IF NOT EXISTS partners (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, partner_offer TEXT, met_offer TEXT, info TEXT);
+        CREATE TABLE IF NOT EXISTS personnel (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, phone TEXT, truck_license INTEGER DEFAULT 0, contract TEXT, license_plate TEXT, second_job TEXT);
+        CREATE TABLE IF NOT EXISTS violations (id INTEGER PRIMARY KEY AUTOINCREMENT, personnel_id INTEGER, date TEXT, violation TEXT, remark TEXT, percentage INTEGER, FOREIGN KEY(personnel_id) REFERENCES personnel(id) ON DELETE CASCADE);
+        CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, user_id TEXT, username TEXT, action TEXT, details TEXT, debug_log TEXT DEFAULT NULL);
+        CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY AUTOINCREMENT, item_name TEXT, quantity INTEGER, requester TEXT, status TEXT DEFAULT 'open', timestamp TEXT, note TEXT);
     `);
 
     // Migration: Add isHaendler column if it doesn't exist

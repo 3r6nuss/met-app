@@ -154,8 +154,11 @@ const initNewTables = async () => {
 
 initNewTables().catch(console.error);
 
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-});
+// Only start server if not running in test mode
+if (process.env.NODE_ENV !== 'test') {
+    server.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running on http://0.0.0.0:${PORT}`);
+    });
+}
 
-export { broadcastUpdate };
+export { broadcastUpdate, server };

@@ -107,6 +107,7 @@ export default function Navbar({ onOpenPriceList, user }) {
                                     <NavLink to="/sonstiges/kontakte" className={dropdownItemClass}>Kontakte</NavLink>
                                     <NavLink to="/sonstiges/partner" className={dropdownItemClass}>Partnerschaften</NavLink>
                                     <NavLink to="/sonstiges/personal" className={dropdownItemClass}>Personalliste</NavLink>
+                                    <NavLink to="/beleg" className={dropdownItemClass}>Beleg erstellen</NavLink>
                                     <NavLink to="/rechner" className={dropdownItemClass}>Rechner</NavLink>
                                 </>
                             )}
