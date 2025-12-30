@@ -171,9 +171,16 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
                 }
             } else if (reportMode === 'employee') {
                 if (log.type === 'in' && log.category === 'internal') {
-                    const key = log.depositor;
+                    const key = `${log.depositor}-${log.itemName}`;
                     if (!dataMap[key]) {
-                        dataMap[key] = { employee: key, producedQty: 0, producedValue: 0 };
+                        dataMap[key] = {
+                            id: key,
+                            employee: log.depositor,
+                            product: log.itemName,
+                            name: log.itemName, // Alias for generic filters
+                            producedQty: 0,
+                            producedValue: 0
+                        };
                     }
                     dataMap[key].producedQty += log.quantity;
                     dataMap[key].producedValue += value;
@@ -184,6 +191,22 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
                 }
             }
         });
+
+        // Independent Top Employee Calculation
+        let topEmployee = { name: 'N/A', value: 0 };
+        if (reportMode === 'employee') {
+            const empStats = {};
+            filteredLogs.forEach(log => {
+                if (log.type === 'in' && log.category === 'internal') {
+                    const val = (log.price || 0) * (log.quantity || 1);
+                    empStats[log.depositor] = (empStats[log.depositor] || 0) + val;
+                }
+            });
+            const sortedEmps = Object.entries(empStats).sort((a, b) => b[1] - a[1]);
+            if (sortedEmps.length > 0) {
+                topEmployee = { name: sortedEmps[0][0], value: sortedEmps[0][1] };
+            }
+        }
 
         // Post-Process Table Data
         let processedTableData = Object.values(dataMap);
@@ -615,7 +638,7 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
                                 {tableData.map((row, idx) => (
                                     <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
                                         {reportMode === 'employee' && <td className="px-6 py-4 font-medium text-amber-400">{row.employee}</td>}
-                                        <td className="px-6 py-4 text-slate-300">{reportMode === 'employee' ? row.employee : row.name}</td>
+                                        <td className="px-6 py-4 text-slate-300">{reportMode === 'employee' ? row.product : row.name}</td>
                                         <td className="px-6 py-4 text-right text-slate-400 font-mono">{row.producedQty}</td>
                                         <td className="px-6 py-4 text-right text-emerald-400 font-bold font-mono">{formatMoney(row.producedValue)}</td>
                                     </tr>
