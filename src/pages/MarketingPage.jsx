@@ -5,13 +5,17 @@ import { recipes } from '../data/recipes';
 // Helper to parse lohn string (e.g., "50/80" -> 80 (max), "80" -> 80, "" -> 0)
 const parseLohn = (lohnStr) => {
     if (!lohnStr || lohnStr === '-') return 0;
-    // If it contains '/', take the second value (usually max/expert price is better for checking break even)
+    if (typeof lohnStr === 'number') return lohnStr; // Handle number input
     if (lohnStr.includes('/')) {
         const parts = lohnStr.split('/');
         return parseFloat(parts[1]) || 0;
     }
     return parseFloat(lohnStr) || 0;
 };
+
+// Create a safe lookup map for recipes by Item Name (since IDs might shift)
+// We need to map ID -> Name from inventory, but we don't have inventory inside this static scope.
+// We will do it inside the component.
 
 export default function MarketingPage({ prices = [], inventory = [] }) {
     const [steps, setSteps] = useState([
