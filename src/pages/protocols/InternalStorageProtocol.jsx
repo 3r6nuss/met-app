@@ -74,6 +74,7 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
         return logs.filter(l =>
             ((l.category === 'internal' && l.type === 'in') ||
                 (l.itemName === 'Auszahlung' && l.category === 'internal')) &&
+            l.itemName !== 'Korrektur Geschäftskonto' &&
             // Filter by visibility based on mapping
             isDepositorVisible(l.depositor)
         );
