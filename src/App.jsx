@@ -648,7 +648,7 @@ function App() {
           {isBuchhaltung && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} user={user} employees={employees} onPayout={handleEmployeePayout} />} />}
           {!isPending && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} employees={personnel} onPayout={handleEmployeePayout} />} />}
           {(isBuchhaltung) && (
-            <Route path="/protokolle/period" element={<PeriodProtocol logs={logs} inventory={inventory} employees={employees} />} />
+            <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} inventory={inventory} employees={employees} />} />
           )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 
           <Route path="/protokolle/monthly" element={<Navigate to="/protokolle/period" replace />} />
