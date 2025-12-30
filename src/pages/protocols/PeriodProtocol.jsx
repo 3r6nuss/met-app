@@ -114,7 +114,7 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
     }, [filteredLogs]);
 
     // 3. Mode Specific Aggregation
-    const { tableData, chartData, pieData, summaryStats } = useMemo(() => {
+    const { tableData, chartData, pieData, summaryStats, tradeIncome, tradeOutcome, topEmployee } = useMemo(() => {
         const dataMap = {};
         const timeMap = {}; // For Line/Bar Chart over time
         const productMap = {}; // For Pie Chart
