@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Calculator, Save, TrendingUp, Search, Package, GitBranch } from 'lucide-react';
 import { recipes } from '../data/recipes';
+import { initialInventory } from '../data/initialData';
 
 // Helper to parse lohn string (e.g., "50/80" -> 80 (max), "80" -> 80, "" -> 0)
 const parseLohn = (lohnStr) => {
@@ -41,8 +42,20 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
     // Recursive function to build cost steps
     const calculateRecursiveSteps = (itemName, quantityMultiplier = 1) => {
         const itemPriceData = prices.find(p => p.name === itemName);
-        const itemInvData = inventory.find(i => i.name === itemName);
-        const itemId = itemInvData ? itemInvData.id : null;
+
+        // Robust ID Lookup:
+        // 1. Try finding ID in the passed 'inventory' (Live DB)
+        // 2. Fallback to 'initialInventory' (Static Seed Data) which matches recipes.js keys (ID based)
+        let itemId = null;
+
+        const liveInvItem = inventory.find(i => i.name === itemName);
+        const staticInvItem = initialInventory.find(i => i.name === itemName);
+
+        if (staticInvItem) {
+            itemId = staticInvItem.id; // Preferred for recipes since recipes.js uses static IDs
+        } else if (liveInvItem) {
+            itemId = liveInvItem.id;
+        }
 
         const generatedSteps = [];
         let totalCost = 0;
