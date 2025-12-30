@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Calculator, Save, TrendingUp, Search, Package } from 'lucide-react';
+import { Plus, Trash2, Calculator, Save, TrendingUp, Search, Package, GitBranch } from 'lucide-react';
 import { recipes } from '../data/recipes';
 
 // Helper to parse lohn string (e.g., "50/80" -> 80 (max), "80" -> 80, "" -> 0)
 const parseLohn = (lohnStr) => {
-    if (!lohnStr) return 0;
+    if (!lohnStr || lohnStr === '-') return 0;
     // If it contains '/', take the second value (usually max/expert price is better for checking break even)
     if (lohnStr.includes('/')) {
         const parts = lohnStr.split('/');
@@ -15,12 +15,12 @@ const parseLohn = (lohnStr) => {
 
 export default function MarketingPage({ prices = [], inventory = [] }) {
     const [steps, setSteps] = useState([
-        { id: 1, name: 'Materialkosten', cost: 0, type: 'material' },
-        { id: 2, name: 'Arbeitszeit / Lohn', cost: 0, type: 'labor' },
+        { id: 1, name: 'Zusatzkosten (Transport etc.)', cost: 0, type: 'other' },
     ]);
     const [targetProfit, setTargetProfit] = useState(0);
     const [selectedItem, setSelectedItem] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [recursiveSteps, setRecursiveSteps] = useState([]); // Stores the auto-calculated steps
 
     // Filter available items from prices
     const filteredItems = prices.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -29,64 +29,112 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
         setSelectedItem(itemPriceData);
         setSearchTerm(itemPriceData.name);
 
-        // Find inventory item to get ID for recipe lookup
-        const invItem = inventory.find(i => i.name === itemPriceData.name);
-        const itemId = invItem ? invItem.id : null;
+        // Calculate recursive costs
+        const { steps: calcSteps } = calculateRecursiveSteps(itemPriceData.name, 1);
+        setRecursiveSteps(calcSteps);
+    };
 
-        const newSteps = [];
+    // Recursive function to build cost steps
+    const calculateRecursiveSteps = (itemName, quantityMultiplier = 1) => {
+        const itemPriceData = prices.find(p => p.name === itemName);
+        const itemInvData = inventory.find(i => i.name === itemName);
+        const itemId = itemInvData ? itemInvData.id : null;
 
-        // 1. Labor Cost from Price List
-        const laborCost = parseLohn(itemPriceData.lohn);
-        if (laborCost > 0) {
-            newSteps.push({
-                id: Date.now() + 1,
-                name: `Lohnkosten (${itemPriceData.lohn}€)`,
-                cost: laborCost,
-                type: 'labor'
-            });
-        }
+        const generatedSteps = [];
+        let totalCost = 0;
 
-        // 2. Material Cost from Recipe
+        // 1. Get Direct Lohn (Crafting or Gathering Wage)
+        const lohn = parseLohn(itemPriceData?.lohn);
+
+        // 2. Check for Recipe
         if (itemId && recipes[itemId]) {
             const recipe = recipes[itemId];
 
-            // Calculate material costs
-            let totalMatCost = 0;
-            const materialsDescription = recipe.inputs.map(input => {
-                // Find price for input item (EK)
-                const inputPriceItem = prices.find(p => p.name === input.name);
-                const pricePerUnknown = inputPriceItem ? inputPriceItem.vk : 0; // Use VK as opportunity cost? Or EK? Usually EK for production. Let's use EK.
-                // Wait, if I buy materials, I pay EK? No, EK is what *I* pay to buy from players. So that is indeed my cost.
-                // But wait, if I produce it myself... let's stick to EK as "Cost of Goods".
-                const unitCost = inputPriceItem ? inputPriceItem.ek : 0;
+            // This item is CRAFTED.
+            // Cost = (Direct Lohn for Batch + Sum(Ingredient Costs)) / Output Quantity
 
-                const lineCost = unitCost * input.quantity;
-                totalMatCost += lineCost;
+            // a. Recursive Ingredient Costs
+            let ingredientsCost = 0;
+            recipe.inputs.forEach(input => {
+                const { steps: ingSteps, total: ingTotal } = calculateRecursiveSteps(input.name, input.quantity);
+                // We don't add all nested steps to the top level list to avoid clutter, 
+                // BUT current request implies summing up wages.
+                // Let's float the wages up.
 
-                return `${input.quantity}x ${input.name} (${unitCost}€)`;
-            }).join(', ');
-
-            // Adjust for output quantity (e.g. recipe makes 2 items)
-            const costPerItem = totalMatCost / (recipe.output || 1);
-
-            newSteps.push({
-                id: Date.now() + 2,
-                name: `Materialien (Rezept: ${recipe.output}x)`,
-                cost: parseFloat(costPerItem.toFixed(2)),
-                type: 'material',
-                details: materialsDescription
+                ingSteps.forEach(s => {
+                    // Adjust cost based on how many batches we need?
+                    // Actually, the recursive call `calculateRecursiveSteps(input.name, input.quantity)` 
+                    // should return the cost for the *required quantity*.
+                    generatedSteps.push({
+                        ...s,
+                        name: `${s.name} (für ${itemName})`
+                    });
+                });
+                ingredientsCost += ingTotal;
             });
+
+            // b. Direct Crafting Lohn
+            // Lohn in price list is usually per Crafting Batch
+            if (lohn > 0) {
+                generatedSteps.push({
+                    id: Math.random(),
+                    name: `Verarbeitung: ${itemName}`,
+                    cost: lohn, // This is for ONE batch
+                    type: 'labor'
+                });
+            }
+
+            // c. Total Batch Cost
+            const batchTotal = lohn + ingredientsCost;
+
+            // d. Cost Per Unit (Output)
+            const unitCost = batchTotal / recipe.output;
+
+            // However, we want the steps to reflect the breakdown for 1 Unit.
+            // So we need to scale all accumulated steps by (1 / recipe.output).
+            const scaledSteps = generatedSteps.map(s => ({
+                ...s,
+                cost: s.cost / recipe.output * quantityMultiplier
+            }));
+
+            // Collapsing steps is tricky. Let's just return the value and maybe a summary step?
+            // User wants: "Lohn Platine + (Lohn E-Schrott * X)"
+            // So they want to see the components.
+
+            return {
+                steps: scaledSteps,
+                total: unitCost * quantityMultiplier
+            };
+
         } else {
-            // No recipe found, maybe just add a generic slot
-            newSteps.push({ id: Date.now() + 3, name: 'Materialkosten (Sonstiges)', cost: 0, type: 'material' });
-        }
+            // This item is RAW / GATHERED (or has no recipe known).
+            // Cost = Lohn (Gathering Wage) * Quantity
 
-        if (newSteps.length === 0) {
-            newSteps.push({ id: Date.now(), name: 'Sonstige Kosten', cost: 0, type: 'other' });
-        }
+            // If lohn is 0, maybe it's a bought item? 
+            // If bought, cost is EK?
+            // "so wir null null rauskommen" implies we produce everything ourselves.
+            // If we produce ourselves, and it has no recipe, it must be gathered.
+            // If Lohn is 0, then cost is 0? (e.g. By-product?)
+            // Let's assume Cost = Max(Lohn, EK) if Lohn is 0? 
+            // No, strictly Lohn as requested. If Lohn is 0, it's free.
 
-        setSteps(newSteps);
+            const unitCost = lohn;
+            const total = unitCost * quantityMultiplier;
+
+            const steps = [];
+            if (total > 0) {
+                steps.push({
+                    id: Math.random(),
+                    name: `Beschaffung: ${itemName}`,
+                    cost: total,
+                    type: 'labor'
+                });
+            }
+
+            return { steps, total };
+        }
     };
+
 
     const addStep = () => {
         setSteps([...steps, { id: Date.now(), name: '', cost: 0, type: 'other' }]);
@@ -102,7 +150,9 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
         ));
     };
 
-    const totalCost = steps.reduce((sum, step) => sum + (parseFloat(step.cost) || 0), 0);
+    // Merge manual steps and recursive steps for total
+    const allSteps = [...recursiveSteps, ...steps];
+    const totalCost = allSteps.reduce((sum, step) => sum + (parseFloat(step.cost) || 0), 0);
     const breakEven = totalCost;
     const sellPrice = totalCost + (parseFloat(targetProfit) || 0);
     const margin = sellPrice > 0 ? ((sellPrice - totalCost) / sellPrice * 100).toFixed(1) : 0;
@@ -114,7 +164,7 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
                     <Calculator className="w-8 h-8 text-violet-400" />
                     Marketing Kalkulator
                 </h1>
-                <p className="text-slate-400 mt-2">Berechne den perfekten Verkaufspreis basierend auf Rezepten und Preislisten.</p>
+                <p className="text-slate-400 mt-2">Berechne den perfekten Verkaufspreis basierend auf der gesamten Produktionskette (Vollkosten).</p>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -157,13 +207,35 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
 
                     <div className="glass-panel p-6 rounded-xl border border-slate-700/50">
                         <h2 className="text-xl font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                            <GitBranch className="w-5 h-5 text-indigo-400" />
+                            Kostenstruktur (Automatisch)
+                        </h2>
+                        {recursiveSteps.length > 0 ? (
+                            <div className="space-y-2 mb-6">
+                                {recursiveSteps.map((step, index) => (
+                                    <div key={index} className="flex justify-between items-center text-sm p-2 bg-slate-800/30 rounded border border-slate-700/30">
+                                        <span className="text-slate-300">{step.name}</span>
+                                        <span className="text-emerald-400 font-mono">{step.cost.toFixed(2)} €</span>
+                                    </div>
+                                ))}
+                                <div className="border-t border-slate-700 pt-2 flex justify-between items-center font-medium">
+                                    <span className="text-slate-400">Summe Lohnkosten</span>
+                                    <span className="text-slate-200">{recursiveSteps.reduce((a, b) => a + b.cost, 0).toFixed(2)} €</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-slate-500 italic mb-6">Wähle ein Produkt, um die Produktionskosten zu sehen.</p>
+                        )}
+
+
+                        <h2 className="text-xl font-semibold text-slate-200 mb-4 flex items-center gap-2">
                             <TrendingUp className="w-5 h-5 text-emerald-400" />
-                            Kostenaufstellung
+                            Zusätzliche Kosten
                         </h2>
 
                         <div className="space-y-4">
                             {steps.map((step, index) => (
-                                <div key={step.id} className="flex flex-col gap-2 animate-slide-in p-3 bg-slate-800/30 rounded-lg border border-slate-700/30" style={{ animationDelay: `${index * 50}ms` }}>
+                                <div key={step.id} className="flex flex-col gap-2 animate-slide-in p-3 bg-slate-800/30 rounded-lg border border-slate-700/30">
                                     <div className="flex gap-3 items-start">
                                         <input
                                             type="text"
@@ -189,11 +261,6 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    {step.details && (
-                                        <div className="text-xs text-slate-500 px-1 italic">
-                                            Details: {step.details}
-                                        </div>
-                                    )}
                                 </div>
                             ))}
 
@@ -239,7 +306,7 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
 
                         <div className="space-y-6">
                             <div className="flex justify-between items-end">
-                                <span className="text-slate-400">Selbstkosten (Material + Lohn)</span>
+                                <span className="text-slate-400">Selbstkosten (Lohnkette)</span>
                                 <span className="text-2xl font-mono text-slate-200">{breakEven.toFixed(2)} €</span>
                             </div>
 
@@ -259,8 +326,10 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
 
                             {selectedItem && (
                                 <div className="mt-4 p-3 bg-slate-800/50 rounded border border-slate-700/50 text-sm flex justify-between">
-                                    <span className="text-slate-400">Aktueller Markt-VK (Liste):</span>
-                                    <span className="text-slate-200 font-mono">{selectedItem.vk} €</span>
+                                    <span className="text-slate-400">Aktueller Listen-VK:</span>
+                                    <span className={`font-mono font-bold ${sellPrice > selectedItem.vk ? 'text-red-400' : 'text-emerald-400'}`}>
+                                        {selectedItem.vk} €
+                                    </span>
                                 </div>
                             )}
 
