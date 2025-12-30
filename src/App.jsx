@@ -635,7 +635,7 @@ function App() {
           {/* Calculator Route */}
           <Route path="/rechner" element={<CalculatorPage prices={prices} />} />
           <Route path="/buchung/rechner" element={<CalculatorPage prices={prices} />} />
-          <Route path="/marketing" element={<MarketingPage />} />
+          <Route path="/marketing" element={<MarketingPage prices={prices} inventory={inventory} />} />
 
           {/* Redirect old routes */}
           <Route path="/buchung" element={<Navigate to={isLager ? "/buchung/auslagern" : "/"} replace />} />
