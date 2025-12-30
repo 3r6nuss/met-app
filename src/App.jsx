@@ -31,6 +31,7 @@ import BeginnerGuidePage from './pages/BeginnerGuidePage';
 import AuditLogPage from './pages/AuditLogPage';
 import HausordnungPage from './pages/HausordnungPage';
 import BelegPage from './pages/BelegPage';
+import MarketingPage from './pages/MarketingPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 import { api } from './services/api';
@@ -634,6 +635,7 @@ function App() {
           {/* Calculator Route */}
           <Route path="/rechner" element={<CalculatorPage prices={prices} />} />
           <Route path="/buchung/rechner" element={<CalculatorPage prices={prices} />} />
+          <Route path="/marketing" element={<MarketingPage />} />
 
           {/* Redirect old routes */}
           <Route path="/buchung" element={<Navigate to={isLager ? "/buchung/auslagern" : "/"} replace />} />
