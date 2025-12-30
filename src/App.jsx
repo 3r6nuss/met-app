@@ -9,7 +9,7 @@ import InventoryPage from './pages/InventoryPage';
 import ActionPage from './pages/ActionPage';
 import ControlPage from './pages/ControlPage';
 import DailyTradeLog from './pages/protocols/DailyTradeLog';
-import DailyEmployeeLog from './pages/protocols/DailyEmployeeLog';
+
 import WeeklyProtocol from './pages/protocols/WeeklyProtocol';
 import PeriodProtocol from './pages/protocols/PeriodProtocol';
 import StorageProtocol from './pages/protocols/StorageProtocol';
@@ -645,8 +645,7 @@ function App() {
           {isBuchhaltung && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
 
           {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
-          {isBuchhaltung && <Route path="/protokolle/employee" element={<DailyEmployeeLog logs={transactionLogs} user={user} employees={employees} onPayout={handleEmployeePayout} />} />}
-          {!isPending && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} employees={personnel} onPayout={handleEmployeePayout} />} />}
+          {!isPending && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} employees={employees} onPayout={handleEmployeePayout} />} />}
           {(isBuchhaltung) && (
             <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} inventory={inventory} employees={employees} />} />
           )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}

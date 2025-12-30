@@ -32,32 +32,64 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
     // Helper: Format Money
     const formatMoney = (amount) => `$${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-    // 0. Valid Employees Set
-    const validEmployeeNames = useMemo(() => {
-        if (!employees) return new Set();
-        return new Set(employees.map(e => typeof e === 'string' ? e : e.name));
+    // 0. Build mapping: depositor name -> protocol display name & track visibility
+    const employeeMapping = useMemo(() => {
+        const mapping = {};
+        if (employees) {
+            employees.forEach(emp => {
+                const empObj = typeof emp === 'string' ? { name: emp, visible_in_protocol: 1, protocol_name: null } : emp;
+                const isVisible = empObj.visible_in_protocol === 1 || empObj.visible_in_protocol === true || empObj.visible_in_protocol === undefined;
+                const displayName = empObj.protocol_name || empObj.name;
+                mapping[empObj.name] = { displayName, isVisible };
+            });
+        }
+        return mapping;
     }, [employees]);
 
+    // Helper to get display name for a depositor
+    const getDisplayName = (depositor) => {
+        if (!depositor || typeof depositor !== 'string') return depositor || 'Unbekannt';
+        return employeeMapping[depositor]?.displayName || depositor;
+    };
+
+    // Check if a depositor should be displayed
+    const isDepositorVisible = (depositor) => {
+        // If no mapping exists (unknown employee), show by default
+        if (!depositor || typeof depositor !== 'string') return true;
+        if (!employeeMapping[depositor]) return true;
+        return employeeMapping[depositor].isVisible;
+    };
+
+    const validEmployeeNames = useMemo(() => {
+        // We now use mapping to determine validity if needed, but primarily we filter by visibility later.
+        // Keeping this for compatibility if it was used elsewhere, but redefining it:
+        if (!employees) return new Set();
+        return new Set(Object.keys(employeeMapping));
+    }, [employeeMapping, employees]);
+
+    // 1. Filter Logs: Category 'internal' AND Action 'in' (Einlagerung) OR 'Auszahlung'
     // 1. Filter Logs: Category 'internal' AND Action 'in' (Einlagerung) OR 'Auszahlung'
     // We need all history to calculate "Open Status", but we only DISPLAY the view week.
     const relevantLogs = useMemo(() => {
         return logs.filter(l =>
             ((l.category === 'internal' && l.type === 'in') ||
                 (l.itemName === 'Auszahlung' && l.category === 'internal')) &&
-            (validEmployeeNames.size === 0 || validEmployeeNames.has(l.depositor))
+            // Filter by visibility based on mapping
+            isDepositorVisible(l.depositor)
         );
-    }, [logs, validEmployeeNames]);
+    }, [logs, employeeMapping]);
 
     // 2. Calculate Open Balances (Global)
     const employeeBalances = useMemo(() => {
         const balances = {};
         const payouts = {};
 
-        // First find last payout for each employee
+        // First find last payout for each employee (mapped by Display Name)
         relevantLogs.forEach(log => {
             if (log.itemName === 'Auszahlung') {
-                if (!payouts[log.depositor] || log.timestamp > payouts[log.depositor]) {
-                    payouts[log.depositor] = log.timestamp;
+                const displayName = getDisplayName(log.depositor);
+                if (!payouts[displayName] || log.timestamp > payouts[displayName]) {
+                    payouts[displayName] = log.timestamp;
                 }
             }
         });
@@ -65,10 +97,11 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
         // Calculate unpaid amounts
         relevantLogs.forEach(log => {
             if (log.itemName !== 'Auszahlung') {
-                const isPaid = payouts[log.depositor] && log.timestamp <= payouts[log.depositor];
+                const displayName = getDisplayName(log.depositor);
+                const isPaid = payouts[displayName] && log.timestamp <= payouts[displayName];
                 if (!isPaid) {
                     const val = (log.price || 0) * (log.quantity || 0);
-                    balances[log.depositor] = (balances[log.depositor] || 0) + val;
+                    balances[displayName] = (balances[displayName] || 0) + val;
                 }
             }
         });
@@ -87,34 +120,50 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
         });
 
         // Also just for checking "isPaid" status relative to ALL TIME
-        // We re-calculate last payouts just for the status check in the view
+        // We re-calculate last payouts just for the status check in the view (mapped name)
         const lastPayouts = {};
         relevantLogs.forEach(log => {
             if (log.itemName === 'Auszahlung') {
-                if (!lastPayouts[log.depositor] || log.timestamp > lastPayouts[log.depositor]) {
-                    lastPayouts[log.depositor] = log.timestamp;
+                const displayName = getDisplayName(log.depositor);
+                if (!lastPayouts[displayName] || log.timestamp > lastPayouts[displayName]) {
+                    lastPayouts[displayName] = log.timestamp;
                 }
             }
         });
 
+        // Pre-fill groups for ALL visible employees so they appear even if no logs this week
+        if (employees) {
+            Object.values(employeeMapping).forEach(({ displayName, isVisible }) => {
+                if (isVisible && !groups[displayName]) {
+                    groups[displayName] = {
+                        name: displayName,
+                        logs: [],
+                        totalWage: 0
+                    };
+                }
+            });
+        }
+
         logsInView.forEach(log => {
-            if (!groups[log.depositor]) {
-                groups[log.depositor] = {
-                    name: log.depositor,
+            const displayName = getDisplayName(log.depositor);
+
+            if (!groups[displayName]) {
+                groups[displayName] = {
+                    name: displayName,
                     logs: [],
                     totalWage: 0
                 };
             }
 
             const val = (log.price || 0) * (log.quantity || 0);
-            const isPaid = lastPayouts[log.depositor] && log.timestamp <= lastPayouts[log.depositor];
+            const isPaid = lastPayouts[displayName] && log.timestamp <= lastPayouts[displayName];
 
-            groups[log.depositor].logs.push({
+            groups[displayName].logs.push({
                 ...log,
                 val,
                 isPaid
             });
-            groups[log.depositor].totalWage += val;
+            groups[displayName].totalWage += val;
         });
 
         // Sort by name
@@ -123,7 +172,8 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
         // Filter for specific user if not Admin/Buchhaltung
         const isPrivileged = user?.role === 'Administrator' || user?.role === 'Buchhaltung';
         if (!isPrivileged && user?.employeeName) {
-            result = result.filter(r => r.name === user.employeeName);
+            const myDisplayName = getDisplayName(user.employeeName);
+            result = result.filter(r => r.name === myDisplayName);
         }
 
         return result;
