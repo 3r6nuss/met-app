@@ -188,6 +188,7 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
                     timeMap[dateKey].value += value;
                     totalRevenue += value; // Value produced
                     totalQuantity += log.quantity;
+                    count++;
                 }
             }
         });
@@ -257,57 +258,10 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
 
 
         // Post-Process Charts
-        const processedChartData = Object.values(timeMap).sort((a, b) => {
-            // Simple date sort helper if keys are dates
-            // Assuming keys are chronologically sortable if standard ISO or similar, 
-            // but here they are localized strings.. might need original timestamp data if sorting is weird
-            // For now relies on insertion order or simple string comparison (dangerous for months)
-            // Better: construct array from filled range
-            return 0; // Relying on source order for now (logs usually chrono, but dangerous)
-        });
-        // Re-filling gaps could be good but let's stick to active days for now
-
-        // Fix Chart Sort (Brute force using Map keys to date)
-        const filledChartData = [];
-        const days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-        for (let i = 0; i < days; i++) {
-            const d = new Date(start);
-            d.setDate(d.getDate() + i);
-            const key = periodType === 'year'
-                ? d.toLocaleDateString('de-DE', { month: 'short' }) // This duplicates keys for year mode, fix logic for year later
-                : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-
-            if (periodType === 'year') {
-                // Year mode aggregation is monthly.
-                // Logic needs update for efficient year loop. Skip for now, focusing on daily visual.
-            }
-
-            // Quick lookup
-            // This loop is tricky with the string keys. 
-            // Better: Just sort the chartData we collected by parsing the date string or checking original?
-            // Let's just trust filterLogs order if it was sorted? 
-            // logs.json is usually newest first. We need oldest first for charts.
-        }
-        // Force sort by reversing if needed or better parsing.
-        // Let's just standard sort the output array.
-        // Actually, let's use the timestamp from the aggregation if we saved it ?? No.
-
-        // Re-Sort processedChartData properly?
-        // Let's assume logs are Newest -> Oldest. 
-        // We processed sequentially. 
-        // Let's just reverse the chart array? No, `timeMap` puts keys in insertion order usually.
-        // Let's just Sort the keys of timeMap first.
-        const sortedKeys = Object.keys(timeMap).sort((a, b) => {
-            const [da, ma, ya] = a.split('.'); // Handle DD.MM
-            const [db, mb, yb] = b.split('.');
-            // This is fragile.
-            return 0;
-        });
-        // OK, Simplification: Just take Object.values and don't worry too much about strict crono for the MVP unless user complains. 
-        // Actually, for a graph it matters. 
-        // Let's use numeric timestamps for keys in timeMap, then format for display.
-
-        const chartDataFinal = Object.values(timeMap); // Expecting mix
+        // Logs are typically Newest -> Oldest. We process them in order. 
+        // So timeMap keys are created Newest -> Oldest (roughly).
+        // We want chart to be Oldest -> Newest (Left -> Right).
+        const chartDataFinal = Object.values(timeMap).reverse();
 
         // Process Pie Data (Top 5)
         const processedPieData = Object.entries(productMap)
@@ -321,6 +275,7 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
             pieData: processedPieData,
             tradeIncome,
             tradeOutcome,
+            topEmployee,
             summaryStats: {
                 totalRevenue,
                 totalExpenses,
