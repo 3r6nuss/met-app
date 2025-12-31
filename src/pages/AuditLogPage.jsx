@@ -9,7 +9,7 @@ export default function AuditLogPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [actionFilter, setActionFilter] = useState('all');
-    const [activeTab, setActiveTab] = useState('audit'); // 'audit' or 'transactions'
+    const [activeTab, setActiveTab] = useState('audit'); // 'audit', 'transactions', 'errors'
     const [reverting, setReverting] = useState(null);
 
     const fetchLogs = async () => {
@@ -93,6 +93,8 @@ export default function AuditLogPage() {
             case 'LOGIN': return <LogIn className="w-4 h-4 text-emerald-400" />;
             case 'TRANSACTION': return <ArrowRightLeft className="w-4 h-4 text-violet-400" />;
             case 'REVERT': return <Undo2 className="w-4 h-4 text-amber-400" />;
+            case 'FRONTEND_ERROR':
+            case 'SERVER_ERROR': return <AlertTriangle className="w-4 h-4 text-red-500" />;
             default: return <Activity className="w-4 h-4 text-slate-400" />;
         }
     };
@@ -102,6 +104,8 @@ export default function AuditLogPage() {
             case 'LOGIN': return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
             case 'TRANSACTION': return 'bg-violet-500/20 text-violet-300 border-violet-500/30';
             case 'REVERT': return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+            case 'FRONTEND_ERROR':
+            case 'SERVER_ERROR': return 'bg-red-500/20 text-red-400 border-red-500/30';
             default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
         }
     };
@@ -274,6 +278,16 @@ export default function AuditLogPage() {
                     <FileText className="w-5 h-5" />
                     Transaktionen ({transactionLogs.length})
                 </button>
+                <button
+                    onClick={() => setActiveTab('errors')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'errors'
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-500/25'
+                        : 'text-slate-400 hover:text-red-400 hover:bg-red-900/10'
+                        }`}
+                >
+                    <AlertTriangle className="w-5 h-5" />
+                    System Errors
+                </button>
             </div>
 
             {/* Filters */}
@@ -305,6 +319,7 @@ export default function AuditLogPage() {
                             </select>
                         </div>
                     )}
+                    {activeTab === 'errors' && <div className="text-sm text-red-400 self-center">Showing critical system errors</div>}
                 </div>
             </div>
 
@@ -340,6 +355,48 @@ export default function AuditLogPage() {
                     <div className="p-8 text-center text-slate-400">
                         <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2" />
                         Laden...
+                    </div>
+                ) : activeTab === 'errors' ? (
+                    /* Error Log Table */
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-red-950/30 border-b border-red-900/30">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-red-400 uppercase">Zeit</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-red-400 uppercase">Typ</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-red-400 uppercase">Benutzer</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-red-400 uppercase">Fehler</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-red-400 uppercase">Stack Trace</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-red-900/10">
+                                {logs.filter(l => l.action.includes('ERROR')).map((log) => (
+                                    <tr key={log.id} className="hover:bg-red-900/5 transition-colors">
+                                        <td className="px-4 py-3 text-sm text-slate-300 whitespace-nowrap">{formatDate(log.timestamp)}</td>
+                                        <td className="px-4 py-3">
+                                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold border border-red-500/50 bg-red-500/20 text-red-400">
+                                                {log.action}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-slate-300">{log.username}</td>
+                                        <td className="px-4 py-3 text-sm text-white font-mono">{log.details}</td>
+                                        <td className="px-4 py-3 text-right">
+                                            {log.debug_log && (
+                                                <button
+                                                    onClick={() => setSelectedDebugLog(log)}
+                                                    className="p-1.5 bg-red-900/30 hover:bg-red-900/50 text-red-300 rounded-lg transition-colors border border-red-500/30"
+                                                >
+                                                    <FileText className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {logs.filter(l => l.action.includes('ERROR')).length === 0 && (
+                                    <tr><td colSpan="5" className="p-8 text-center text-slate-500">Keine Fehler protokolliert.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 ) : activeTab === 'audit' ? (
                     /* Audit Log Table */

@@ -54,6 +54,44 @@ const broadcastUpdate = () => {
 // Make broadcastUpdate available to routes via app.get('broadcastUpdate')
 app.set('broadcastUpdate', broadcastUpdate);
 
+// Debug/Error Reporting Route
+app.post('/api/debug/log', async (req, res) => {
+    try {
+        const { error, info, componentStack, url } = req.body;
+        const user = req.user || { discordId: 'ANONYMOUS', username: 'Guest' };
+
+        await logAudit(
+            'FRONTEND_ERROR',
+            user.discordId,
+            user.username,
+            `Error at ${url}: ${error}`,
+            { stack: componentStack, info, error }
+        );
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Failed to log frontend error:", e);
+        res.status(500).json({ error: "Logging failed" });
+    }
+});
+
+// Global Error Handler Middleware
+app.use(async (err, req, res, next) => {
+    console.error("Unhandled Server Error:", err);
+
+    // Log to DB
+    const user = req.user || { discordId: 'SYSTEM', username: 'System' };
+    await logAudit(
+        'SERVER_ERROR',
+        user.discordId,
+        user.username,
+        `Unhandled Error: ${err.message}`,
+        { stack: err.stack, method: req.method, url: req.url, body: req.body }
+    );
+
+    res.status(500).json({ error: "Internal Server Error", message: err.message });
+});
+
 // Session Configuration
 app.use(session({
     secret: process.env.SESSION_SECRET || 'keyboard cat',

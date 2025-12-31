@@ -170,5 +170,18 @@ export const api = {
             body: JSON.stringify(verificationEntry)
         });
         return handleResponse(res);
+    },
+
+    // System & Error Reporting
+    reportError: async (errorData) => {
+        try {
+            await fetch(`${API_URL}/debug/log`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(errorData)
+            });
+        } catch (e) {
+            console.error("Failed to report error to server:", e);
+        }
     }
 };

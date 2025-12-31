@@ -1,4 +1,5 @@
 import React from 'react';
+import { api } from '../services/api';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -13,6 +14,14 @@ class ErrorBoundary extends React.Component {
     componentDidCatch(error, errorInfo) {
         this.setState({ error, errorInfo });
         console.error("Uncaught error:", error, errorInfo);
+
+        // Report to server
+        api.reportError({
+            error: error.toString(),
+            info: errorInfo,
+            componentStack: errorInfo.componentStack,
+            url: window.location.href
+        });
     }
 
     render() {
