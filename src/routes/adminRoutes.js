@@ -184,12 +184,19 @@ router.post('/personnel', isAdmin, async (req, res) => {
 router.delete('/personnel/:id', isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
+        console.log(`[Admin] Deleting personnel ${id}`);
         const db = await getDb();
-        await db.run('DELETE FROM personnel WHERE id = ?', id);
+
+        // Delete violations first to avoid constraint issues if FKs are restricted (though they are CASCADE)
         await db.run('DELETE FROM violations WHERE personnel_id = ?', id);
+        await db.run('DELETE FROM personnel WHERE id = ?', id);
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
-    } catch (error) { res.status(500).json({ error: "Database error" }); }
+    } catch (error) {
+        console.error("Error deleting personnel:", error);
+        res.status(500).json({ error: "Database error: " + error.message });
+    }
 });
 
 // VIOLATIONS
