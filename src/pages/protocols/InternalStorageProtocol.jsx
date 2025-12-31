@@ -202,7 +202,7 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
                 <div>
                     <h2 className="text-2xl font-bold text-slate-200 flex items-center gap-2">
                         <Banknote className="w-6 h-6 text-emerald-400" />
-                        Internes Lagerprotokoll (Lohn)
+                        Tagesprotokoll Mitarbeiter (Lohn)
                     </h2>
                     <p className="text-slate-400 text-sm mt-1">Einlagerungen (Internal) und Lohnberechnung</p>
                 </div>
