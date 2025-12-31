@@ -56,6 +56,38 @@ export const api = {
         if (res.ok) return res.json();
         return [];
     },
+    savePersonnel: async (data) => {
+        const res = await fetch(`${API_URL}/personnel`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to save personnel');
+        return res.json();
+    },
+    deletePersonnel: async (id) => {
+        const res = await fetch(`${API_URL}/personnel/${id}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Failed to delete personnel');
+        return res.json();
+    },
+    saveViolation: async (data) => {
+        const res = await fetch(`${API_URL}/violations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to save violation');
+        return res.json();
+    },
+    deleteViolation: async (id) => {
+        const res = await fetch(`${API_URL}/violations/${id}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('Failed to delete violation');
+        return res.json();
+    },
 
     // Employee Inventory
     getEmployeeInventory: async () => {

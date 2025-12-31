@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Save, X, User, Truck, FileText, AlertTriangle, Car } from 'lucide-react';
 
+import { api } from '../services/api';
+
 export default function PersonnelPage() {
     const [personnel, setPersonnel] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
@@ -27,8 +29,7 @@ export default function PersonnelPage() {
     }, []);
 
     const fetchPersonnel = () => {
-        fetch('/api/personnel')
-            .then(res => res.json())
+        api.getPersonnel()
             .then(data => {
                 setPersonnel(data);
                 setLoading(false);
@@ -74,10 +75,14 @@ export default function PersonnelPage() {
     const handleDelete = (e, id) => {
         e.stopPropagation();
         if (confirm('Wirklich löschen?')) {
-            fetch(`/api/personnel/${id}`, { method: 'DELETE' })
-                .then(res => res.json())
+            api.deletePersonnel(id)
                 .then(data => {
                     if (data.success) fetchPersonnel();
+                    else alert('Fehler beim Löschen');
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Fehler beim Löschen: ' + err.message);
                 });
         }
     };
@@ -86,17 +91,18 @@ export default function PersonnelPage() {
         e.preventDefault();
         const payload = { ...formData, id: currentPerson?.id };
 
-        fetch('/api/personnel', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-            .then(res => res.json())
+        api.savePersonnel(payload)
             .then(data => {
                 if (data.success) {
                     setIsEditing(false);
                     fetchPersonnel();
+                } else {
+                    alert('Fehler beim Speichern');
                 }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Fehler beim Speichern: ' + err.message);
             });
     };
 
@@ -109,12 +115,7 @@ export default function PersonnelPage() {
         e.preventDefault();
         if (!currentPerson) return;
 
-        fetch('/api/violations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...violationData, personnel_id: currentPerson.id })
-        })
-            .then(res => res.json())
+        api.saveViolation({ ...violationData, personnel_id: currentPerson.id })
             .then(data => {
                 if (data.success) {
                     setViolationData({
@@ -124,17 +125,23 @@ export default function PersonnelPage() {
                         percentage: 0
                     });
                     fetchPersonnel();
+                } else {
+                    alert('Fehler beim Speichern des Verstoßes');
                 }
+            })
+            .catch(err => {
+                alert('Fehler: ' + err.message);
             });
     };
 
     const handleDeleteViolation = (id) => {
         if (confirm('Verstoß löschen?')) {
-            fetch(`/api/violations/${id}`, { method: 'DELETE' })
-                .then(res => res.json())
+            api.deleteViolation(id)
                 .then(data => {
                     if (data.success) fetchPersonnel();
-                });
+                    else alert('Fehler beim Löschen');
+                })
+                .catch(err => alert('Fehler: ' + err.message));
         }
     };
 
