@@ -182,18 +182,26 @@ router.post('/personnel', isAdmin, async (req, res) => {
 });
 
 router.delete('/personnel/:id', isAdmin, async (req, res) => {
+    let db;
     try {
         const { id } = req.params;
         console.log(`[Admin] Deleting personnel ${id}`);
-        const db = await getDb();
+        db = await getDb();
 
-        // Delete violations first to avoid constraint issues if FKs are restricted (though they are CASCADE)
+        await db.run('BEGIN TRANSACTION');
+
+        // Delete violations first (optional if CASCADE is ON, but good for explicit safety)
         await db.run('DELETE FROM violations WHERE personnel_id = ?', id);
         await db.run('DELETE FROM personnel WHERE id = ?', id);
+
+        await db.run('COMMIT');
 
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
+        if (db) {
+            try { await db.run('ROLLBACK'); } catch (e) { console.error("Rollback failed", e); }
+        }
         console.error("Error deleting personnel:", error);
         res.status(500).json({ error: "Database error: " + error.message });
     }

@@ -1,10 +1,23 @@
-const API_URL = '/api';
+
+const handleResponse = async (res) => {
+    if (!res.ok) {
+        let errorMessage = `Request failed with status ${res.status}`;
+        try {
+            const data = await res.json();
+            if (data.error) errorMessage = data.error;
+        } catch (e) {
+            // response was not JSON or empty
+        }
+        throw new Error(errorMessage);
+    }
+    return res.json();
+};
 
 export const api = {
     // Inventory
     getInventory: async () => {
         const res = await fetch(`${API_URL}/inventory`);
-        return res.json();
+        return handleResponse(res);
     },
     saveInventory: async (data) => {
         const res = await fetch(`${API_URL}/inventory`, {
@@ -12,8 +25,7 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error('Failed to save inventory');
-        return res.json();
+        return handleResponse(res);
     },
 
     // Logs
@@ -27,20 +39,19 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(entry)
         });
-        if (!res.ok) throw new Error('Failed to save log');
-        return res.json();
+        return handleResponse(res);
     },
     deleteLog: async (timestamp) => {
         const res = await fetch(`${API_URL}/logs/${encodeURIComponent(timestamp)}`, {
             method: 'DELETE'
         });
-        return res.json();
+        return handleResponse(res);
     },
 
     // Employees & Personnel
     getEmployees: async () => {
         const res = await fetch(`${API_URL}/employees`);
-        return res.json();
+        return handleResponse(res);
     },
     saveEmployees: async (data) => {
         const res = await fetch(`${API_URL}/employees`, {
@@ -48,8 +59,7 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error('Failed to save employees');
-        return res.json();
+        return handleResponse(res);
     },
     getPersonnel: async () => {
         const res = await fetch(`${API_URL}/personnel`);
@@ -62,15 +72,13 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error('Failed to save personnel');
-        return res.json();
+        return handleResponse(res);
     },
     deletePersonnel: async (id) => {
         const res = await fetch(`${API_URL}/personnel/${id}`, {
             method: 'DELETE'
         });
-        if (!res.ok) throw new Error('Failed to delete personnel');
-        return res.json();
+        return handleResponse(res);
     },
     saveViolation: async (data) => {
         const res = await fetch(`${API_URL}/violations`, {
@@ -78,15 +86,13 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (!res.ok) throw new Error('Failed to save violation');
-        return res.json();
+        return handleResponse(res);
     },
     deleteViolation: async (id) => {
         const res = await fetch(`${API_URL}/violations/${id}`, {
             method: 'DELETE'
         });
-        if (!res.ok) throw new Error('Failed to delete violation');
-        return res.json();
+        return handleResponse(res);
     },
 
     // Employee Inventory
@@ -163,7 +169,6 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(verificationEntry)
         });
-        if (!res.ok) throw new Error('Failed to save verification');
-        return res.json();
+        return handleResponse(res);
     }
 };

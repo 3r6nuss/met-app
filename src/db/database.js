@@ -18,6 +18,8 @@ export async function getDb() {
         driver: sqlite3.Database
     });
 
+    await dbInstance.exec('PRAGMA foreign_keys = ON;');
+
     await dbInstance.exec(`
         CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY,
