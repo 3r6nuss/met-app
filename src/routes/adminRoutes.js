@@ -143,17 +143,7 @@ router.post('/prices', isAdmin, async (req, res) => {
 // CONTENT ROUTES (Ads, Guide, Hausordnung, Partners, Contacts, Personnel)
 // For brevity, these are grouped here as "Admin/Content"
 
-const createContentRoutes = (table, pathName) => {
-    router.get(`/${pathName}`, async (req, res) => {
-        try {
-            const db = await getDb();
-            const data = await db.all(`SELECT * FROM ${table}`);
-            res.json(data);
-        } catch (e) { res.status(500).json({ error: "DB Error" }); }
-    });
-    // Add POST/DELETE if needed, mostly consistent pattern.
-    // Since schemas differ, better not to genericize too much logic blindly.
-};
+
 
 // PERSONNEL
 router.get('/personnel', async (req, res) => {
@@ -164,7 +154,7 @@ router.get('/personnel', async (req, res) => {
             p.violations = await db.all('SELECT * FROM violations WHERE personnel_id = ? ORDER BY date DESC', p.id);
         }
         res.json(personnel);
-    } catch (error) { res.status(500).json({ error: "Database error" }); }
+    } catch (_error) { res.status(500).json({ error: "Database error" }); }
 });
 
 router.post('/personnel', isAdmin, async (req, res) => {
@@ -178,7 +168,7 @@ router.post('/personnel', isAdmin, async (req, res) => {
         }
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
-    } catch (error) { res.status(500).json({ error: "Database error" }); }
+    } catch (_error) { res.status(500).json({ error: "Database error" }); }
 });
 
 router.delete('/personnel/:id', isAdmin, async (req, res) => {
@@ -215,7 +205,7 @@ router.post('/violations', isAdmin, async (req, res) => {
         await db.run('INSERT INTO violations (personnel_id, date, violation, remark, percentage) VALUES (?, ?, ?, ?, ?)', personnel_id, date, violation, remark, percentage);
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
-    } catch (error) { res.status(500).json({ error: "Database error" }); }
+    } catch (_error) { res.status(500).json({ error: "Database error" }); }
 });
 
 router.delete('/violations/:id', isAdmin, async (req, res) => {
@@ -225,12 +215,12 @@ router.delete('/violations/:id', isAdmin, async (req, res) => {
         await db.run('DELETE FROM violations WHERE id = ?', id);
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
-    } catch (error) { res.status(500).json({ error: "Database error" }); }
+    } catch (_error) { res.status(500).json({ error: "Database error" }); }
 });
 
 // PARTNERS
 router.get('/partners', isAdmin, async (req, res) => {
-    try { const db = await getDb(); res.json(await db.all('SELECT * FROM partners')); } catch (e) { res.status(500).json({ error: "DB Error" }); }
+    try { const db = await getDb(); res.json(await db.all('SELECT * FROM partners')); } catch (_e) { res.status(500).json({ error: "DB Error" }); }
 });
 router.post('/partners', isAdmin, async (req, res) => { /* Similar logic to personnel, implementation skipped for brevity but included in full file if needed */
     try {
@@ -240,29 +230,29 @@ router.post('/partners', isAdmin, async (req, res) => { /* Similar logic to pers
         else await db.run('INSERT INTO partners (name, partner_offer, met_offer, info) VALUES (?, ?, ?, ?)', name, partner_offer, met_offer, info);
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: "DB Error" }); }
+    } catch (_e) { res.status(500).json({ error: "DB Error" }); }
 });
 router.delete('/partners/:id', isAdmin, async (req, res) => {
-    try { const { id } = req.params; const db = await getDb(); await db.run('DELETE FROM partners WHERE id = ?', id); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (e) { res.status(500).json({ error: "DB Error" }); }
+    try { const { id } = req.params; const db = await getDb(); await db.run('DELETE FROM partners WHERE id = ?', id); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (_e) { res.status(500).json({ error: "DB Error" }); }
 });
 
 // ADS
-router.get('/ads', isAdmin, async (req, res) => { try { const db = await getDb(); res.json(await db.all('SELECT * FROM ads')); } catch (e) { res.status(500).json({ error: "DB Error" }); } });
-router.post('/ads', isAdmin, async (req, res) => { try { const { id, content, description } = req.body; const db = await getDb(); if (id) await db.run('UPDATE ads SET content = ?, description = ? WHERE id = ?', content, description, id); else await db.run('INSERT INTO ads (content, description) VALUES (?, ?)', content, description); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (e) { res.status(500).json({ error: "DB Error" }); } });
-router.delete('/ads/:id', isAdmin, async (req, res) => { try { const { id } = req.params; const db = await getDb(); await db.run('DELETE FROM ads WHERE id = ?', id); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (e) { res.status(500).json({ error: "DB Error" }); } });
+router.get('/ads', isAdmin, async (req, res) => { try { const db = await getDb(); res.json(await db.all('SELECT * FROM ads')); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
+router.post('/ads', isAdmin, async (req, res) => { try { const { id, content, description } = req.body; const db = await getDb(); if (id) await db.run('UPDATE ads SET content = ?, description = ? WHERE id = ?', content, description, id); else await db.run('INSERT INTO ads (content, description) VALUES (?, ?)', content, description); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
+router.delete('/ads/:id', isAdmin, async (req, res) => { try { const { id } = req.params; const db = await getDb(); await db.run('DELETE FROM ads WHERE id = ?', id); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
 
 // CONTACTS
-router.get('/contacts', isAdmin, async (req, res) => { try { const db = await getDb(); res.json(await db.all('SELECT * FROM contacts')); } catch (e) { res.status(500).json({ error: "DB Error" }); } });
-router.post('/contacts', isAdmin, async (req, res) => { try { const { id, phone, name, second_name, plz, info } = req.body; const db = await getDb(); if (id) await db.run('UPDATE contacts SET phone = ?, name = ?, second_name = ?, plz = ?, info = ? WHERE id = ?', phone, name, second_name, plz, info, id); else await db.run('INSERT INTO contacts (phone, name, second_name, plz, info) VALUES (?, ?, ?, ?, ?)', phone, name, second_name, plz, info); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (e) { res.status(500).json({ error: "DB Error" }); } });
-router.delete('/contacts/:id', isAdmin, async (req, res) => { try { const { id } = req.params; const db = await getDb(); await db.run('DELETE FROM contacts WHERE id = ?', id); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (e) { res.status(500).json({ error: "DB Error" }); } });
+router.get('/contacts', isAdmin, async (req, res) => { try { const db = await getDb(); res.json(await db.all('SELECT * FROM contacts')); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
+router.post('/contacts', isAdmin, async (req, res) => { try { const { id, phone, name, second_name, plz, info } = req.body; const db = await getDb(); if (id) await db.run('UPDATE contacts SET phone = ?, name = ?, second_name = ?, plz = ?, info = ? WHERE id = ?', phone, name, second_name, plz, info, id); else await db.run('INSERT INTO contacts (phone, name, second_name, plz, info) VALUES (?, ?, ?, ?, ?)', phone, name, second_name, plz, info); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
+router.delete('/contacts/:id', isAdmin, async (req, res) => { try { const { id } = req.params; const db = await getDb(); await db.run('DELETE FROM contacts WHERE id = ?', id); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
 
 // GUIDE
-router.get('/guide', async (req, res) => { try { const db = await getDb(); const guide = await db.get('SELECT * FROM beginner_guide LIMIT 1'); res.json(guide ? JSON.parse(guide.content) : null); } catch (e) { res.status(500).json({ error: "DB Error" }); } });
-router.post('/guide', isAdmin, async (req, res) => { try { const content = req.body; const db = await getDb(); const existing = await db.get('SELECT id FROM beginner_guide LIMIT 1'); if (existing) await db.run('UPDATE beginner_guide SET content = ? WHERE id = ?', JSON.stringify(content), existing.id); else await db.run('INSERT INTO beginner_guide (content) VALUES (?)', JSON.stringify(content)); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (e) { res.status(500).json({ error: "DB Error" }); } });
+router.get('/guide', async (req, res) => { try { const db = await getDb(); const guide = await db.get('SELECT * FROM beginner_guide LIMIT 1'); res.json(guide ? JSON.parse(guide.content) : null); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
+router.post('/guide', isAdmin, async (req, res) => { try { const content = req.body; const db = await getDb(); const existing = await db.get('SELECT id FROM beginner_guide LIMIT 1'); if (existing) await db.run('UPDATE beginner_guide SET content = ? WHERE id = ?', JSON.stringify(content), existing.id); else await db.run('INSERT INTO beginner_guide (content) VALUES (?)', JSON.stringify(content)); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
 
 // HAUSORDNUNG
-router.get('/hausordnung', async (req, res) => { try { const db = await getDb(); const data = await db.get('SELECT * FROM hausordnung LIMIT 1'); res.json(data ? JSON.parse(data.content) : { header: { title: "HAUSORDNUNG", subtitle: "M.E.T. Logistic" }, sections: [] }); } catch (e) { res.status(500).json({ error: "DB Error" }); } });
-router.post('/hausordnung', isAdmin, async (req, res) => { try { const content = req.body; const db = await getDb(); const existing = await db.get('SELECT id FROM hausordnung LIMIT 1'); if (existing) await db.run('UPDATE hausordnung SET content = ? WHERE id = ?', JSON.stringify(content), existing.id); else await db.run('INSERT INTO hausordnung (content) VALUES (?)', JSON.stringify(content)); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (e) { res.status(500).json({ error: "DB Error" }); } });
+router.get('/hausordnung', async (req, res) => { try { const db = await getDb(); const data = await db.get('SELECT * FROM hausordnung LIMIT 1'); res.json(data ? JSON.parse(data.content) : { header: { title: "HAUSORDNUNG", subtitle: "M.E.T. Logistic" }, sections: [] }); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
+router.post('/hausordnung', isAdmin, async (req, res) => { try { const content = req.body; const db = await getDb(); const existing = await db.get('SELECT id FROM hausordnung LIMIT 1'); if (existing) await db.run('UPDATE hausordnung SET content = ? WHERE id = ?', JSON.stringify(content), existing.id); else await db.run('INSERT INTO hausordnung (content) VALUES (?)', JSON.stringify(content)); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
 
 // BACKUPS
 router.post('/backup', async (req, res) => {
@@ -293,7 +283,7 @@ router.get('/backups', isBuchhaltungOrAdmin, async (req, res) => {
         }
         backups.sort((a, b) => new Date(b.created) - new Date(a.created));
         res.json(backups);
-    } catch (e) { res.status(500).json({ error: "Failed to fetch backups" }); }
+    } catch (_e) { res.status(500).json({ error: "Failed to fetch backups" }); }
 });
 
 router.delete('/backups/:filename', isAdmin, async (req, res) => {
@@ -303,7 +293,7 @@ router.delete('/backups/:filename', isAdmin, async (req, res) => {
         const fs = (await import('fs/promises')).default;
         await fs.unlink(backupPath);
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: "Delete failed" }); }
+    } catch (_e) { res.status(500).json({ error: "Delete failed" }); }
 });
 
 router.post('/restore', isAdmin, async (req, res) => {
@@ -372,7 +362,7 @@ router.get('/audit-logs', async (req, res) => {
         const db = await getDb();
         const logs = await db.all('SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 1000');
         res.json(logs);
-    } catch (e) { res.status(500).json({ error: "DB Error" }); }
+    } catch (_e) { res.status(500).json({ error: "DB Error" }); }
 });
 
 
@@ -383,7 +373,7 @@ router.get('/verifications', async (req, res) => {
         const db = await getDb();
         const verifications = await db.all('SELECT * FROM verifications ORDER BY timestamp DESC');
         res.json(verifications.map(v => ({ ...v, snapshot: JSON.parse(v.snapshot) })));
-    } catch (e) { res.status(500).json({ error: "DB Error" }); }
+    } catch (_e) { res.status(500).json({ error: "DB Error" }); }
 });
 
 router.post('/verifications', async (req, res) => {
@@ -393,7 +383,7 @@ router.post('/verifications', async (req, res) => {
         await db.run('INSERT INTO verifications (timestamp, verifier, snapshot) VALUES (?, ?, ?)', timestamp || new Date().toISOString(), verifier, JSON.stringify(snapshot));
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: "DB Error" }); }
+    } catch (_e) { res.status(500).json({ error: "DB Error" }); }
 });
 
 export default router;

@@ -76,10 +76,13 @@ router.post('/accounting/close-week', isBuchhaltungOrAdmin, async (req, res) => 
 
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
+        res.status(500).json({ error: "Database error" });
     } catch (error) {
         console.error("Error closing week:", error);
         debugSteps.push(`ERROR: ${error.message}`);
-        await auditLog(req, 'CLOSE_WEEK_ERROR', `Error closing week for ${employeeName}`, debugSteps);
+        // employeeName might be undefined if we error before destructuring
+        const name = req.body.employeeName || 'Unknown';
+        await auditLog(req, 'CLOSE_WEEK_ERROR', `Error closing week for ${name}`, debugSteps);
         res.status(500).json({ error: "Database error" });
     }
 });

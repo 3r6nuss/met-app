@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import http from 'http';
+// import http from 'http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +24,7 @@ if (fs.existsSync(TEST_DB)) {
 }
 
 // Dynamic import to pick up env vars and ensure clean DB state
-const { broadcastUpdate, server } = await import('../../server.js');
+const { server } = await import('../../server.js');
 const { closeDb } = await import('../../src/db/database.js');
 
 test('Transaction Integration Test', async (t) => {
@@ -130,6 +130,6 @@ test('Transaction Integration Test', async (t) => {
     server.close();
     await closeDb();
     if (fs.existsSync(TEST_DB)) {
-        try { fs.unlinkSync(TEST_DB); } catch (e) { }
+        try { fs.unlinkSync(TEST_DB); } catch (_e) { /* ignore */ }
     }
 });

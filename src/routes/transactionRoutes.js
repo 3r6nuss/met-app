@@ -157,7 +157,7 @@ router.post('/transaction', async (req, res) => {
 
     } catch (error) {
         if (db) {
-            try { await db.run('ROLLBACK'); } catch (e) { }
+            try { await db.run('ROLLBACK'); } catch (e) { console.error(e); }/* ignore */
         }
         console.error("Transaction error:", error);
 
@@ -210,7 +210,7 @@ router.post('/transaction/revert', async (req, res) => {
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
-        if (db) try { await db.run('ROLLBACK'); } catch (e) { }
+        if (db) try { await db.run('ROLLBACK'); } catch (_e) { /* ignore */ }
         console.error("Revert error:", error);
         res.status(500).json({ error: error.message || "Revert failed" });
     }

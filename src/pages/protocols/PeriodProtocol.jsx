@@ -9,7 +9,7 @@ import {
     PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 
-export default function PeriodProtocol({ logs, employees = [], inventory = [] }) {
+export default function PeriodProtocol({ logs, employees: _employees = [], inventory = [] }) {
     const [periodType, setPeriodType] = useState('month'); // 'week', 'month', 'year'
     const [reportMode, setReportMode] = useState('production'); // 'production', 'trade', 'employee'
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -22,11 +22,11 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
     // --- HELPER FUNCTIONS ---
 
     // Valid Sets
-    const validEmployeeNames = useMemo(() => {
-        const set = new Set();
-        employees.forEach(e => set.add(typeof e === 'string' ? e : e.name));
-        return set;
-    }, [employees]);
+    // const validEmployeeNames = useMemo(() => {
+    //     const set = new Set();
+    //     employees.forEach(e => set.add(typeof e === 'string' ? e : e.name));
+    //     return set;
+    // }, [employees]);
 
     const validProductNames = useMemo(() => {
         const set = new Set();
@@ -285,7 +285,7 @@ export default function PeriodProtocol({ logs, employees = [], inventory = [] })
             }
         };
 
-    }, [filteredLogs, reportMode, filterProduct, filterEmployee, sortConfig, periodType, start, end]);
+    }, [filteredLogs, reportMode, filterProduct, filterEmployee, sortConfig, periodType]);
 
     // --- RENDER HELPERS ---
 

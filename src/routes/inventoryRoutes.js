@@ -1,6 +1,6 @@
 import express from 'express';
 import { getDb } from '../db/database.js';
-import { broadcastUpdate } from '../../server.js'; // We will need to export broadcastUpdate from server.js
+// import { broadcastUpdate } from '../../server.js'; // Unused
 
 const router = express.Router();
 
@@ -44,7 +44,10 @@ router.post('/', async (req, res) => {
 
         res.json({ success: true });
     } catch (error) {
-        try { await db.run('ROLLBACK'); } catch (e) { }
+        try {
+            const db = await getDb();
+            await db.run('ROLLBACK');
+        } catch (_e) { /* ignore */ }
         console.error("Error updating inventory:", error);
         res.status(500).json({ error: "Database error" });
     }

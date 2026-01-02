@@ -1,11 +1,13 @@
 
+const API_URL = '/api';
+
 const handleResponse = async (res) => {
     if (!res.ok) {
         let errorMessage = `Request failed with status ${res.status}`;
         try {
             const data = await res.json();
             if (data.error) errorMessage = data.error;
-        } catch (e) {
+        } catch (_e) {
             // response was not JSON or empty
         }
         throw new Error(errorMessage);
