@@ -55,7 +55,7 @@ function App() {
   const { log } = useDeveloperConsole();
 
   // Fetch data helper
-  const fetchData = () => {
+  const fetchData = (reason = 'Manual/Initial') => {
     // Don't set loading to true on background updates to avoid flickering
     // setLoading(true); 
 
@@ -79,12 +79,12 @@ function App() {
         setPersonnel(personnelData || []);
         if (userData) setUser(userData); // Only update user if fetched successfully
         setLoading(false);
-        log('API', 'Data refreshed successfully', { items: invData.length, logs: logsData.length });
+        log('API', `Data Refreshed (${reason})`, { items: invData.length, logs: logsData.length });
       })
       .catch(err => {
         console.error("Failed to fetch data:", err);
         setLoading(false);
-        log('ERROR', 'Failed to fetch data', err);
+        log('ERROR', `Failed to fetch data (${reason})`, err);
       });
   };
 
@@ -122,7 +122,7 @@ function App() {
           log('WS', 'Message received', data);
           if (data.type === 'UPDATE') {
             console.log("Received update signal, refreshing data...");
-            fetchData();
+            fetchData('WebSocket Update');
           }
         } catch (e) {
           console.error("Error parsing WS message:", e);
@@ -179,6 +179,7 @@ function App() {
 
   const handleCheckIn = (idOrData, quantity, depositor, price = 0, customDate = null, type = 'in', category = 'internal', warningIgnored = false, skipInventory = false) => {
     let payload;
+    let logDetail = null;
 
     if (Array.isArray(idOrData)) {
       // Batch mode
@@ -193,6 +194,21 @@ function App() {
         warningIgnored: item.warningIgnored,
         skipInventory: item.skipInventory
       }));
+      // Prepare detailed log for batch
+      logDetail = {
+        mode: 'Batch',
+        count: idOrData.length,
+        items: idOrData.map(i => {
+          const invItem = inventory.find(inv => inv.id === i.id);
+          return {
+            id: i.id,
+            name: invItem ? invItem.name : 'Unknown',
+            added: i.quantity,
+            oldStock: invItem ? invItem.current : '?',
+            newStock: invItem ? (invItem.current + i.quantity) : '?'
+          };
+        })
+      };
     } else {
       // Single mode
       const item = inventory.find(i => i.id === idOrData);
@@ -209,34 +225,51 @@ function App() {
         warningIgnored,
         skipInventory
       };
+
+      logDetail = {
+        mode: 'Single',
+        id: item.id,
+        name: item.name,
+        category,
+        depositor,
+        added: quantity,
+        price: price,
+        oldStock: item.current,
+        newStock: item.current + quantity
+      };
     }
 
     api.performTransaction(payload)
       .then(data => {
         if (data.success) {
           // Refetch data to ensure everything is in sync (inventory, logs, employee inventory)
-          fetchData();
+          fetchData('Transaction: Check-In');
+
+          // Log detailed info
+          log('TX', `Check-In Success (${category})`, logDetail);
+
           if (Array.isArray(idOrData)) {
             addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Batch Einlagerung: ${idOrData.length} Items`);
-            log('TX', 'Batch Check-In Success', { count: idOrData.length, type: 'in' });
           } else {
             const item = inventory.find(i => i.id === idOrData);
             addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Eingelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
-            log('TX', 'Check-In Success', { item: item.name, quantity, depositor });
           }
         } else {
           console.error("Transaction failed:", data.error);
           alert("Fehler bei der Transaktion: " + data.error);
+          log('ERROR', 'Check-In Transaction Failed', { error: data.error, payload });
         }
       })
       .catch(err => {
         console.error("Transaction error:", err);
         alert("Netzwerkfehler bei der Transaktion");
+        log('ERROR', 'Check-In Network Error', err);
       });
   };
 
   const handleCheckOut = (idOrData, quantity, depositor, price = 0, customDate = null, type = 'out', category = 'internal', warningIgnored = false, skipInventory = false) => {
     let payload;
+    let logDetail = null;
 
     if (Array.isArray(idOrData)) {
       // Batch mode
@@ -250,6 +283,21 @@ function App() {
         timestamp: item.date,
         skipInventory: item.skipInventory
       }));
+      // Prepare detailed log for batch
+      logDetail = {
+        mode: 'Batch',
+        count: idOrData.length,
+        items: idOrData.map(i => {
+          const invItem = inventory.find(inv => inv.id === i.id);
+          return {
+            id: i.id,
+            name: invItem ? invItem.name : 'Unknown',
+            removed: i.quantity,
+            oldStock: invItem ? invItem.current : '?',
+            newStock: invItem ? (invItem.current - i.quantity) : '?'
+          };
+        })
+      };
     } else {
       // Single mode
       const item = inventory.find(i => i.id === idOrData);
@@ -265,33 +313,61 @@ function App() {
         timestamp: customDate,
         skipInventory
       };
+
+      logDetail = {
+        mode: 'Single',
+        id: item.id,
+        name: item.name,
+        category,
+        depositor,
+        removed: quantity,
+        price: price,
+        oldStock: item.current,
+        newStock: item.current - quantity
+      };
     }
 
     api.performTransaction(payload)
       .then(data => {
         if (data.success) {
-          fetchData();
+          fetchData('Transaction: Check-Out');
+
+          // Log detailed info
+          log('TX', `Check-Out Success (${category})`, logDetail);
+
           if (Array.isArray(idOrData)) {
             addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Batch Auslagerung: ${idOrData.length} Items`);
-            log('TX', 'Batch Check-Out Success', { count: idOrData.length, type: 'out' });
           } else {
             const item = inventory.find(i => i.id === idOrData);
             addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Ausgelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
-            log('TX', 'Check-Out Success', { item: item.name, quantity, depositor });
           }
         } else {
           console.error("Transaction failed:", data.error);
           alert("Fehler bei der Transaktion: " + data.error);
+          log('ERROR', 'Check-Out Transaction Failed', { error: data.error, payload });
         }
       })
       .catch(err => {
         console.error("Transaction error:", err);
         alert("Netzwerkfehler bei der Transaktion");
+        log('ERROR', 'Check-Out Network Error', err);
       });
   };
 
   const handleUpdateStock = (id, newQuantity) => {
-    log('STATE', 'Update Stock', { id, newQuantity });
+    const oldItem = inventory.find(i => i.id === id);
+    if (oldItem) {
+      log('STATE', 'Update Stock', {
+        id,
+        name: oldItem.name,
+        old: oldItem.current,
+        new: newQuantity,
+        diff: newQuantity - oldItem.current
+      });
+    } else {
+      log('STATE', 'Update Stock', { id, newQuantity });
+    }
+
     const newData = inventory.map(item => {
       if (item.id === id) {
         return { ...item, current: newQuantity };
@@ -302,6 +378,19 @@ function App() {
   };
 
   const handleUpdateTarget = (id, newTarget) => {
+    const oldItem = inventory.find(i => i.id === id);
+    if (oldItem) {
+      log('STATE', 'Update Target Stock', {
+        id,
+        name: oldItem.name,
+        old: oldItem.target,
+        new: newTarget,
+        diff: newTarget - oldItem.target
+      });
+    } else {
+      log('STATE', 'Update Target Stock', { id, newTarget });
+    }
+
     const newData = inventory.map(item => {
       if (item.id === id) {
         return { ...item, target: newTarget };
@@ -348,6 +437,36 @@ function App() {
   };
 
   const handleUpdateEmployees = (newEmployees) => {
+    // Calculate Diff
+    const changes = { added: [], removed: [], modified: [] };
+
+    // Check Added / Modified
+    newEmployees.forEach(newEmp => {
+      const oldEmp = employees.find(e => e.id === newEmp.id || e.name === newEmp.name);
+      if (!oldEmp) {
+        changes.added.push(newEmp.name);
+      } else if (JSON.stringify(newEmp) !== JSON.stringify(oldEmp)) {
+        // Deep comparison simplified (or just check specific fields like status)
+        if (newEmp.status !== oldEmp.status) {
+          changes.modified.push({ name: newEmp.name, field: 'status', old: oldEmp.status, new: newEmp.status });
+        }
+        if (newEmp.role !== oldEmp.role) {
+          changes.modified.push({ name: newEmp.name, field: 'role', old: oldEmp.role, new: newEmp.role });
+        }
+      }
+    });
+
+    // Check Removed
+    employees.forEach(oldEmp => {
+      if (!newEmployees.find(e => e.id === oldEmp.id || e.name === oldEmp.name)) {
+        changes.removed.push(oldEmp.name);
+      }
+    });
+
+    if (changes.added.length || changes.removed.length || changes.modified.length) {
+      log('STATE', 'Employee List Updated', changes);
+    }
+
     setEmployees(newEmployees);
     api.saveEmployees(newEmployees).catch(err => console.error("Failed to save employees:", err));
   };
@@ -357,7 +476,7 @@ function App() {
       api.deleteLog(timestamp)
         .then(data => {
           if (data.success) {
-            fetchData();
+            fetchData('Log Deleted');
             addLog("Eintrag gelöscht");
             log('TX', 'Log Deleted', { timestamp });
           } else {
@@ -382,7 +501,7 @@ function App() {
     api.createOrder(orderData)
       .then(data => {
         if (data.success) {
-          fetchData();
+          fetchData('Order Created');
           addLog(`Neuer Auftrag: ${orderData.quantity}x ${orderData.itemName}`);
           log('TX', 'Order Created', orderData);
           alert("Auftrag erfolgreich erstellt!");
@@ -394,9 +513,20 @@ function App() {
   };
 
   const handleUpdateOrderStatus = (id, status) => {
+    const order = orders.find(o => o.id === id);
+    if (order) {
+      log('STATE', 'Update Order Status', {
+        id,
+        item: order.itemName,
+        customer: order.customerName,
+        old: order.status,
+        new: status
+      });
+    }
+
     api.updateOrderStatus(id, status)
       .then(data => {
-        if (data.success) fetchData();
+        if (data.success) fetchData('Order Status Updated');
       });
   };
 
@@ -404,7 +534,7 @@ function App() {
     if (confirm("Auftrag wirklich löschen?")) {
       api.deleteOrder(id)
         .then(data => {
-          if (data.success) fetchData();
+          if (data.success) fetchData('Order Deleted');
         });
     }
   };
@@ -422,7 +552,7 @@ function App() {
     })
       .then(data => {
         if (data.success) {
-          fetchData();
+          fetchData('Special Booking');
           addLog(`Sonderbuchung: ${amount}€ für ${employee} (${reason})`);
           log('TX', 'Special Booking', { employee, reason, amount });
           alert("Sonderbuchung erfolgreich!");
@@ -434,16 +564,22 @@ function App() {
   };
 
   const handleConsumeIngredients = (employeeName, items) => {
+    log('STATE', 'Consuming Ingredients (Employee)', { employee: employeeName, items });
     return api.consumeIngredients(employeeName, items)
       .then(data => {
         if (data.success) {
-          fetchData(); // Refresh inventory
+          fetchData('Ingredients Consumed'); // Refresh inventory
+          log('TX', 'Consumption Success', { employee: employeeName, count: items.length });
           return { success: true };
         } else {
+          log('ERROR', 'Consumption Failed', data.error);
           return { success: false, error: data.error };
         }
       })
-      .catch(err => ({ success: false, error: "Netzwerkfehler" }));
+      .catch(err => {
+        log('ERROR', 'Consumption Network Error', err);
+        return { success: false, error: "Netzwerkfehler" };
+      });
   };
 
   const handleEmployeePayout = (amountOrBatch, date, depositor) => {

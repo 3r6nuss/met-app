@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { X, DollarSign, Edit2, Save, Loader2 } from 'lucide-react';
+import { useDeveloperConsole } from '../context/DeveloperConsoleContext';
 
 export default function PriceListModal({ onClose }) {
     const [prices, setPrices] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [editedPrices, setEditedPrices] = useState([]);
+
+    const { log } = useDeveloperConsole();
 
     useEffect(() => {
         fetch('/api/prices')
@@ -14,10 +17,12 @@ export default function PriceListModal({ onClose }) {
                 setPrices(data);
                 setEditedPrices(data);
                 setIsLoading(false);
+                log('API', 'Prices Fetched', { count: data.length });
             })
             .catch(err => {
                 console.error("Failed to fetch prices:", err);
                 setIsLoading(false);
+                log('ERROR', 'Fetch Prices Failed', err);
             });
     }, []);
 
@@ -29,6 +34,38 @@ export default function PriceListModal({ onClose }) {
 
     const handleSave = () => {
         setIsLoading(true);
+
+        // Calculate diffs
+        const changes = [];
+        editedPrices.forEach((newItem, index) => {
+            const oldItem = prices[index];
+            if (!oldItem) return; // Should match by index
+
+            const itemChanges = {};
+            let hasChanged = false;
+
+            ['ek', 'vk', 'lohn', 'note', 'noteVK'].forEach(field => {
+                if (newItem[field] != oldItem[field]) { // Loose equality to catch number vs string diffs if any
+                    hasChanged = true;
+                    itemChanges[field] = { old: oldItem[field], new: newItem[field] };
+                }
+            });
+
+            if (hasChanged) {
+                changes.push({
+                    item: newItem.name,
+                    id: newItem.id, // Assuming ID is present
+                    changes: itemChanges
+                });
+            }
+        });
+
+        if (changes.length > 0) {
+            log('STATE', 'Saving Price Changes', { count: changes.length, details: changes });
+        } else {
+            log('STATE', 'Saving Prices (No Changes Detected)', { count: editedPrices.length });
+        }
+
         fetch('/api/prices', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -39,12 +76,16 @@ export default function PriceListModal({ onClose }) {
                 if (data.success) {
                     setPrices(editedPrices);
                     setIsEditing(false);
+                    log('API', 'Prices Updated Successfully');
+                } else {
+                    log('ERROR', 'Price Update Failed (Server)', data);
                 }
                 setIsLoading(false);
             })
             .catch(err => {
                 console.error("Failed to save prices:", err);
                 setIsLoading(false);
+                log('ERROR', 'Price Update Network Error', err);
             });
     };
 
