@@ -11,7 +11,7 @@ export const initialPrices = [
     { name: "Dünger", ek: 95, vk: 125, lohn: "", note: "Kein Ankauf", noteVK: "" },
     { name: "Platine", ek: 80, vk: 90, lohn: "80", note: "max 85$ ab 5 k Platinen", noteVK: "" },
     { name: "Pistol Clip", ek: 1000, vk: 1250, lohn: "100", note: "Ankauf bis 4500 Stück", noteVK: "" },
-    { name: "SMG Clip", ek: 2500, vk: 9500, lohn: "", note: "", noteVK: "" },
+    { name: "SMG-Clip", ek: 2500, vk: 9500, lohn: "", note: "", noteVK: "" },
     { name: "Bandage", ek: 250, vk: 600, lohn: "", note: "", noteVK: "" },
     { name: "Weste", ek: 200, vk: 350, lohn: "200", note: "Ankauf bis 4500 Stück", noteVK: "" },
     { name: "Weißwein Kiste", ek: 80, vk: 140, lohn: "50/80", note: "", noteVK: "" },
