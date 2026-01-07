@@ -24,10 +24,12 @@ export default function BusinessAccountPage({ logs, inventory, prices, onAdjustB
                 change = log.price * log.quantity;
                 type = 'payout';
             } else if (log.category === 'trade' && log.type === 'in') {
-                change = -(log.price * log.quantity);
+                const p = typeof log.price === 'string' ? parseFloat(log.price.replace(',', '.')) : log.price;
+                change = -(p * log.quantity);
                 type = 'purchase';
             } else if (log.category === 'trade' && log.type === 'out') {
-                change = log.price * log.quantity;
+                const p = typeof log.price === 'string' ? parseFloat(log.price.replace(',', '.')) : log.price;
+                change = p * log.quantity;
                 type = 'sale';
             } else if (log.itemName === 'Korrektur Geschäftskonto' || log.msg.includes('Korrektur Geschäftskonto')) {
                 // Manual Correction
@@ -232,8 +234,8 @@ export default function BusinessAccountPage({ logs, inventory, prices, onAdjustB
                                     <td className="p-3">{tx.date}</td>
                                     <td className="p-3">
                                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${tx.type === 'sale' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                tx.type === 'purchase' ? 'bg-blue-500/10 text-blue-400' :
-                                                    'bg-red-500/10 text-red-400'
+                                            tx.type === 'purchase' ? 'bg-blue-500/10 text-blue-400' :
+                                                'bg-red-500/10 text-red-400'
                                             }`}>
                                             {tx.type === 'sale' && <ArrowUpRight className="w-3 h-3" />}
                                             {tx.type === 'purchase' && <ArrowDownRight className="w-3 h-3" />}

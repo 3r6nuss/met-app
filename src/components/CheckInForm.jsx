@@ -144,7 +144,7 @@ export default function CheckInForm({
             name: item.name,
             quantity: parseInt(quantity),
             depositor: finalDepositor,
-            price: finalPrice,
+            price: finalPrice ? parseFloat(finalPrice.toString().replace(',', '.')) : 0,
             date: selectedDate ? new Date(selectedDate).toISOString() : null,
             warningIgnored: false,
             skipInventory: skipInventory,
@@ -216,7 +216,7 @@ export default function CheckInForm({
             selectedId,
             quantity,
             depositor: finalDepositor,
-            price: finalPrice,
+            price: finalPrice ? parseFloat(finalPrice.toString().replace(',', '.')) : 0,
             date: selectedDate ? new Date(selectedDate).toISOString() : null
         };
 

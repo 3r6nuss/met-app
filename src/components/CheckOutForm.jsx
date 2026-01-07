@@ -101,7 +101,7 @@ export default function CheckOutForm({
             name: item.name,
             quantity: parseInt(quantity),
             depositor: finalDepositor,
-            price: finalPrice,
+            price: finalPrice ? parseFloat(finalPrice.toString().replace(',', '.')) : 0,
             date: selectedDate ? new Date(selectedDate).toISOString() : null,
             skipInventory: skipInventory,
             category: title.includes("Verkauf") ? 'trade' : 'internal'
@@ -158,7 +158,7 @@ export default function CheckOutForm({
             selectedId,
             quantity,
             depositor: finalDepositor,
-            price: finalPrice,
+            price: finalPrice ? parseFloat(finalPrice.toString().replace(',', '.')) : 0,
             date: selectedDate ? new Date(selectedDate).toISOString() : null
         };
 
