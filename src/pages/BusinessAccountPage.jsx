@@ -85,10 +85,14 @@ export default function BusinessAccountPage({ logs, inventory, prices, onAdjustB
     };
 
     const handleSaveEdit = () => {
-        const newBal = parseFloat(editValue);
+        const newBal = parseFloat(editValue.toString().replace(',', '.'));
         if (isNaN(newBal)) return;
 
-        const diff = newBal - currentBalance;
+        // If currentBalance is corrupted (NaN), treat it as 0 for the diff calculation
+        // or just accept the new value as the target state.
+        const safeCurrentBalance = isNaN(currentBalance) ? 0 : currentBalance;
+
+        const diff = newBal - safeCurrentBalance;
         if (diff === 0) {
             setIsEditing(false);
             return;
