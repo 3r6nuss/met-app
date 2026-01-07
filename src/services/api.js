@@ -185,5 +185,23 @@ export const api = {
         } catch (e) {
             console.error("Failed to report error to server:", e);
         }
+    },
+
+    // Developer Logs (Persistent)
+    getDevLogs: async () => {
+        const res = await fetch(`${API_URL}/dev-logs`);
+        return res.json();
+    },
+    saveDevLog: async (log) => {
+        const res = await fetch(`${API_URL}/dev-logs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(log)
+        });
+        return res.json();
+    },
+    clearDevLogs: async () => {
+        const res = await fetch(`${API_URL}/dev-logs`, { method: 'DELETE' });
+        return res.json();
     }
 };
