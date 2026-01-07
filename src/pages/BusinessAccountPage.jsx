@@ -33,8 +33,9 @@ export default function BusinessAccountPage({ logs, inventory, prices, onAdjustB
                 type = 'sale';
             } else if (log.itemName === 'Korrektur Geschäftskonto' || log.msg.includes('Korrektur Geschäftskonto')) {
                 // Manual Correction
-                change = log.price; // Price holds the adjustment amount
-                type = log.price >= 0 ? 'sale' : 'purchase'; // Reuse types for color
+                const p = typeof log.price === 'string' ? parseFloat(log.price.replace(',', '.')) : log.price;
+                change = p; // Price holds the adjustment amount
+                type = p >= 0 ? 'sale' : 'purchase'; // Reuse types for color
             }
 
             if (change !== 0) {
