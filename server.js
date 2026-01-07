@@ -15,6 +15,7 @@ import logRoutes from './src/routes/logRoutes.js';
 import transactionRoutes from './src/routes/transactionRoutes.js';
 import accountingRoutes from './src/routes/accountingRoutes.js';
 import adminRoutes from './src/routes/adminRoutes.js';
+import devLogsRoutes from './src/routes/devLogsRoutes.js';
 
 // Import Middleware
 import { logger } from './src/middleware/logger.js';
@@ -123,7 +124,9 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/logs', logRoutes); // Note: /api/logs route file handles /api/logs base
 app.use('/api', transactionRoutes); // Transaction routes likely have specific paths like /transaction
 app.use('/api', accountingRoutes);
+app.use('/api', accountingRoutes);
 app.use('/api', adminRoutes);
+app.use('/api/dev-logs', devLogsRoutes);
 
 app.get('/api/user', (req, res) => {
     if (req.isAuthenticated()) {
@@ -172,6 +175,8 @@ const initNewTables = async () => {
     await db.run(`CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, user_id TEXT, username TEXT, action TEXT, details TEXT)`);
     // Orders
     await db.run(`CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY AUTOINCREMENT, item_name TEXT, quantity INTEGER, requester TEXT, status TEXT DEFAULT 'open', timestamp TEXT, note TEXT)`);
+    // Developer Logs
+    await db.run(`CREATE TABLE IF NOT EXISTS developer_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, category TEXT, message TEXT, details TEXT)`);
 
     // Migrations
     try {

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { api } from '../services/api';
 
 const DeveloperConsoleContext = createContext();
 
@@ -6,30 +7,85 @@ export const useDeveloperConsole = () => useContext(DeveloperConsoleContext);
 
 export const DeveloperConsoleProvider = ({ children }) => {
     const [isVisible, setIsVisible] = useState(false);
+
+    // Load logs from localStorage
+    // Load logs from Server (replacing localStorage)
     const [logs, setLogs] = useState([]);
-    const [filters, setFilters] = useState({
-        WS: true,
-        API: true,
-        AUTH: true,
-        TX: true, // Transaction
-        NAV: true, // Navigation/Routing
-        STATE: true, // State changes
-        ERROR: true,
-        OTHER: true
+
+    useEffect(() => {
+        api.getDevLogs()
+            .then(data => {
+                // Ensure data is array
+                if (Array.isArray(data)) {
+                    // Parse details if string
+                    const parsed = data.map(l => ({
+                        ...l,
+                        details: (typeof l.details === 'string' && (l.details.startsWith('{') || l.details.startsWith('[')))
+                            ? JSON.parse(l.details)
+                            : l.details
+                    }));
+                    setLogs(parsed);
+                }
+            })
+            .catch(err => console.error("Failed to load dev logs:", err));
+    }, []);
+
+    // Load filters from localStorage (Filters can remain local preference)
+    const [filters, setFilters] = useState(() => {
+        try {
+            const savedFilters = localStorage.getItem('met_dev_console_filters');
+            return savedFilters ? JSON.parse(savedFilters) : {
+                WS: true,
+                API: true,
+                AUTH: true,
+                TX: true, // Transaction
+                NAV: true, // Navigation/Routing
+                STATE: true, // State changes
+                ERROR: true,
+                OTHER: true
+            };
+        } catch (e) {
+            return {
+                WS: true,
+                API: true,
+                AUTH: true,
+                TX: true,
+                NAV: true,
+                STATE: true,
+                ERROR: true,
+                OTHER: true
+            };
+        }
     });
 
+    // Save filters to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('met_dev_console_filters', JSON.stringify(filters));
+    }, [filters]);
+
+    // Save filters to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('met_dev_console_filters', JSON.stringify(filters));
+    }, [filters]);
+
     const log = useCallback((category = 'OTHER', message, details = null) => {
+        const newLog = {
+            id: Date.now() + Math.random(),
+            timestamp: new Date().toLocaleTimeString(),
+            category,
+            message,
+            details
+        };
+
+        // Optimistic UI update
         setLogs(prevLogs => {
-            const newLog = {
-                id: Date.now() + Math.random(),
-                timestamp: new Date().toLocaleTimeString(),
-                category,
-                message,
-                details
-            };
-            // Keep last 200 logs to prevent memory issues
-            return [...prevLogs, newLog].slice(-200);
+            // Keep last 50000 logs (User Request)
+            return [...prevLogs, newLog].slice(-50000);
         });
+
+        // Persist to Server
+        api.saveDevLog(newLog).catch(e => console.error("Failed to save log:", e));
+
     }, []);
 
     const toggleConsole = () => setIsVisible(prev => !prev);
@@ -41,7 +97,10 @@ export const DeveloperConsoleProvider = ({ children }) => {
         }));
     };
 
-    const clearLogs = () => setLogs([]);
+    const clearLogs = () => {
+        setLogs([]);
+        api.clearDevLogs().catch(e => console.error("Failed to clear logs:", e));
+    };
 
     return (
         <DeveloperConsoleContext.Provider value={{
