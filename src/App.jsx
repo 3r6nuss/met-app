@@ -35,6 +35,7 @@ import MarketingPage from './pages/MarketingPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 import { api } from './services/api';
+import { useDeveloperConsole } from './context/DeveloperConsoleContext';
 
 
 function App() {
@@ -50,6 +51,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState('idle');
   const [user, setUser] = useState(null);
+
+  const { log } = useDeveloperConsole();
 
   // Fetch data helper
   const fetchData = () => {
@@ -76,10 +79,12 @@ function App() {
         setPersonnel(personnelData || []);
         if (userData) setUser(userData); // Only update user if fetched successfully
         setLoading(false);
+        log('API', 'Data refreshed successfully', { items: invData.length, logs: logsData.length });
       })
       .catch(err => {
         console.error("Failed to fetch data:", err);
         setLoading(false);
+        log('ERROR', 'Failed to fetch data', err);
       });
   };
 
@@ -108,27 +113,32 @@ function App() {
 
       ws.onopen = () => {
         console.log("WebSocket connected");
+        log('WS', 'Connected', { url: wsUrl });
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          log('WS', 'Message received', data);
           if (data.type === 'UPDATE') {
             console.log("Received update signal, refreshing data...");
             fetchData();
           }
         } catch (e) {
           console.error("Error parsing WS message:", e);
+          log('ERROR', 'WS Message Parse Error', e);
         }
       };
 
       ws.onclose = () => {
         console.log("WebSocket disconnected, reconnecting in 3s...");
+        log('WS', 'Disconnected', { reconnectIn: 3000 });
         reconnectTimer = setTimeout(connect, 3000);
       };
 
       ws.onerror = (err) => {
         console.error("WebSocket error:", err);
+        log('ERROR', 'WebSocket Error', err);
         ws.close();
       };
     };
@@ -145,15 +155,18 @@ function App() {
   const saveInventory = (newData) => {
     setInventory(newData);
     setSaveStatus('saving');
+    log('STATE', 'Saving Inventory...', { count: newData.length });
 
     api.saveInventory(newData)
       .then(() => {
         setSaveStatus('saved');
+        log('API', 'Inventory Saved');
         setTimeout(() => setSaveStatus('idle'), 2000);
       })
       .catch(err => {
         console.error("Failed to save:", err);
         setSaveStatus('error');
+        log('ERROR', 'Inventory Save Failed', err);
       });
   };
 
@@ -205,9 +218,11 @@ function App() {
           fetchData();
           if (Array.isArray(idOrData)) {
             addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Batch Einlagerung: ${idOrData.length} Items`);
+            log('TX', 'Batch Check-In Success', { count: idOrData.length, type: 'in' });
           } else {
             const item = inventory.find(i => i.id === idOrData);
             addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Eingelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+            log('TX', 'Check-In Success', { item: item.name, quantity, depositor });
           }
         } else {
           console.error("Transaction failed:", data.error);
@@ -258,9 +273,11 @@ function App() {
           fetchData();
           if (Array.isArray(idOrData)) {
             addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Batch Auslagerung: ${idOrData.length} Items`);
+            log('TX', 'Batch Check-Out Success', { count: idOrData.length, type: 'out' });
           } else {
             const item = inventory.find(i => i.id === idOrData);
             addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Ausgelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+            log('TX', 'Check-Out Success', { item: item.name, quantity, depositor });
           }
         } else {
           console.error("Transaction failed:", data.error);
@@ -274,6 +291,7 @@ function App() {
   };
 
   const handleUpdateStock = (id, newQuantity) => {
+    log('STATE', 'Update Stock', { id, newQuantity });
     const newData = inventory.map(item => {
       if (item.id === id) {
         return { ...item, current: newQuantity };
@@ -294,6 +312,7 @@ function App() {
   };
 
   const handleReorder = (newInventory) => {
+    log('STATE', 'Reorder Inventory');
     saveInventory(newInventory);
   };
 
@@ -305,8 +324,14 @@ function App() {
     };
 
     api.saveVerification(verificationEntry)
-      .then(() => addLog(`Lagerliste bestätigt von ${name}`))
-      .catch(err => console.error("Failed to save verification:", err));
+      .then(() => {
+        addLog(`Lagerliste bestätigt von ${name}`);
+        log('TX', 'Verification Saved', { verifier: name });
+      })
+      .catch(err => {
+        console.error("Failed to save verification:", err);
+        log('ERROR', 'Verification Save Failed', err);
+      });
   };
 
   const handleReset = () => {
@@ -334,11 +359,16 @@ function App() {
           if (data.success) {
             fetchData();
             addLog("Eintrag gelöscht");
+            log('TX', 'Log Deleted', { timestamp });
           } else {
             alert("Fehler beim Löschen: " + data.error);
+            log('ERROR', 'Delete Log Failed', data.error);
           }
         })
-        .catch(err => alert("Netzwerkfehler"));
+        .catch(err => {
+          alert("Netzwerkfehler");
+          log('ERROR', 'Delete Log Network Error', err);
+        });
     }
   };
 
@@ -354,6 +384,7 @@ function App() {
         if (data.success) {
           fetchData();
           addLog(`Neuer Auftrag: ${orderData.quantity}x ${orderData.itemName}`);
+          log('TX', 'Order Created', orderData);
           alert("Auftrag erfolgreich erstellt!");
         } else {
           alert("Fehler beim Erstellen des Auftrags");
@@ -393,6 +424,7 @@ function App() {
         if (data.success) {
           fetchData();
           addLog(`Sonderbuchung: ${amount}€ für ${employee} (${reason})`);
+          log('TX', 'Special Booking', { employee, reason, amount });
           alert("Sonderbuchung erfolgreich!");
         } else {
           alert("Fehler: " + data.error);
@@ -441,6 +473,7 @@ function App() {
         saveLogEntry(entry);
       });
       addLog(`${amountOrBatch.length} offene Wochenlöhne ausgezahlt`);
+      log('TX', 'Batch Payout', { count: amountOrBatch.length });
     } else {
       // Single mode (Current Week Employee Payout)
       const entry = {
@@ -454,6 +487,7 @@ function App() {
       };
       saveLogEntry(entry);
       addLog(`Wochenlohn ausgezahlt: ${amountOrBatch}€ (${depositor})`);
+      log('TX', 'Single Payout', { amount: amountOrBatch, depositor });
     }
   };
 

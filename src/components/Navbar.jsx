@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, ArrowRightLeft, ShieldCheck, ShoppingCart, ChevronDown, FileText, LogOut, MoreHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
 import OutstandingBalance from './OutstandingBalance';
+import { useDeveloperConsole } from '../context/DeveloperConsoleContext';
 
 export default function Navbar({ onOpenPriceList, user }) {
     const isAdmin = user?.role === 'Administrator';
@@ -149,6 +150,12 @@ export default function Navbar({ onOpenPriceList, user }) {
             {/* User Profile */}
             {user && (
                 <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-700">
+
+                    {/* SUPER ADMIN CONSOLE TOGGLE */}
+                    {['823276402320998450', '690510884639866960'].includes(user.discordId) && (
+                        <ConsoleToggle />
+                    )}
+
                     <OutstandingBalance user={user} />
                     <div className="flex items-center gap-2">
                         {user.avatar && (
@@ -172,3 +179,18 @@ export default function Navbar({ onOpenPriceList, user }) {
         </nav>
     );
 }
+
+const ConsoleToggle = () => {
+    const { toggleConsole, isVisible } = useDeveloperConsole();
+    return (
+        <button
+            onClick={toggleConsole}
+            className={`p-2 rounded-lg transition-colors mr-2 ${isVisible ? 'text-green-400 bg-green-400/10' : 'text-slate-500 hover:text-green-400 hover:bg-slate-800'}`}
+            title="Developer Console"
+        >
+            <div className="w-5 h-5 font-mono text-xs border-2 border-current rounded flex items-center justify-center font-bold">
+                {'>_'}
+            </div>
+        </button>
+    );
+};
