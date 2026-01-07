@@ -56,7 +56,7 @@ export default function CheckInForm({
         const item = inventory.find(i => i.id === itemId);
         if (!item) return 0;
 
-        const priceItem = prices.find(p => p.name === item.name);
+        const priceItem = prices.find(p => p.id === item.id);
         const baseWage = priceItem ? (parseFloat(priceItem.lohn?.toString().split('/')[0]) || 0) : 0;
 
         const recipe = recipes[itemId];
@@ -90,7 +90,7 @@ export default function CheckInForm({
             }
 
             setPrice('');
-            const priceItem = prices.find(p => p.name === selectedItem.name);
+            const priceItem = prices.find(p => p.id === selectedItem.id);
             if (priceItem) {
                 if (title.includes("Einkauf")) {
                     setPrice(priceItem.ek || '');
@@ -222,7 +222,7 @@ export default function CheckInForm({
 
         // Check for notes (only for Einkauf, not Einlagern)
         if (selectedItem && !title.includes("Einlagern")) {
-            const priceItem = prices.find(p => p.name === selectedItem.name);
+            const priceItem = prices.find(p => p.id === selectedItem.id);
             if (priceItem && priceItem.note) {
                 const noteLower = priceItem.note.toLowerCase();
                 if (noteLower.includes("kein einkauf") || noteLower.includes("nur einkauf bis") || noteLower.includes("kein ankauf") || noteLower.includes("nur ankauf bis")) {

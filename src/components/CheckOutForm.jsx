@@ -50,7 +50,7 @@ export default function CheckOutForm({
     useEffect(() => {
         setPrice('');
         if (selectedItem) {
-            const priceItem = prices.find(p => p.name === selectedItem.name);
+            const priceItem = prices.find(p => p.id === selectedItem.id);
             if (priceItem) {
                 // If Verkauf (Trade), use VK
                 if (title.includes("Verkauf")) {
