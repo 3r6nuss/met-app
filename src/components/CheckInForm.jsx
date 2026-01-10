@@ -119,7 +119,7 @@ export default function CheckInForm({
         }
     };
 
-    const handleCustomNameChange = (e) => {
+    const _handleCustomNameChange = (e) => {
         const value = e.target.value;
         setCustomName(value);
         // Save custom name to localStorage

@@ -44,7 +44,7 @@ export const DeveloperConsoleProvider = ({ children }) => {
                 ERROR: true,
                 OTHER: true
             };
-        } catch (e) {
+        } catch (_e) {
             return {
                 WS: true,
                 API: true,

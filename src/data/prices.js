@@ -1,37 +1,41 @@
-// Wages (Lohn) per item ID
-export const prices = {
-    // Materials
-    1: 15, // Aramidfaser
-    2: 10, // E-Schrott
-    3: 12, // Kohle
-    4: 20, // S-Pulver
-    5: 15, // Eisen
-    6: 40, // Stahl
-    17: 35, // Platine
-    27: 8,  // Dünger
+/**
+ * Consolidated Price Data
+ * 
+ * This is the single source of truth for price information.
+ * Other files (prices.js, priceList.js) should be deprecated in favor of this.
+ * 
+ * Note: Live prices are fetched from the API (/api/prices), this file
+ * contains fallback/initial data only.
+ */
 
-    // Food / Farming
-    11: 5,  // Weintrauben Rot
-    12: 5,  // Weintrauben Grün
-    15: 6,  // Tabak Blatt
-    18: 4,  // Karotten
-    19: 4,  // Kopfsalat
-    20: 4,  // Zwiebeln
-    21: 4,  // Kartoffeln
-    22: 4,  // Gurken
-    23: 5,  // Weizen
-    24: 3,  // Ei
-    25: 8,  // Fleisch
-    26: 4,  // Milch
+// Re-export from initialPrices as the primary source
+export { initialPrices as priceData } from './initialPrices';
 
-    // Crafted / Processed (Higher wage if self-produced)
-    7: 150, // Pistol Clip
-    8: 120, // SMG-Clip
-    9: 50,  // Bandage
-    10: 250, // Weste
-    13: 80, // Rotwein Kiste
-    14: 80, // Weißwein Kiste
-    16: 40, // Tabak
-    28: 100, // Repkit
-    29: 75,  // Medikit
+// Legacy exports for backward compatibility
+// TODO: Update imports throughout the codebase to use priceData directly
+export { initialPrices } from './initialPrices';
+
+/**
+ * Price lookup helpers
+ */
+export const getPriceByName = (prices, name) => {
+    return prices.find(p => p.name === name);
+};
+
+export const getEKPrice = (prices, name) => {
+    const item = getPriceByName(prices, name);
+    return item?.ek || 0;
+};
+
+export const getVKPrice = (prices, name) => {
+    const item = getPriceByName(prices, name);
+    return item?.vk || 0;
+};
+
+export const getLohn = (prices, name) => {
+    const item = getPriceByName(prices, name);
+    if (!item?.lohn || item.lohn === '-') return 0;
+    // Handle range format like "50/80" - return max value
+    const parts = item.lohn.toString().split('/');
+    return Math.max(...parts.map(p => parseFloat(p) || 0));
 };

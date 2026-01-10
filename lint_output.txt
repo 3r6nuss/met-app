@@ -1,0 +1,485 @@
+
+C:\Users\stein\Desktop\MET\_static_backup\app.js
+   71:11  error  'chunkSize' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+   78:32  error  'colIndex' is defined but never used. Allowed unused args must match /^[A-Z_]/u            no-unused-vars
+  122:10  error  'updateStock' is defined but never used. Allowed unused vars must match /^[A-Z_]/u         no-unused-vars
+
+C:\Users\stein\Desktop\MET\old_design_CheckInForm.jsx
+  1:1  error  Parsing error: Unexpected character '�'
+
+C:\Users\stein\Desktop\MET\old_design_CheckOutForm.jsx
+  1:1  error  Parsing error: Unexpected character '�'
+
+C:\Users\stein\Desktop\MET\server.js
+   22:10  error  'initialInventory' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+   23:10  error  'initialPrices' is defined but never used. Allowed unused vars must match /^[A-Z_]/u     no-unused-vars
+   24:10  error  'initialEmployees' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+   25:10  error  'initialPersonnel' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+   26:21  error  'initialRecipes' is defined but never used. Allowed unused vars must match /^[A-Z_]/u    no-unused-vars
+   64:15  error  'logAudit' is not defined                                                                no-undef
+   80:31  error  'next' is defined but never used. Allowed unused args must match /^[A-Z_]/u              no-unused-vars
+   85:11  error  'logAudit' is not defined                                                                no-undef
+  185:13  error  Empty block statement                                                                    no-empty
+  189:13  error  Empty block statement                                                                    no-empty
+  193:13  error  Empty block statement                                                                    no-empty
+
+C:\Users\stein\Desktop\MET\src\App.jsx
+    6:10   error    'initialPrices' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                      no-unused-vars
+   49:10   error    'personnel' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                 no-unused-vars
+   94:6    warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array              react-hooks/exhaustive-deps
+  152:6    warning  React Hook useEffect has missing dependencies: 'fetchData' and 'log'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  180:87   error    'type' is assigned a value but never used. Allowed unused args must match /^[A-Z_]/u                                      no-unused-vars
+  270:88   error    'type' is assigned a value but never used. Allowed unused args must match /^[A-Z_]/u                                      no-unused-vars
+  270:125  error    'warningIgnored' is assigned a value but never used. Allowed unused args must match /^[A-Z_]/u                            no-unused-vars
+  512:14   error    'err' is defined but never used. Allowed unused args must match /^[A-Z_]/u                                                no-unused-vars
+  563:14   error    'err' is defined but never used. Allowed unused args must match /^[A-Z_]/u                                                no-unused-vars
+
+C:\Users\stein\Desktop\MET\src\components\CheckInForm.jsx
+   34:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  32 |         const now = new Date();
+  33 |         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+> 34 |         setSelectedDate(now.toISOString().slice(0, 16));
+     |         ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  35 |
+  36 |         // Load saved depositor from localStorage
+  37 |         const savedDepositor = localStorage.getItem('met_depositor');  react-hooks/set-state-in-effect
+   81:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  79 |     useEffect(() => {
+  80 |         if (isReturn) {
+> 81 |             setPrice(0);
+     |             ^^^^^^^^ Avoid calling setState() directly within an effect
+  82 |             return;
+  83 |         }
+  84 |                                                                                                                                                                                     react-hooks/set-state-in-effect
+  102:8   warning  React Hook useEffect has a missing dependency: 'calculateRecursiveWage'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  122:11  error    'handleCustomNameChange' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
+
+C:\Users\stein\Desktop\MET\src\components\CheckOutForm.jsx
+  31:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  29 |         const now = new Date();
+  30 |         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+> 31 |         setSelectedDate(now.toISOString().slice(0, 16));
+     |         ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  32 |
+  33 |         // Load saved depositor from localStorage
+  34 |         const savedDepositor = localStorage.getItem('met_depositor');  react-hooks/set-state-in-effect
+  51:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  49 |
+  50 |     useEffect(() => {
+> 51 |         setPrice('');
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  52 |         if (selectedItem) {
+  53 |             const priceItem = prices.find(p => p.name === selectedItem.name);
+  54 |             if (priceItem) {                                                                                                           react-hooks/set-state-in-effect
+
+C:\Users\stein\Desktop\MET\src\components\ErrorBoundary.jsx
+  10:37  error  'error' is defined but never used. Allowed unused args must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\stein\Desktop\MET\src\components\PriceListModal.jsx
+  27:8  warning  React Hook useEffect has a missing dependency: 'log'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\stein\Desktop\MET\src\context\DeveloperConsoleContext.jsx
+   6:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  47:18  error  'e' is defined but never used. Allowed unused caught errors must match /^[A-Z_]/u                                               no-unused-vars
+
+C:\Users\stein\Desktop\MET\src\pages\AdsPage.jsx
+  12:12  error  'loading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+  15:9   error  Error: Cannot access variable before it is declared
+
+`fetchAds` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  13 |
+  14 |     useEffect(() => {
+> 15 |         fetchAds();
+     |         ^^^^^^^^ `fetchAds` accessed before it is declared
+  16 |     }, []);
+  17 |
+  18 |     const fetchAds = () => {
+
+  16 |     }, []);
+  17 |
+> 18 |     const fetchAds = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^
+> 19 |         fetch('/api/ads')
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 20 |             .then(res => res.json())
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 28 |             });
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 29 |     };
+     | ^^^^^^^ `fetchAds` is declared here
+  30 |
+  31 |     const handleEdit = (ad) => {
+  32 |         setCurrentAd(ad);  react-hooks/immutability
+
+C:\Users\stein\Desktop\MET\src\pages\AuditLogPage.jsx
+   38:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  36 |
+  37 |     useEffect(() => {
+> 38 |         fetchLogs();
+     |         ^^^^^^^^^ Avoid calling setState() directly within an effect
+  39 |     }, []);
+  40 |
+  41 |     const handleRevert = async (timestamp) => {  react-hooks/set-state-in-effect
+  221:42  error  'e' is defined but never used. Allowed unused caught errors must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+
+C:\Users\stein\Desktop\MET\src\pages\ContactsPage.jsx
+  29:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  27 |
+  28 |     useEffect(() => {
+> 29 |         fetchContacts();
+     |         ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |     }, []);
+  31 |
+  32 |     const handleEdit = (contact) => {  react-hooks/set-state-in-effect
+
+C:\Users\stein\Desktop\MET\src\pages\ControlPage.jsx
+  40:20  error  'err' is defined but never used. Allowed unused args must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\stein\Desktop\MET\src\pages\MarketingPage.jsx
+    1:27  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+   61:13  error  'totalCost' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
+   97:25  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+   95 |             if (lohn > 0) {
+   96 |                 generatedSteps.push({
+>  97 |                     id: Math.random(),
+      |                         ^^^^^^^^^^^^^ Cannot call impure function
+   98 |                     name: `Verarbeitung: ${itemName}`,
+   99 |                     cost: lohn, // This is for ONE batch
+  100 |                     type: 'labor'  react-hooks/purity
+  144:25  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  142 |             if (total > 0) {
+  143 |                 steps.push({
+> 144 |                     id: Math.random(),
+      |                         ^^^^^^^^^^^^^ Cannot call impure function
+  145 |                     name: `Beschaffung: ${itemName}`,
+  146 |                     cost: total,
+  147 |                     type: 'labor'                                   react-hooks/purity
+  254:47  error  'index' is defined but never used. Allowed unused args must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-unused-vars
+
+C:\Users\stein\Desktop\MET\src\pages\PartnersPage.jsx
+  14:12  error  'loading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  17:9   error  Error: Cannot access variable before it is declared
+
+`fetchPartners` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  15 |
+  16 |     useEffect(() => {
+> 17 |         fetchPartners();
+     |         ^^^^^^^^^^^^^ `fetchPartners` accessed before it is declared
+  18 |     }, []);
+  19 |
+  20 |     const fetchPartners = () => {
+
+  18 |     }, []);
+  19 |
+> 20 |     const fetchPartners = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 21 |         fetch('/api/partners')
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 22 |             .then(res => res.json())
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 30 |             });
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 31 |     };
+     | ^^^^^^^ `fetchPartners` is declared here
+  32 |
+  33 |     const handleEdit = (partner) => {
+  34 |         setCurrentPartner(partner);  react-hooks/immutability
+
+C:\Users\stein\Desktop\MET\src\pages\PersonnelPage.jsx
+  25:12  error    'loading' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+  28:9   error    Error: Cannot access variable before it is declared
+
+`fetchPersonnel` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  26 |
+  27 |     useEffect(() => {
+> 28 |         fetchPersonnel();
+     |         ^^^^^^^^^^^^^^ `fetchPersonnel` accessed before it is declared
+  29 |     }, []);
+  30 |
+  31 |     const fetchPersonnel = () => {
+
+  29 |     }, []);
+  30 |
+> 31 |     const fetchPersonnel = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 32 |         api.getPersonnel()
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 33 |             .then(data => {
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 45 |             });
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 46 |     };
+     | ^^^^^^^ `fetchPersonnel` is declared here
+  47 |
+  48 |     const handleAdd = () => {
+  49 |         setCurrentPerson(null);  react-hooks/immutability
+  29:8   warning  React Hook useEffect has a missing dependency: 'fetchPersonnel'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/exhaustive-deps
+
+C:\Users\stein\Desktop\MET\src\pages\SpecialBookingPage.jsx
+  1:27  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\stein\Desktop\MET\src\pages\SystemPage.jsx
+   10:12  error  'loadingRecipes' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+   32:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  30 |     useEffect(() => {
+  31 |         if (activeTab === 'recipes') {
+> 32 |             fetchRecipes();
+     |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  33 |         }
+  34 |     }, [activeTab]);
+  35 |        react-hooks/set-state-in-effect
+   74:20  error  'err' is defined but never used. Allowed unused args must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  144:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  142 |     useEffect(() => {
+  143 |         if (activeTab === 'system') {
+> 144 |             fetchBackups();
+      |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  145 |         }
+  146 |     }, [activeTab]);
+  147 |  react-hooks/set-state-in-effect
+  161:11  error  'handleRestoreBackup' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            no-unused-vars
+
+C:\Users\stein\Desktop\MET\src\pages\protocols\InternalStorageProtocol.jsx
+   63:11   error    'validEmployeeNames' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+   73:34   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `isDepositorVisible`, but the source dependencies were [logs, employeeMapping]. Inferred different dependency than source.
+
+  71 |     // 1. Filter Logs: Category 'internal' AND Action 'in' (Einlagerung) OR 'Auszahlung'
+  72 |     // We need all history to calculate "Open Status", but we only DISPLAY the view week.
+> 73 |     const relevantLogs = useMemo(() => {
+     |                                  ^^^^^^^
+> 74 |         return logs.filter(l =>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 75 |             ((l.category === 'internal' && l.type === 'in') ||
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 76 |                 (l.itemName === 'Auszahlung' && l.category === 'internal')) &&
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 77 |             l.itemName !== 'Korrektur Geschäftskonto' &&
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 78 |             // Filter by visibility based on mapping
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 79 |             isDepositorVisible(l.depositor)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |         );
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |     }, [logs, employeeMapping]);
+     | ^^^^^^ Could not preserve existing manual memoization
+  82 |
+  83 |     // 2. Calculate Open Balances (Global)
+  84 |     const employeeBalances = useMemo(() => {  react-hooks/preserve-manual-memoization
+   73:34   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `isDepositorVisible`, but the source dependencies were [logs, employeeMapping]. Inferred different dependency than source.
+
+  71 |     // 1. Filter Logs: Category 'internal' AND Action 'in' (Einlagerung) OR 'Auszahlung'
+  72 |     // We need all history to calculate "Open Status", but we only DISPLAY the view week.
+> 73 |     const relevantLogs = useMemo(() => {
+     |                                  ^^^^^^^
+> 74 |         return logs.filter(l =>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 75 |             ((l.category === 'internal' && l.type === 'in') ||
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 76 |                 (l.itemName === 'Auszahlung' && l.category === 'internal')) &&
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 77 |             l.itemName !== 'Korrektur Geschäftskonto' &&
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 78 |             // Filter by visibility based on mapping
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 79 |             isDepositorVisible(l.depositor)
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 80 |         );
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |     }, [logs, employeeMapping]);
+     | ^^^^^^ Could not preserve existing manual memoization
+  82 |
+  83 |     // 2. Calculate Open Balances (Global)
+  84 |     const employeeBalances = useMemo(() => {  react-hooks/preserve-manual-memoization
+   81:8    warning  React Hook useMemo has a missing dependency: 'isDepositorVisible'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+   84:38   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `getDisplayName`, but the source dependencies were [relevantLogs]. Inferred different dependency than source.
+
+   82 |
+   83 |     // 2. Calculate Open Balances (Global)
+>  84 |     const employeeBalances = useMemo(() => {
+      |                                      ^^^^^^^
+>  85 |         const balances = {};
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  86 |         const payouts = {};
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 110 |         return balances;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 111 |     }, [relevantLogs]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  112 |
+  113 |     // 3. Prepare View Data (For the selected week)
+  114 |     const viewData = useMemo(() => {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/preserve-manual-memoization
+  111:8    warning  React Hook useMemo has a missing dependency: 'getDisplayName'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+  114:30   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `getDisplayName`, but the source dependencies were [relevantLogs, viewStart, viewEnd, user]. Inferred different dependency than source.
+
+  112 |
+  113 |     // 3. Prepare View Data (For the selected week)
+> 114 |     const viewData = useMemo(() => {
+      |                              ^^^^^^^
+> 115 |         const groups = {};
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 116 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 180 |         return result;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 181 |     }, [relevantLogs, viewStart, viewEnd, user]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  182 |
+  183 |     // WEEK DAYS headers
+  184 |     const weekDays = [                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/preserve-manual-memoization
+  114:30   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `getDisplayName`, but the source dependencies were [relevantLogs, viewStart, viewEnd, user]. Inferred different dependency than source.
+
+  112 |
+  113 |     // 3. Prepare View Data (For the selected week)
+> 114 |     const viewData = useMemo(() => {
+      |                              ^^^^^^^
+> 115 |         const groups = {};
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 116 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 180 |         return result;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 181 |     }, [relevantLogs, viewStart, viewEnd, user]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  182 |
+  183 |     // WEEK DAYS headers
+  184 |     const weekDays = [                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/preserve-manual-memoization
+  114:30   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `employees`, but the source dependencies were [relevantLogs, viewStart, viewEnd, user]. Inferred different dependency than source.
+
+  112 |
+  113 |     // 3. Prepare View Data (For the selected week)
+> 114 |     const viewData = useMemo(() => {
+      |                              ^^^^^^^
+> 115 |         const groups = {};
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 116 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 180 |         return result;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 181 |     }, [relevantLogs, viewStart, viewEnd, user]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  182 |
+  183 |     // WEEK DAYS headers
+  184 |     const weekDays = [                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-hooks/preserve-manual-memoization
+  114:30   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `employeeMapping`, but the source dependencies were [relevantLogs, viewStart, viewEnd, user]. Inferred different dependency than source.
+
+  112 |
+  113 |     // 3. Prepare View Data (For the selected week)
+> 114 |     const viewData = useMemo(() => {
+      |                              ^^^^^^^
+> 115 |         const groups = {};
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 116 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 180 |         return result;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 181 |     }, [relevantLogs, viewStart, viewEnd, user]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  182 |
+  183 |     // WEEK DAYS headers
+  184 |     const weekDays = [                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/preserve-manual-memoization
+  181:8    warning  React Hook useMemo has missing dependencies: 'employeeMapping', 'employees', and 'getDisplayName'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  316:59   error    'diff' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+  333:63   error    'amountToPay' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+  341:109  error    'log' is not defined                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-undef
+
+C:\Users\stein\Desktop\MET\src\routes\accountingRoutes.js
+   51:13  error  'db' is not defined                                                                no-undef
+   51:29  error  'db' is not defined                                                                no-undef
+   51:58  error  'e' is defined but never used. Allowed unused caught errors must match /^[A-Z_]/u  no-unused-vars
+  183:13  error  'db' is not defined                                                                no-undef
+  183:29  error  'db' is not defined                                                                no-undef
+  183:58  error  'e' is defined but never used. Allowed unused caught errors must match /^[A-Z_]/u  no-unused-vars
+  219:13  error  'db' is not defined                                                                no-undef
+  219:29  error  'db' is not defined                                                                no-undef
+  219:58  error  'e' is defined but never used. Allowed unused caught errors must match /^[A-Z_]/u  no-unused-vars
+
+✖ 80 problems (72 errors, 8 warnings)
+

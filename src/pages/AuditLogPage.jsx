@@ -218,7 +218,7 @@ export default function AuditLogPage() {
                                         }
                                         return null;
                                     });
-                                } catch (e) {
+                                } catch (_e) {
                                     return <p className="text-red-400">Fehler beim Parsen der Debug-Daten.</p>;
                                 }
                             })()}

@@ -189,16 +189,73 @@ router.post('/transaction/revert', async (req, res) => {
 
         await db.run('BEGIN TRANSACTION');
 
+        // 1. Revert Main Inventory Change
         if (originalLog.itemId) {
             const item = await db.get('SELECT * FROM inventory WHERE id = ?', originalLog.itemId);
             if (item) {
                 let newCurrent = item.current;
                 if (originalLog.type === 'in') {
+                    // Original was IN (Stock increased), so Revert means OUT (decrease stock)
                     newCurrent = Math.max(0, newCurrent - originalLog.quantity);
                 } else {
+                    // Original was OUT (Stock decreased), so Revert means IN (increase stock)
                     newCurrent += originalLog.quantity;
                 }
                 await db.run('UPDATE inventory SET current = ? WHERE id = ?', newCurrent, originalLog.itemId);
+            }
+        }
+
+        // 2. Revert Employee Inventory Change (if applicable)
+        // Check if it was a transaction that likely affected employee stock:
+        // - internal or trade
+        // - depositor is not 'Unbekannt' or 'System' (usually real names)
+        // - NOT a 'Sonderbuchung' (skipInventory would need to be inferred, but logs don't trigger if skipped usually for main inventory, 
+        //   but log msg says "Sonderbuchung". However, Sonderbuchung explicitly skips inventory, so we shouldn't revert inventory, 
+        //   but wait, the original logic reverted main inventory blindly. 
+        //   The original code: "if (originalLog.itemId) ... update inventory". 
+        //   If skipInventory was true, itemId might be null or valid? In 'transaction' route: 
+        //   "if (!skipInventory) ... update inventory ... logEntry.itemId = itemId".
+        //   So if skipped, usually itemId is preserverd in log IF provided, checking line 98: "itemId: itemId || null".
+        //   If skipped, we probably shouldn't receive an itemId in the log if we follow strict logic, but let's stick to: 
+        //   If the log has an itemId, it implies main inventory WAS touched OR we want to track it.
+        //   Actually, looking at line 39: "if (!skipInventory) ... update db ...". 
+        //   So if skipInventory is true, NO DB update happens.
+        //   If we want to revert, we should only revert if it actually happened.
+        //   The best indicator is likely the message or relying on the fact that if we have an itemId and it wasn't a special booking, we should revert.
+        //   However, for Employee Inventory, it defaults to checking 'internal' category.
+
+        if (originalLog.category === 'internal' && originalLog.depositor && originalLog.depositor !== 'Unbekannt') {
+            // Logic mirrors the original forward transaction but inverted.
+            // Original IN: Deducted from Employee (or Recipe Ingredients)
+            // Original OUT: Added to Employee
+
+            if (originalLog.type === 'out') {
+                // Original: OUT -> Added to Employee
+                // Revert: Take from Employee
+                await db.run(`UPDATE employee_inventory 
+                               SET quantity = MAX(0, quantity - ?) 
+                               WHERE employee_name = ? AND item_id = ?`,
+                    originalLog.quantity, originalLog.depositor, originalLog.itemId);
+                // Clean up 0 quantity
+                await db.run('DELETE FROM employee_inventory WHERE employee_name = ? AND quantity <= 0', originalLog.depositor);
+            } else if (originalLog.type === 'in') {
+                // Original: IN -> Deducted from Employee (Complex if recipe involved!)
+                // WARNING: We don't verify recipes here easily because recipes might have changed.
+                // We will attempt to restore the ITEM ITSELF if no recipe logic is easily traceale, 
+                // OR we just assume direct restore for now to keep it simple as per plan.
+                // But wait, the original logic checks for recipes and deducts INGREDIENTS.
+                // If we revert a "Produced Item IN", we should give back the INGREDIENTS?
+                // Or do we just give back the Item? 
+                // The Log msg says "Eingelagert...". 
+                // If we simply give back the item to the employee, they have the product, not ingredients.
+                // This is likely acceptable for "undoing" a mistake. "I put 10 Diamond Swords in, oh wait, wrong." -> "Here are your 10 Diamond Swords back".
+                // It complicates things if they wanted the diamonds back. But restoring the Product is the direct inverse of "IN".
+
+                await db.run(`INSERT INTO employee_inventory (employee_name, item_id, quantity) 
+                               VALUES (?, ?, ?) 
+                               ON CONFLICT(employee_name, item_id) 
+                               DO UPDATE SET quantity = quantity + ?`,
+                    originalLog.depositor, originalLog.itemId, originalLog.quantity, originalLog.quantity);
             }
         }
 

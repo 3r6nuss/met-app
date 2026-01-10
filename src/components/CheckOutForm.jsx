@@ -12,35 +12,36 @@ export default function CheckOutForm({
     user // Receive user prop
 }) {
     const [selectedId, setSelectedId] = useState('');
-    const [depositor, setDepositor] = useState('');
-    const [customName, setCustomName] = useState('');
+    // Initialize depositor from localStorage with lazy initialization
+    const [depositor, setDepositor] = useState(() => {
+        const saved = localStorage.getItem('met_depositor');
+        return saved || '';
+    });
+    const [customName, setCustomName] = useState(() => {
+        const saved = localStorage.getItem('met_depositor');
+        // If saved doesn't match an employee, it's a custom name
+        return saved || '';
+    });
     const [showCustomInput, setShowCustomInput] = useState(false);
     const [quantity, setQuantity] = useState('');
     const [price, setPrice] = useState('');
-    const [selectedDate, setSelectedDate] = useState('');
+    // Initialize date with lazy initialization (no useEffect needed)
+    const [selectedDate, setSelectedDate] = useState(() => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        return now.toISOString().slice(0, 16);
+    });
     const [showWarningModal, setShowWarningModal] = useState(false);
     const [warningMessage, setWarningMessage] = useState('');
     const [pendingSubmission, setPendingSubmission] = useState(null);
     const [cart, setCart] = useState([]);
-
-
+    // Check if saved depositor needs custom input display (runs once on mount)
     useEffect(() => {
-        // Set default date to now (local time for input)
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        setSelectedDate(now.toISOString().slice(0, 16));
-
-        // Load saved depositor from localStorage
         const savedDepositor = localStorage.getItem('met_depositor');
         if (savedDepositor) {
-            // Check if saved depositor matches any employee name
             const employeeNames = employees.map(e => typeof e === 'string' ? e : e.name);
-            if (employeeNames.includes(savedDepositor)) {
-                setDepositor(savedDepositor);
-            } else {
-                // Custom name was saved
+            if (!employeeNames.includes(savedDepositor)) {
                 setShowCustomInput(true);
-                setCustomName(savedDepositor);
             }
         }
     }, [employees]);

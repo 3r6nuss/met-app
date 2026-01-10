@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Pencil, Trash2, Save, X, User, Truck, FileText, AlertTriangle, Car } from 'lucide-react';
 
 import { api } from '../services/api';
@@ -22,17 +22,11 @@ export default function PersonnelPage() {
         remark: '',
         percentage: 0
     });
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchPersonnel();
-    }, []);
-
-    const fetchPersonnel = () => {
+    const fetchPersonnel = useCallback(() => {
         api.getPersonnel()
             .then(data => {
                 setPersonnel(data);
-                setLoading(false);
                 // Update current person if detail view is open
                 if (currentPerson) {
                     const updated = data.find(p => p.id === currentPerson.id);
@@ -41,9 +35,12 @@ export default function PersonnelPage() {
             })
             .catch(err => {
                 console.error("Failed to fetch personnel:", err);
-                setLoading(false);
             });
-    };
+    }, [currentPerson]);
+
+    useEffect(() => {
+        fetchPersonnel();
+    }, [fetchPersonnel]);
 
     const handleAdd = () => {
         setCurrentPerson(null);

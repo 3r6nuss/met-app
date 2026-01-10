@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Save, AlertCircle } from 'lucide-react';
 
 export default function SpecialBookingPage({ employees, onAction }) {

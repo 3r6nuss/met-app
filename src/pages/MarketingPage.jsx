@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Plus, Trash2, Calculator, Save, TrendingUp, Search, Package, GitBranch } from 'lucide-react';
 import { recipes } from '../data/recipes';
 import { initialInventory } from '../data/initialData';
+
+// Counter for generating unique IDs
+let idCounter = 0;
 
 // Helper to parse lohn string (e.g., "50/80" -> 80 (max), "80" -> 80, "" -> 0)
 const parseLohn = (lohnStr) => {
@@ -58,7 +61,6 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
         }
 
         const generatedSteps = [];
-        let totalCost = 0;
 
         // 1. Get Direct Lohn (Crafting or Gathering Wage)
         const lohn = parseLohn(itemPriceData?.lohn);
@@ -94,7 +96,7 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
             // Lohn in price list is usually per Crafting Batch
             if (lohn > 0) {
                 generatedSteps.push({
-                    id: Math.random(),
+                    id: ++idCounter,
                     name: `Verarbeitung: ${itemName}`,
                     cost: lohn, // This is for ONE batch
                     type: 'labor'
@@ -138,17 +140,17 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
             const unitCost = lohn;
             const total = unitCost * quantityMultiplier;
 
-            const steps = [];
+            const rawSteps = [];
             if (total > 0) {
-                steps.push({
-                    id: Math.random(),
+                rawSteps.push({
+                    id: ++idCounter,
                     name: `Beschaffung: ${itemName}`,
                     cost: total,
                     type: 'labor'
                 });
             }
 
-            return { steps, total };
+            return { steps: rawSteps, total };
         }
     };
 
@@ -251,7 +253,7 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
                         </h2>
 
                         <div className="space-y-4">
-                            {steps.map((step, index) => (
+                            {steps.map((step) => (
                                 <div key={step.id} className="flex flex-col gap-2 animate-slide-in p-3 bg-slate-800/30 rounded-lg border border-slate-700/30">
                                     <div className="flex gap-3 items-start">
                                         <input

@@ -37,7 +37,7 @@ export default function ControlPage({ employeeInventory = [], employees = [], in
             .then(data => {
                 if (!data.success) alert("Fehler beim Speichern");
             })
-            .catch(err => alert("Netzwerkfehler"));
+            .catch(_err => alert("Netzwerkfehler"));
     };
 
     return (

@@ -32,8 +32,8 @@ export const api = {
 
     // Logs
     getLogs: async () => {
-        const res = await fetch(`${API_URL}/logs`);
-        return res.json();
+        const res = await fetch(`${API_URL}/logs`, { credentials: 'include' });
+        return handleResponse(res);
     },
     saveLog: async (entry) => {
         const res = await fetch(`${API_URL}/logs`, {
@@ -99,8 +99,8 @@ export const api = {
 
     // Employee Inventory
     getEmployeeInventory: async () => {
-        const res = await fetch(`${API_URL}/employee-inventory`);
-        return res.json();
+        const res = await fetch(`${API_URL}/employee-inventory`, { credentials: 'include' });
+        return handleResponse(res);
     },
     consumeIngredients: async (employeeName, items) => {
         const res = await fetch(`${API_URL}/employee-inventory/consume`, {
@@ -113,36 +113,39 @@ export const api = {
 
     // Prices
     getPrices: async () => {
-        const res = await fetch(`${API_URL}/prices`);
-        return res.json();
+        const res = await fetch(`${API_URL}/prices`, { credentials: 'include' });
+        return handleResponse(res);
     },
 
     // Orders
     getOrders: async () => {
-        const res = await fetch(`${API_URL}/orders`);
-        return res.json();
+        const res = await fetch(`${API_URL}/orders`, { credentials: 'include' });
+        return handleResponse(res);
     },
     createOrder: async (orderData) => {
         const res = await fetch(`${API_URL}/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(orderData)
         });
-        return res.json();
+        return handleResponse(res);
     },
     updateOrderStatus: async (id, status) => {
         const res = await fetch(`${API_URL}/orders/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ status })
         });
-        return res.json();
+        return handleResponse(res);
     },
     deleteOrder: async (id) => {
         const res = await fetch(`${API_URL}/orders/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            credentials: 'include'
         });
-        return res.json();
+        return handleResponse(res);
     },
 
     // Transactions
@@ -150,9 +153,10 @@ export const api = {
         const res = await fetch(`${API_URL}/transaction`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(payload)
         });
-        return res.json();
+        return handleResponse(res);
     },
 
     // System
@@ -162,8 +166,8 @@ export const api = {
         return null;
     },
     resetDatabase: async () => {
-        const res = await fetch(`${API_URL}/reset`, { method: 'POST' });
-        return res.json();
+        const res = await fetch(`${API_URL}/reset`, { method: 'POST', credentials: 'include' });
+        return handleResponse(res);
     },
     saveVerification: async (verificationEntry) => {
         const res = await fetch(`${API_URL}/verifications`, {
@@ -189,19 +193,20 @@ export const api = {
 
     // Developer Logs (Persistent)
     getDevLogs: async () => {
-        const res = await fetch(`${API_URL}/dev-logs`);
-        return res.json();
+        const res = await fetch(`${API_URL}/dev-logs`, { credentials: 'include' });
+        return handleResponse(res);
     },
     saveDevLog: async (log) => {
         const res = await fetch(`${API_URL}/dev-logs`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(log)
         });
-        return res.json();
+        return handleResponse(res);
     },
     clearDevLogs: async () => {
-        const res = await fetch(`${API_URL}/dev-logs`, { method: 'DELETE' });
-        return res.json();
+        const res = await fetch(`${API_URL}/dev-logs`, { method: 'DELETE', credentials: 'include' });
+        return handleResponse(res);
     }
 };

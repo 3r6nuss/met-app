@@ -11,24 +11,21 @@ export default function PartnersPage() {
         met_offer: '',
         info: ''
     });
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        fetchPartners();
-    }, []);
 
     const fetchPartners = () => {
         fetch('/api/partners')
             .then(res => res.json())
             .then(data => {
                 setPartners(data);
-                setLoading(false);
             })
             .catch(err => {
                 console.error("Failed to fetch partners:", err);
-                setLoading(false);
             });
     };
+
+    useEffect(() => {
+        fetchPartners();
+    }, []);
 
     const handleEdit = (partner) => {
         setCurrentPartner(partner);

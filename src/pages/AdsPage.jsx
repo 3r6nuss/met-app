@@ -9,24 +9,21 @@ export default function AdsPage() {
         content: '',
         description: ''
     });
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        fetchAds();
-    }, []);
 
     const fetchAds = () => {
         fetch('/api/ads')
             .then(res => res.json())
             .then(data => {
                 setAds(data);
-                setLoading(false);
             })
             .catch(err => {
                 console.error("Failed to fetch ads:", err);
-                setLoading(false);
             });
     };
+
+    useEffect(() => {
+        fetchAds();
+    }, []);
 
     const handleEdit = (ad) => {
         setCurrentAd(ad);

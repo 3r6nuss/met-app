@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { initialInventory } from './data/initialData';
-import { initialPrices } from './data/initialPrices';
+import { initialPrices as _initialPrices } from './data/initialPrices';
 import Navbar from './components/Navbar';
 import InventoryPage from './pages/InventoryPage';
 import ActionPage from './pages/ActionPage';
@@ -46,7 +46,7 @@ function App() {
   const [employeeInventory, setEmployeeInventory] = useState([]); // Employee inventory
   const [prices, setPrices] = useState([]); // Price list
   const [orders, setOrders] = useState([]); // Orders
-  const [personnel, setPersonnel] = useState([]); // Personnel list (from /api/personnel)
+  const [_personnel, setPersonnel] = useState([]); // Personnel list (from /api/personnel)
   const [showPriceList, setShowPriceList] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState('idle');
@@ -177,7 +177,7 @@ function App() {
     api.saveLog(newLog).catch(err => console.error("Failed to save log:", err));
   };
 
-  const handleCheckIn = (idOrData, quantity, depositor, price = 0, customDate = null, type = 'in', category = 'internal', warningIgnored = false, skipInventory = false) => {
+  const handleCheckIn = (idOrData, quantity, depositor, price = 0, customDate = null, _type = 'in', category = 'internal', warningIgnored = false, skipInventory = false) => {
     let payload;
     let logDetail = null;
 
@@ -267,7 +267,7 @@ function App() {
       });
   };
 
-  const handleCheckOut = (idOrData, quantity, depositor, price = 0, customDate = null, type = 'out', category = 'internal', warningIgnored = false, skipInventory = false) => {
+  const handleCheckOut = (idOrData, quantity, depositor, price = 0, customDate = null, _type = 'out', category = 'internal', _warningIgnored = false, skipInventory = false) => {
     let payload;
     let logDetail = null;
 
@@ -509,7 +509,7 @@ function App() {
           alert("Fehler beim Erstellen des Auftrags");
         }
       })
-      .catch(err => alert("Netzwerkfehler"));
+      .catch(_err => alert("Netzwerkfehler"));
   };
 
   const handleUpdateOrderStatus = (id, status) => {
@@ -560,7 +560,7 @@ function App() {
           alert("Fehler: " + data.error);
         }
       })
-      .catch(err => alert("Netzwerkfehler"));
+      .catch(_err => alert("Netzwerkfehler"));
   };
 
   const handleConsumeIngredients = (employeeName, items) => {

@@ -48,6 +48,7 @@ router.post('/accounting/pay', isBuchhaltungOrAdmin, async (req, res) => {
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
+        try { const rollbackDb = await getDb(); await rollbackDb.run('ROLLBACK'); } catch (_e) { /* ignore */ }
         console.error("Error paying logs:", error);
         debugSteps.push(`ERROR: ${error.message}`);
         await auditLog(req, 'PAYOUT_ERROR', `Error paying logs`, debugSteps);
@@ -179,6 +180,7 @@ router.post('/employee-inventory/consume', async (req, res) => {
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
+        try { const rollbackDb = await getDb(); await rollbackDb.run('ROLLBACK'); } catch (_e) { /* ignore */ }
         console.error("Error consuming ingredients:", error);
         res.status(500).json({ error: error.message || "Database error" });
     }
@@ -214,6 +216,7 @@ router.post('/recipes', isBuchhaltungOrAdmin, async (req, res) => {
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
+        try { const rollbackDb = await getDb(); await rollbackDb.run('ROLLBACK'); } catch (_e) { /* ignore */ }
         console.error("Error saving recipe:", error);
         res.status(500).json({ error: "Database error" });
     }

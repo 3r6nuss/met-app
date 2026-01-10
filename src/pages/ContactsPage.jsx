@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Pencil, Trash2, Save, X, Phone, MapPin, Info } from 'lucide-react';
+import { SkeletonTable, SkeletonPageHeader } from '../components/Skeleton';
 
 export default function ContactsPage() {
     const [contacts, setContacts] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [currentContact, setCurrentContact] = useState(null);
     const [formData, setFormData] = useState({
@@ -14,6 +16,7 @@ export default function ContactsPage() {
     });
 
     const fetchContacts = async () => {
+        setLoading(true);
         try {
             const res = await fetch('/api/contacts');
             if (res.ok) {
@@ -22,6 +25,8 @@ export default function ContactsPage() {
             }
         } catch (error) {
             console.error("Failed to fetch contacts", error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -84,6 +89,16 @@ export default function ContactsPage() {
             console.error("Failed to save contact", error);
         }
     };
+
+    // Show skeleton while loading
+    if (loading) {
+        return (
+            <div className="animate-fade-in space-y-6 pb-24">
+                <SkeletonPageHeader />
+                <SkeletonTable rows={8} columns={6} />
+            </div>
+        );
+    }
 
     return (
         <div className="animate-fade-in space-y-6 pb-24">

@@ -7,7 +7,7 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
     const [newEmployeeName, setNewEmployeeName] = useState('');
     const [activeTab, setActiveTab] = useState('employees'); // 'employees', 'system', 'logs', 'recipes'
     const [recipes, setRecipes] = useState({});
-    const [loadingRecipes, setLoadingRecipes] = useState(false);
+    const [_loadingRecipes, setLoadingRecipes] = useState(false);
 
     // Recipe Form State
     const [selectedProduct, setSelectedProduct] = useState('');
@@ -71,7 +71,7 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                     alert("Fehler beim Speichern");
                 }
             })
-            .catch(err => alert("Netzwerkfehler"));
+            .catch(_err => alert("Netzwerkfehler"));
     };
 
     const handleDeleteRecipe = (productId) => {
@@ -158,7 +158,7 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
             .catch(err => alert("Netzwerkfehler: " + err));
     };
 
-    const handleRestoreBackup = (filename) => {
+    const _handleRestoreBackup = (filename) => {
         if (window.confirm(`WARNUNG: Möchtest du wirklich das Backup "${filename}" wiederherstellen? \n\nALLE aktuellen Daten gehen verloren und werden durch das Backup ersetzt!`)) {
             fetch('/api/restore', {
                 method: 'POST',

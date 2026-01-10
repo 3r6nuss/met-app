@@ -19,11 +19,11 @@ import devLogsRoutes from './src/routes/devLogsRoutes.js';
 
 // Import Middleware
 import { logger } from './src/middleware/logger.js';
-import { initialInventory } from './src/data/initialData.js';
-import { initialPrices } from './src/data/initialPrices.js';
-import { initialEmployees } from './src/data/initialEmployees.js';
-import { initialPersonnel } from './src/data/initialPersonnel.js';
-import { recipes as initialRecipes } from './src/data/recipes.js';
+import { initialInventory as _initialInventory } from './src/data/initialData.js';
+import { initialPrices as _initialPrices } from './src/data/initialPrices.js';
+import { initialEmployees as _initialEmployees } from './src/data/initialEmployees.js';
+import { initialPersonnel as _initialPersonnel } from './src/data/initialPersonnel.js';
+import { recipes as _initialRecipes } from './src/data/recipes.js';
 
 dotenv.config();
 
@@ -55,6 +55,19 @@ const broadcastUpdate = () => {
 // Make broadcastUpdate available to routes via app.get('broadcastUpdate')
 app.set('broadcastUpdate', broadcastUpdate);
 
+// Audit logging function
+const logAudit = async (action, userId, username, details, debugData = {}) => {
+    try {
+        const db = await getDb();
+        await db.run(
+            'INSERT INTO audit_logs (timestamp, user_id, username, action, details, debug_log) VALUES (?, ?, ?, ?, ?, ?)',
+            new Date().toISOString(), userId, username, action, details, JSON.stringify(debugData)
+        );
+    } catch (e) {
+        console.error('Audit log error:', e);
+    }
+};
+
 // Debug/Error Reporting Route
 app.post('/api/debug/log', async (req, res) => {
     try {
@@ -77,7 +90,7 @@ app.post('/api/debug/log', async (req, res) => {
 });
 
 // Global Error Handler Middleware
-app.use(async (err, req, res, next) => {
+app.use(async (err, req, res, _next) => {
     console.error("Unhandled Server Error:", err);
 
     // Log to DB
@@ -182,15 +195,15 @@ const initNewTables = async () => {
     try {
         const tableInfo = await db.all("PRAGMA table_info(inventory)");
         if (!tableInfo.some(col => col.name === 'sortOrder')) await db.run("ALTER TABLE inventory ADD COLUMN sortOrder INTEGER DEFAULT 0");
-    } catch { }
+    } catch { /* Column already exists */ }
     try {
         const tableInfo = await db.all("PRAGMA table_info(logs)");
         if (!tableInfo.some(col => col.name === 'status')) await db.run("ALTER TABLE logs ADD COLUMN status TEXT DEFAULT 'pending'");
-    } catch { }
+    } catch { /* Column already exists */ }
     try {
         const pricesInfo = await db.all("PRAGMA table_info(prices)");
         if (!pricesInfo.some(col => col.name === 'noteVK')) await db.run("ALTER TABLE prices ADD COLUMN noteVK TEXT DEFAULT ''");
-    } catch { }
+    } catch { /* Column already exists */ }
 
     // Seed Data checks (implied)
 };

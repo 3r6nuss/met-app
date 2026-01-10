@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Banknote, AlertCircle } from 'lucide-react';
 
 export default function InternalStorageProtocol({ logs, user, employees, onPayout }) {
@@ -47,20 +47,20 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
     }, [employees]);
 
     // Helper to get display name for a depositor
-    const getDisplayName = (depositor) => {
+    const getDisplayName = useCallback((depositor) => {
         if (!depositor || typeof depositor !== 'string') return depositor || 'Unbekannt';
         return employeeMapping[depositor]?.displayName || depositor;
-    };
+    }, [employeeMapping]);
 
     // Check if a depositor should be displayed
-    const isDepositorVisible = (depositor) => {
+    const isDepositorVisible = useCallback((depositor) => {
         // If no mapping exists (unknown employee), show by default
         if (!depositor || typeof depositor !== 'string') return true;
         if (!employeeMapping[depositor]) return true;
         return employeeMapping[depositor].isVisible;
-    };
+    }, [employeeMapping]);
 
-    const validEmployeeNames = useMemo(() => {
+    const _validEmployeeNames = useMemo(() => {
         // We now use mapping to determine validity if needed, but primarily we filter by visibility later.
         // Keeping this for compatibility if it was used elsewhere, but redefining it:
         if (!employees) return new Set();
@@ -78,7 +78,7 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
             // Filter by visibility based on mapping
             isDepositorVisible(l.depositor)
         );
-    }, [logs, employeeMapping]);
+    }, [logs, isDepositorVisible]);
 
     // 2. Calculate Open Balances (Global)
     const employeeBalances = useMemo(() => {
@@ -108,7 +108,7 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
         });
 
         return balances;
-    }, [relevantLogs]);
+    }, [relevantLogs, getDisplayName]);
 
     // 3. Prepare View Data (For the selected week)
     const viewData = useMemo(() => {
@@ -178,7 +178,7 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
         }
 
         return result;
-    }, [relevantLogs, viewStart, viewEnd, user]);
+    }, [relevantLogs, viewStart, viewEnd, user, employeeMapping, employees, getDisplayName]);
 
     // WEEK DAYS headers
     const weekDays = [
@@ -313,7 +313,7 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
                                                     // Date of Last Friday relative to TODAY
                                                     const today = new Date();
                                                     const day = today.getDay();
-                                                    const diff = (day + 2) % 7;
+                                                    const _diff = (day + 2) % 7;
                                                     // Friday is 5. 
                                                     // If today is Friday (5), last Friday was today? Or week before?
                                                     // "Letzte Woche (bis freitags)" usually implies the Friday of the previous week.
@@ -330,7 +330,7 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
                                                     lastFriday.setHours(23, 59, 59);
 
                                                     if (confirm(`${emp.name}: Alles bis letzten Freitag (${lastFriday.toLocaleDateString()}) auszahlen?`)) {
-                                                        const amountToPay = 0; // We don't know the exact amount easily here without filtering again.
+                                                        const _amountToPay = 0; // We don't know the exact amount easily here without filtering again.
                                                         // Actually, we pass the AMOUNT calculation to the server or just logs?
                                                         // DailyEmployeeLog passes Amount.
                                                         // We need to calculate amount up to that date.
@@ -338,7 +338,7 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
                                                         const logsUntilFri = relevantLogs.filter(l => {
                                                             const isInternalIn = l.category === 'internal' && l.type === 'in' && l.itemName !== 'Auszahlung';
                                                             const logDate = new Date(l.timestamp);
-                                                            return isInternalIn && logDate <= lastFriday && log.depositor === emp.name;
+                                                            return isInternalIn && logDate <= lastFriday && l.depositor === emp.name;
                                                         });
 
                                                         // Check if paid
