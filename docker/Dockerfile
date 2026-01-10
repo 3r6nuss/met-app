@@ -20,6 +20,7 @@ COPY server.js ./
 COPY src/data ./src/data
 COPY src/db ./src/db
 COPY src/routes ./src/routes
+COPY src/services ./src/services
 COPY src/middleware ./src/middleware
 COPY scripts ./scripts
 
