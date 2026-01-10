@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { initialInventory } from './data/initialData';
@@ -16,7 +16,7 @@ import StorageProtocol from './pages/protocols/StorageProtocol';
 import InternalStorageProtocol from './pages/protocols/InternalStorageProtocol';
 import SystemPage from './pages/SystemPage'; import PriceListModal from './components/PriceListModal';
 import Login from './components/Login';
-import { Activity } from 'lucide-react';
+import { Activity, WifiOff } from 'lucide-react';
 import UserManagement from './components/UserManagement';
 import SystemAlert from './components/SystemAlert';
 import CalculatorPage from './pages/CalculatorPage';
@@ -51,6 +51,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState('idle');
   const [user, setUser] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const retryCount = useRef(0);
 
   const { log } = useDeveloperConsole();
 
@@ -94,9 +96,11 @@ function App() {
   }, []);
 
   // WebSocket Connection
+  // WebSocket Connection
   useEffect(() => {
     let ws;
     let reconnectTimer;
+    let isMounted = true;
 
     const connect = () => {
       // Determine WS URL (wss if https, ws if http)
@@ -112,11 +116,18 @@ function App() {
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
+        if (!isMounted) {
+          ws.close();
+          return;
+        }
         console.log("WebSocket connected");
+        setIsConnected(true);
+        retryCount.current = 0; // Reset retry count on successful connection
         log('WS', 'Connected', { url: wsUrl });
       };
 
       ws.onmessage = (event) => {
+        if (!isMounted) return;
         try {
           const data = JSON.parse(event.data);
           log('WS', 'Message received', data);
@@ -131,14 +142,24 @@ function App() {
       };
 
       ws.onclose = () => {
-        console.log("WebSocket disconnected, reconnecting in 3s...");
-        log('WS', 'Disconnected', { reconnectIn: 3000 });
-        reconnectTimer = setTimeout(connect, 3000);
+        if (!isMounted) return;
+        setIsConnected(false);
+
+        // Exponential Backoff: 500ms, 1000ms, 2000ms (capped at 2000ms)
+        const delay = Math.min(500 * (2 ** retryCount.current), 2000);
+        console.log(`WebSocket disconnected. Reconnecting in ${delay}ms... (Attempt ${retryCount.current + 1})`);
+
+        log('WS', 'Disconnected', { reconnectIn: delay });
+
+        retryCount.current = retryCount.current + 1;
+        reconnectTimer = setTimeout(connect, delay);
       };
 
       ws.onerror = (err) => {
+        if (!isMounted) return;
         console.error("WebSocket error:", err);
         log('ERROR', 'WebSocket Error', err);
+        // ws.close() will trigger onclose, where reconnect logic happens
         ws.close();
       };
     };
@@ -146,6 +167,7 @@ function App() {
     connect();
 
     return () => {
+      isMounted = false;
       if (ws) ws.close();
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
@@ -682,6 +704,13 @@ function App() {
             </div>
           </div>
         </header>
+
+        {!isConnected && (
+          <div className="fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-red-500/90 text-white rounded-lg shadow-lg backdrop-blur animate-pulse">
+            <WifiOff className="w-5 h-5" />
+            <span className="font-medium">Verbindung verloren</span>
+          </div>
+        )}
 
         <Navbar onOpenPriceList={() => setShowPriceList(true)} user={user} />
 
