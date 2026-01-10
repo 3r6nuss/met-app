@@ -1,6 +1,6 @@
 import express from 'express';
 import { getDb } from '../db/database.js';
-// import { broadcastUpdate } from '../../server.js'; // Unused
+import { serverLog, LogCategory } from '../services/serverLogger.js';
 
 const router = express.Router();
 
@@ -34,6 +34,9 @@ router.post('/', async (req, res) => {
         await stmt.finalize();
         await db.run('COMMIT');
 
+        // Server-Side Logging
+        await serverLog(LogCategory.INVENTORY, `Inventar aktualisiert: ${newData.length} Items`, { itemCount: newData.length });
+
         // We need a way to trigger broadcast. 
         // Circular dependency might be an issue if we import broadcastUpdate directly from server.js if server.js imports this router.
         // Solution: Pass broadcast function to router or emit event.
@@ -64,6 +67,9 @@ router.put('/:id/priority', async (req, res) => {
         const db = await getDb();
 
         await db.run('UPDATE inventory SET priority = ? WHERE id = ?', priority || null, id);
+
+        // Server-Side Logging
+        await serverLog(LogCategory.INVENTORY, `Priorität geändert: Item #${id} → ${priority || 'keine'}`, { itemId: id, priority, changedBy: req.user?.username });
 
         if (req.app.get('broadcastUpdate')) {
             req.app.get('broadcastUpdate')();

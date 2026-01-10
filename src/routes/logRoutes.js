@@ -1,5 +1,6 @@
 import express from 'express';
 import { getDb } from '../db/database.js';
+import { logProtocol } from '../services/serverLogger.js';
 
 const router = express.Router();
 
@@ -92,6 +93,9 @@ router.delete('/:timestamp', async (req, res) => {
 
         await auditLog(req, 'DELETE_LOG', `Deleted log: ${log.msg}`);
         console.log(`[LOG DELETED] ${log.msg} deleted by ${req.user.username}`);
+
+        // Server-Side Logging
+        await logProtocol(`Log gelöscht: ${log.msg}`, { timestamp, itemName: log.itemName, quantity: log.quantity }, req.user?.username);
 
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });

@@ -46,6 +46,11 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
     const calculateRecursiveSteps = (itemName, quantityMultiplier = 1) => {
         const itemPriceData = prices.find(p => p.name === itemName);
 
+        // If item not found in prices, return empty - prevents false 0 cost calculations
+        if (!itemPriceData) {
+            return { steps: [], total: 0 };
+        }
+
         // Robust ID Lookup:
         // 1. Try finding ID in the passed 'inventory' (Live DB)
         // 2. Fallback to 'initialInventory' (Static Seed Data) which matches recipes.js keys (ID based)

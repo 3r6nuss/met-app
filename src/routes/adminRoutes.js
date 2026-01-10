@@ -4,6 +4,7 @@ import { initialEmployees } from '../data/initialEmployees.js';
 import { initialPrices } from '../data/initialPrices.js';
 import { initialInventory } from '../data/initialData.js';
 import { initialPersonnel } from '../data/initialPersonnel.js';
+import { logEmployeeUpdate, serverLog, LogCategory } from '../services/serverLogger.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -40,6 +41,10 @@ router.put('/users/:discordId', isAdmin, async (req, res) => {
         const { discordId } = req.params;
         const db = await getDb();
         await db.run('UPDATE users SET role = ?, employeeName = ?, isHaendler = ?, isLagerist = ? WHERE discordId = ?', role, employeeName, isHaendler, isLagerist, discordId);
+
+        // Server-Side Logging
+        await serverLog(LogCategory.AUTH, `User Rolle geändert: ${discordId} → ${role}`, { discordId, role, employeeName, isHaendler, isLagerist, changedBy: req.user?.username });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
@@ -101,6 +106,10 @@ router.post('/employees', async (req, res) => {
 
         await stmt.finalize();
         await db.run('COMMIT');
+
+        // Server-Side Logging
+        await logEmployeeUpdate('Liste aktualisiert', `${newEmployees.length} Mitarbeiter`, { count: newEmployees.length }, req.user?.username);
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
@@ -132,6 +141,10 @@ router.post('/prices', isAdmin, async (req, res) => {
         for (const p of newPrices) await stmt.run(p.name, p.ek, p.vk, p.lohn, p.note, p.noteVK || '');
         await stmt.finalize();
         await db.run('COMMIT');
+
+        // Server-Side Logging
+        await serverLog(LogCategory.PRICE, `Preisliste aktualisiert: ${newPrices.length} Einträge`, { count: newPrices.length, changedBy: req.user?.username });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
@@ -166,6 +179,10 @@ router.post('/personnel', isAdmin, async (req, res) => {
         } else {
             await db.run('INSERT INTO personnel (name, phone, truck_license, contract, license_plate, second_job) VALUES (?, ?, ?, ?, ?, ?)', name, phone, truck_license ? 1 : 0, contract, license_plate, second_job);
         }
+
+        // Server-Side Logging
+        await serverLog(LogCategory.EMPLOYEE, `Personal ${id ? 'geändert' : 'hinzugefügt'}: ${name}`, { id, name, phone, contract, changedBy: req.user?.username });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (_error) { res.status(500).json({ error: "Database error" }); }
@@ -186,6 +203,9 @@ router.delete('/personnel/:id', isAdmin, async (req, res) => {
 
         await db.run('COMMIT');
 
+        // Server-Side Logging
+        await serverLog(LogCategory.EMPLOYEE, `Personal gelöscht: #${id}`, { personnelId: id, deletedBy: req.user?.username });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
@@ -203,6 +223,10 @@ router.post('/violations', isAdmin, async (req, res) => {
         const { personnel_id, date, violation, remark, percentage } = req.body;
         const db = await getDb();
         await db.run('INSERT INTO violations (personnel_id, date, violation, remark, percentage) VALUES (?, ?, ?, ?, ?)', personnel_id, date, violation, remark, percentage);
+
+        // Server-Side Logging
+        await serverLog(LogCategory.EMPLOYEE, `Verstoß hinzugefügt: ${violation} (${percentage}%)`, { personnel_id, date, violation, percentage, addedBy: req.user?.username });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (_error) { res.status(500).json({ error: "Database error" }); }
@@ -264,6 +288,10 @@ router.post('/backup', async (req, res) => {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const backupPath = path.join(backupDir, `database_${timestamp}.sqlite`);
         await fs.copyFile(dbPath, backupPath);
+
+        // Server-Side Logging
+        await serverLog(LogCategory.API, `Backup erstellt: database_${timestamp}.sqlite`, { filename: `database_${timestamp}.sqlite` });
+
         res.json({ success: true, message: "Backup created", path: backupPath });
     } catch (error) { res.status(500).json({ error: "Backup failed: " + error.message }); }
 });
@@ -292,6 +320,10 @@ router.delete('/backups/:filename', isAdmin, async (req, res) => {
         const backupPath = path.join(__dirname, 'data', 'backups', filename);
         const fs = (await import('fs/promises')).default;
         await fs.unlink(backupPath);
+
+        // Server-Side Logging
+        await serverLog(LogCategory.API, `Backup gelöscht: ${filename}`, { filename, deletedBy: req.user?.username });
+
         res.json({ success: true });
     } catch (_e) { res.status(500).json({ error: "Delete failed" }); }
 });
@@ -306,6 +338,10 @@ router.post('/restore', isAdmin, async (req, res) => {
         await closeDb();
         await fs.copyFile(backupPath, dbPath);
         await getDb(); // Reopen
+
+        // Server-Side Logging
+        await serverLog(LogCategory.API, `Backup wiederhergestellt: ${filename}`, { filename, restoredBy: req.user?.username });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: "Restore failed: " + e.message }); }
@@ -346,6 +382,10 @@ router.post('/reset', async (req, res) => {
         await stmtPers.finalize();
 
         await db.run('COMMIT');
+
+        // Server-Side Logging
+        await serverLog(LogCategory.API, `DATENBANK RESET durchgeführt!`, { resetBy: req.user?.username });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json(initialInventory);
     } catch (error) {
@@ -381,6 +421,10 @@ router.post('/verifications', async (req, res) => {
         const { timestamp, verifier, snapshot } = req.body;
         const db = await getDb();
         await db.run('INSERT INTO verifications (timestamp, verifier, snapshot) VALUES (?, ?, ?)', timestamp || new Date().toISOString(), verifier, JSON.stringify(snapshot));
+
+        // Server-Side Logging
+        await serverLog(LogCategory.API, `Inventarprüfung durchgeführt von: ${verifier}`, { verifier, snapshotItems: snapshot?.length || 0 });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (_e) { res.status(500).json({ error: "DB Error" }); }

@@ -2,6 +2,7 @@ import express from 'express';
 import passport from 'passport';
 import { Strategy as DiscordStrategy } from 'passport-discord';
 import { getDb } from '../db/database.js';
+import { logAuth } from '../services/serverLogger.js';
 
 const router = express.Router();
 
@@ -76,13 +77,22 @@ router.get('/discord/callback', passport.authenticate('discord', {
 }), async (req, res) => {
     if (req.user) {
         await auditLog(req.user.id || req.user.discordId, req.user.username, 'LOGIN', `User logged in via Discord`);
+        // Server-Side Logging
+        await logAuth('LOGIN', req.user.username, req.user.discordId);
     }
     res.redirect('/');
 });
 
-router.get('/logout', (req, res, next) => {
-    req.logout((err) => {
+router.get('/logout', async (req, res, next) => {
+    const username = req.user?.username;
+    const userId = req.user?.discordId;
+
+    req.logout(async (err) => {
         if (err) { return next(err); }
+        // Server-Side Logging
+        if (username) {
+            await logAuth('LOGOUT', username, userId);
+        }
         res.redirect('/');
     });
 });

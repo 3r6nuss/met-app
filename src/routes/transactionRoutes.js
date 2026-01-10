@@ -1,5 +1,6 @@
 import express from 'express';
 import { getDb } from '../db/database.js';
+import { logTransaction, logAccounting, logError, serverLog, LogCategory } from '../services/serverLogger.js';
 
 const router = express.Router();
 
@@ -137,6 +138,20 @@ router.post('/transaction', async (req, res) => {
 
         await db.run('COMMIT');
 
+        // Server-Side Logging for DevConsole
+        for (const result of results) {
+            const tx = transactions[results.indexOf(result)];
+            await logTransaction(
+                tx.type,
+                result.itemName,
+                tx.quantity,
+                tx.depositor,
+                tx.category,
+                tx.price,
+                req.user?.username
+            );
+        }
+
         if (req.user) {
             let summary = '';
             if (transactions.length > 1) {
@@ -160,6 +175,7 @@ router.post('/transaction', async (req, res) => {
             try { await db.run('ROLLBACK'); } catch (e) { console.error(e); }/* ignore */
         }
         console.error("Transaction error:", error);
+        await logError('Transaction', error);
 
         // Log the failure if possible
         if (req.user) {
@@ -262,6 +278,9 @@ router.post('/transaction/revert', async (req, res) => {
         await db.run("DELETE FROM logs WHERE timestamp = ?", logTimestamp);
         await db.run('COMMIT');
 
+        // Server-Side Logging for DevConsole
+        await logAccounting(`Revert: ${originalLog.msg}`, { originalLog }, req.user?.username);
+
         await auditLog(req, 'REVERT', `Reverted: ${originalLog.msg}`);
 
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
@@ -298,6 +317,9 @@ router.post('/orders', async (req, res) => {
             itemName, quantity, requester, 'open', timestamp, note
         );
 
+        // Server-Side Logging
+        await serverLog(LogCategory.API, `Bestellung erstellt: ${quantity}x ${itemName}`, { itemName, quantity, requester, note });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
@@ -313,6 +335,10 @@ router.put('/orders/:id', async (req, res) => {
         const { status } = req.body;
         const db = await getDb();
         await db.run('UPDATE orders SET status = ? WHERE id = ?', status, id);
+
+        // Server-Side Logging
+        await serverLog(LogCategory.API, `Bestellung #${id} Status: ${status}`, { orderId: id, status, changedBy: req.user?.username });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
@@ -327,6 +353,10 @@ router.delete('/orders/:id', async (req, res) => {
         const { id } = req.params;
         const db = await getDb();
         await db.run('DELETE FROM orders WHERE id = ?', id);
+
+        // Server-Side Logging
+        await serverLog(LogCategory.API, `Bestellung #${id} gelöscht`, { orderId: id, deletedBy: req.user?.username });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {

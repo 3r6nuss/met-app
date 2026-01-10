@@ -1,5 +1,6 @@
 import express from 'express';
 import { getDb } from '../db/database.js';
+import { logAccounting, logInventoryUpdate, serverLog, LogCategory } from '../services/serverLogger.js';
 
 const router = express.Router();
 
@@ -45,6 +46,9 @@ router.post('/accounting/pay', isBuchhaltungOrAdmin, async (req, res) => {
 
         await auditLog(req, 'PAYOUT', `Paid/Updated ${logIds.length} logs`, debugSteps);
 
+        // Server-Side Logging
+        await logAccounting(`Auszahlung: ${logIds.length} Logs → ${targetStatus}`, { logIds, status: targetStatus }, req.user?.username);
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
@@ -75,6 +79,9 @@ router.post('/accounting/close-week', isBuchhaltungOrAdmin, async (req, res) => 
 
         await auditLog(req, 'CLOSE_WEEK', `Closed week for ${employeeName}`, debugSteps);
 
+        // Server-Side Logging
+        await logAccounting(`Wochenabschluss: ${employeeName} (${logsToUpdate.length} Logs)`, { employeeName, weekEnd, logsCount: logsToUpdate.length }, req.user?.username);
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
         res.status(500).json({ error: "Database error" });
@@ -94,6 +101,10 @@ router.post('/accounting/pay-outstanding', isBuchhaltungOrAdmin, async (req, res
         const { employeeName } = req.body;
         const db = await getDb();
         await db.run(`UPDATE logs SET status = 'paid' WHERE depositor = ? AND status = 'outstanding'`, employeeName);
+
+        // Server-Side Logging
+        await logAccounting(`Outstanding bezahlt: ${employeeName}`, { employeeName }, req.user?.username);
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
@@ -150,6 +161,10 @@ router.post('/employee-inventory/manual', isBuchhaltungOrAdmin, async (req, res)
         } else {
             await db.run('INSERT OR REPLACE INTO employee_inventory (employee_name, item_id, quantity) VALUES (?, ?, ?)', employeeName, itemId, quantity);
         }
+
+        // Server-Side Logging
+        await logInventoryUpdate('manuell geändert', `MA: ${employeeName}, Item: ${itemId}, Menge: ${quantity}`, { employeeName, itemId, quantity }, req.user?.username);
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
@@ -213,6 +228,10 @@ router.post('/recipes', isBuchhaltungOrAdmin, async (req, res) => {
         for (const input of inputs) await stmt.run(productId, input.id, input.quantity);
         await stmt.finalize();
         await db.run('COMMIT');
+
+        // Server-Side Logging
+        await serverLog(LogCategory.INVENTORY, `Rezept geändert: Produkt ${productId} (${inputs.length} Zutaten)`, { productId, inputs });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
@@ -227,6 +246,10 @@ router.delete('/recipes/:productId', isBuchhaltungOrAdmin, async (req, res) => {
         const { productId } = req.params;
         const db = await getDb();
         await db.run('DELETE FROM recipes WHERE product_id = ?', productId);
+
+        // Server-Side Logging
+        await serverLog(LogCategory.INVENTORY, `Rezept gelöscht: Produkt ${productId}`, { productId });
+
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
         res.json({ success: true });
     } catch (error) {
