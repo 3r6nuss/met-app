@@ -214,6 +214,7 @@ initNewTables().catch(console.error);
 if (process.env.NODE_ENV !== 'test') {
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`Server running on http://0.0.0.0:${PORT}`);
+        console.log('Discord Callback URL:', process.env.DISCORD_CALLBACK_URL);
     });
 }
 
