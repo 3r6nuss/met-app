@@ -10,6 +10,8 @@ services:
       - ./data:/app/data
     env_file:
       - .env
+    environment:
+      - DISCORD_CALLBACK_URL=https://met.3r6nuss.de/auth/discord/callback
     restart: unless-stopped
 
 networks:
