@@ -433,17 +433,24 @@ router.post('/verifications', async (req, res) => {
 
 // FORCE RELOAD (Super Admin)
 router.post('/trigger-reload', async (req, res) => {
-    if (!req.isAuthenticated() || !SUPER_ADMIN_IDS.includes(req.user.discordId)) return res.status(403).json({ error: 'Unauthorized' });
+    try {
+        if (!req.isAuthenticated() || !SUPER_ADMIN_IDS.includes(req.user.discordId)) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
 
-    await serverLog(LogCategory.SYSTEM, `FORCE RELOAD ausgelöst!`, { triggeredBy: req.user?.username });
+        await serverLog(LogCategory.SYSTEM, `FORCE RELOAD ausgelöst!`, { triggeredBy: req.user?.username });
 
-    const broadcast = req.app.get('broadcastUpdate');
-    console.log("[Admin] Trigger reload. Broadcast function exists?", !!broadcast);
+        const broadcast = req.app.get('broadcastUpdate');
+        console.log("[Admin] Trigger reload. Broadcast function exists?", !!broadcast);
 
-    if (broadcast) {
-        broadcast({ type: 'RELOAD' });
+        if (broadcast) {
+            broadcast({ type: 'RELOAD' });
+        }
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error in /trigger-reload:", error);
+        res.status(500).json({ error: error.message, stack: error.stack });
     }
-    res.json({ success: true });
 });
 
 export default router;
