@@ -219,6 +219,18 @@ const initNewTables = async () => {
     // Seed Data checks (implied)
 };
 
+// Global Error Handler to force JSON
+app.use((err, req, res, next) => {
+    console.error('[Global Error]', err);
+    if (!res.headersSent) {
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
+    }
+});
+
 initNewTables().catch(console.error);
 
 // Only start server if not running in test mode
