@@ -34,6 +34,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const server = http.createServer(app);
 
+// Server Version (Timestamp)
+const SERVER_START_TIME = Date.now();
+
 // Setup WebSocket Server
 const wss = new WebSocketServer({ server });
 
@@ -43,17 +46,23 @@ wss.on('connection', (ws) => {
 });
 
 // Broadcast update to all connected clients
-const broadcastUpdate = () => {
+const broadcastUpdate = (message = { type: 'UPDATE' }) => {
+    const msgString = typeof message === 'string' ? message : JSON.stringify(message);
     wss.clients.forEach((client) => {
         if (client.readyState === 1) { // WebSocket.OPEN
-            client.send(JSON.stringify({ type: 'UPDATE' }));
+            client.send(msgString);
         }
     });
-    console.log('Broadcasted update to all clients');
+    console.log('Broadcasted:', msgString);
 };
 
-// Make broadcastUpdate available to routes via app.get('broadcastUpdate')
+// Make broadcastUpdate available to routes
 app.set('broadcastUpdate', broadcastUpdate);
+
+// Version Endpoint
+app.get('/api/version', (req, res) => {
+    res.json({ version: SERVER_START_TIME });
+});
 
 // Audit logging function
 const logAudit = async (action, userId, username, details, debugData = {}) => {

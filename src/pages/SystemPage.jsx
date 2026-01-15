@@ -692,6 +692,34 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                 {
                     activeTab === 'system' && isAdmin && (
                         <div className="space-y-6">
+                            {/* Force Reload (Super Admin Only) */}
+                            {(user?.discordId === '823276402320998450' || user?.discordId === '690510884639866960') && (
+                                <div className="p-4 bg-violet-600/10 border border-violet-500/30 rounded-xl mb-6">
+                                    <h3 className="text-lg font-bold text-violet-400 mb-2 flex items-center gap-2">
+                                        <ShieldAlert className="w-5 h-5" />
+                                        Admin Zone
+                                    </h3>
+                                    <p className="text-sm text-slate-400 mb-4">
+                                        Erzwingt ein Neuladen bei ALLEN verbundenen Nutzern. Nur im Notfall nutzen!
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            if (confirm("Wirklich bei ALLEN Nutzern ein Neuladen erzwingen?")) {
+                                                fetch('/api/trigger-reload', { method: 'POST' })
+                                                    .then(res => res.json())
+                                                    .then(data => {
+                                                        if (data.success) alert("Reload Signal gesendet!");
+                                                    });
+                                            }
+                                        }}
+                                        className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-bold w-full flex items-center justify-center gap-2 transition-colors"
+                                    >
+                                        <RefreshCw className="w-4 h-4" />
+                                        Force Global Reload
+                                    </button>
+                                </div>
+                            )}
+
                             <div>
                                 <h3 className="text-lg font-bold text-slate-300 mb-4">Datenbank & Backup</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">

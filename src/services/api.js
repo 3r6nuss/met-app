@@ -208,5 +208,20 @@ export const api = {
     clearDevLogs: async () => {
         const res = await fetch(`${API_URL}/dev-logs`, { method: 'DELETE', credentials: 'include' });
         return handleResponse(res);
+    },
+
+    // System Version & Controls
+    getVersion: async () => {
+        const res = await fetch(`${API_URL}/version`);
+        if (res.ok) return res.json();
+        return { version: null };
+    },
+    triggerReload: async () => {
+        const res = await fetch(`${API_URL}/trigger-reload`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+        });
+        return handleResponse(res);
     }
 };

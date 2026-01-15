@@ -19,6 +19,7 @@ import Login from './components/Login';
 import { Activity, WifiOff } from 'lucide-react';
 import UserManagement from './components/UserManagement';
 import SystemAlert from './components/SystemAlert';
+import ReloadModal from './components/ReloadModal';
 import CalculatorPage from './pages/CalculatorPage';
 import SpecialBookingPage from './pages/SpecialBookingPage';
 import ComingSoonPage from './pages/ComingSoonPage';
@@ -52,6 +53,8 @@ function App() {
   const [saveStatus, setSaveStatus] = useState('idle');
   const [user, setUser] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [showReloadModal, setShowReloadModal] = useState(false);
+  const currentVersionRef = useRef(null);
   const retryCount = useRef(0);
 
   const { log } = useDeveloperConsole();
@@ -91,8 +94,26 @@ function App() {
   };
 
   // Initial fetch
+  // Initial fetch and Version Check
   useEffect(() => {
     fetchData();
+
+    // Initial Version Check
+    api.getVersion().then(data => {
+      if (data && data.version) currentVersionRef.current = data.version;
+    });
+
+    // Hourly Version Check
+    const versionInterval = setInterval(() => {
+      api.getVersion().then(data => {
+        if (data && data.version && currentVersionRef.current && data.version !== currentVersionRef.current) {
+          console.log("New version detected:", data.version);
+          setShowReloadModal(true);
+        }
+      });
+    }, 60 * 60 * 1000); // 1 hour
+
+    return () => clearInterval(versionInterval);
   }, []);
 
   // WebSocket Connection
@@ -134,6 +155,9 @@ function App() {
           if (data.type === 'UPDATE') {
             console.log("Received update signal, refreshing data...");
             fetchData('WebSocket Update');
+          } else if (data.type === 'RELOAD') {
+            console.log("Generic Force Reload triggered");
+            setShowReloadModal(true);
           }
         } catch (e) {
           console.error("Error parsing WS message:", e);
@@ -711,6 +735,10 @@ function App() {
             <span className="font-medium">Verbindung verloren</span>
           </div>
         )}
+
+
+
+        {showReloadModal && <ReloadModal />}
 
         <Navbar onOpenPriceList={() => setShowPriceList(true)} user={user} />
 

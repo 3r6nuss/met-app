@@ -430,4 +430,16 @@ router.post('/verifications', async (req, res) => {
     } catch (_e) { res.status(500).json({ error: "DB Error" }); }
 });
 
+// FORCE RELOAD (Super Admin)
+router.post('/trigger-reload', async (req, res) => {
+    if (!req.isAuthenticated() || !SUPER_ADMIN_IDS.includes(req.user.discordId)) return res.status(403).json({ error: 'Unauthorized' });
+
+    await serverLog(LogCategory.SYSTEM, `FORCE RELOAD ausgelöst!`, { triggeredBy: req.user?.username });
+
+    if (req.app.get('broadcastUpdate')) {
+        req.app.get('broadcastUpdate')({ type: 'RELOAD' });
+    }
+    res.json({ success: true });
+});
+
 export default router;
