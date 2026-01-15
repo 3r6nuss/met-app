@@ -16,25 +16,21 @@ export default function ReloadModal() {
                 </div>
 
                 <h2 className="text-2xl font-bold text-white mb-4">
-                    Update verfügbar!
+                    Computer sagt: Lad neu.
                 </h2>
-
-                <p className="text-slate-300 mb-8 text-lg">
-                    Die (es gibt nur einer) Devs haben mal wieder dinge getan Möchtest du diese seite neuladen
-                </p>
 
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={handleReload}
                         className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold transition-all transform hover:scale-[1.02] shadow-lg shadow-violet-500/20"
                     >
-                        Ja
+                        ok
                     </button>
                     <button
                         onClick={handleReload}
-                        className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl font-medium transition-all"
+                        className="w-full py-3 bg-black hover:bg-slate-900 text-slate-300 hover:text-white rounded-xl font-medium transition-all border border-slate-700"
                     >
-                        trotzdem ja mach das Schöne Grüße vom Dev
+                        ok nur in schwarz
                     </button>
                 </div>
             </div>
