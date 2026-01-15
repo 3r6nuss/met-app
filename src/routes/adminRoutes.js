@@ -13,6 +13,8 @@ const __dirname = path.dirname(path.dirname(path.dirname(__filename))); // Go up
 
 const router = express.Router();
 
+const SUPER_ADMIN_IDS = ['823276402320998450', '690510884639866960'];
+
 const isAdmin = (req, res, next) => {
     if (req.isAuthenticated() && req.user.role === 'Administrator') return next();
     return res.status(403).json({ error: 'Unauthorized' });
@@ -395,7 +397,6 @@ router.post('/reset', async (req, res) => {
 });
 
 // SUPER ADMIN AUDIT
-const SUPER_ADMIN_IDS = ['823276402320998450', '690510884639866960'];
 router.get('/audit-logs', async (req, res) => {
     if (!req.isAuthenticated() || !SUPER_ADMIN_IDS.includes(req.user.discordId)) return res.status(403).json({ error: 'Unauthorized' });
     try {

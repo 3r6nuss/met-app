@@ -14,7 +14,8 @@ export const LogCategory = {
     RECIPE: 'STATE',    // Recipe changes
     PROTOCOL: 'STATE',  // Protocol updates
     ERROR: 'ERROR',     // Errors
-    API: 'API'          // API calls
+    API: 'API',         // API calls
+    SYSTEM: 'SYSTEM'    // System actions (Backups, Reloads)
 };
 
 /**
