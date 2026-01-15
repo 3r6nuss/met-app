@@ -54,6 +54,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [showReloadModal, setShowReloadModal] = useState(false);
+  const [version, setVersion] = useState(null);
   const currentVersionRef = useRef(null);
   const retryCount = useRef(0);
 
@@ -100,7 +101,10 @@ function App() {
 
     // Initial Version Check
     api.getVersion().then(data => {
-      if (data && data.version) currentVersionRef.current = data.version;
+      if (data && data.version) {
+        currentVersionRef.current = data.version;
+        setVersion(data.version);
+      }
     });
 
     // Hourly Version Check
@@ -739,6 +743,10 @@ function App() {
 
 
         {showReloadModal && <ReloadModal />}
+
+        <div className="fixed bottom-1 right-1 px-2 py-1 bg-slate-950/80 rounded text-[10px] text-slate-600 font-mono z-50 pointer-events-none select-none">
+          v.{version ? new Date(version).toISOString().slice(0, 19).replace('T', ' ') : '...'}
+        </div>
 
         <Navbar onOpenPriceList={() => setShowPriceList(true)} user={user} />
 

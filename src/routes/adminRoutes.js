@@ -436,8 +436,11 @@ router.post('/trigger-reload', async (req, res) => {
 
     await serverLog(LogCategory.SYSTEM, `FORCE RELOAD ausgelöst!`, { triggeredBy: req.user?.username });
 
-    if (req.app.get('broadcastUpdate')) {
-        req.app.get('broadcastUpdate')({ type: 'RELOAD' });
+    const broadcast = req.app.get('broadcastUpdate');
+    console.log("[Admin] Trigger reload. Broadcast function exists?", !!broadcast);
+
+    if (broadcast) {
+        broadcast({ type: 'RELOAD' });
     }
     res.json({ success: true });
 });

@@ -48,12 +48,14 @@ wss.on('connection', (ws) => {
 // Broadcast update to all connected clients
 const broadcastUpdate = (message = { type: 'UPDATE' }) => {
     const msgString = typeof message === 'string' ? message : JSON.stringify(message);
+    const clientsCount = wss.clients.size;
+    console.log(`[WebSocket] Broadcasting to ${clientsCount} clients:`, msgString);
+
     wss.clients.forEach((client) => {
         if (client.readyState === 1) { // WebSocket.OPEN
             client.send(msgString);
         }
     });
-    console.log('Broadcasted:', msgString);
 };
 
 // Make broadcastUpdate available to routes

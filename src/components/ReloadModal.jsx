@@ -7,7 +7,7 @@ export default function ReloadModal() {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-fade-in">
             <div className="bg-slate-900 border border-violet-500/50 rounded-2xl w-full max-w-md p-8 shadow-2xl relative text-center">
                 <div className="flex justify-center mb-6">
                     <div className="p-4 bg-violet-600/20 rounded-full animate-bounce">
