@@ -186,170 +186,235 @@ export default function AnalyticsProtocol({ logs = [], employees = [], inventory
                 ))}
             </div>
 
-            {/* KPI GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KPICard
-                    title="Gesamtumsatz"
-                    value={formatCurrency(processedData.kpi.revenue)}
-                    trend="+12.5%"
-                    icon={DollarSign}
-                    color="text-emerald-400"
-                    trendUp={true}
-                />
-                <KPICard
-                    title="Netto Gewinn"
-                    value={formatCurrency(processedData.kpi.netProfit)}
-                    trend="+8.2%"
-                    icon={TrendingUp}
-                    color={processedData.kpi.netProfit >= 0 ? "text-violet-400" : "text-red-400"}
-                    trendUp={processedData.kpi.netProfit >= 0}
-                />
-                <KPICard
-                    title="Produktionswert"
-                    value={formatCurrency(processedData.kpi.productionValue)}
-                    subValue={`${formatCompactNumber(processedData.kpi.productionVolume)} Items`}
-                    trend="+5.3%"
-                    icon={Layers}
-                    color="text-amber-400"
-                    trendUp={true}
-                />
-                <KPICard
-                    title="Handelsvolumen"
-                    value={formatCompactNumber(processedData.kpi.tradeVolume)}
-                    subValue="Items gehandelt"
-                    trend="-2.1%"
-                    icon={Truck}
-                    color="text-blue-400"
-                    trendUp={false}
-                />
-            </div>
-
-            {/* MAIN CONTENT AREA */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* BIG CHART */}
-                <div className="lg:col-span-2 bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
-                    <h3 className="text-slate-300 font-bold mb-6 flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-violet-400" />
-                        Performance Übersicht
-                    </h3>
-                    <div className="h-[350px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={processedData.charts.timeline}>
-                                <defs>
-                                    <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
-                                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `\$${formatCompactNumber(val)}`} dx={-10} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc' }}
-                                    itemStyle={{ color: '#fff' }}
-                                    formatter={(val) => formatCurrency(val)}
-                                />
-                                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                <Area type="monotone" dataKey="income" name="Umsatz" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
-                                <Area type="monotone" dataKey="production" name="Produktionswert" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorProd)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
+            {/* CONTENT AREA BASED ON TAB */}
+            {activeTab === 'dashboard' && (
+                <div className="space-y-6 animate-fade-in">
+                    {/* KPI GRID */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <KPICard
+                            title="Gesamtumsatz"
+                            value={formatCurrency(processedData.kpi.revenue)}
+                            trend="+12.5%"
+                            icon={DollarSign}
+                            color="text-emerald-400"
+                            trendUp={true}
+                        />
+                        <KPICard
+                            title="Netto Gewinn"
+                            value={formatCurrency(processedData.kpi.netProfit)}
+                            trend="+8.2%"
+                            icon={TrendingUp}
+                            color={processedData.kpi.netProfit >= 0 ? "text-violet-400" : "text-red-400"}
+                            trendUp={processedData.kpi.netProfit >= 0}
+                        />
+                        <KPICard
+                            title="Produktionswert"
+                            value={formatCurrency(processedData.kpi.productionValue)}
+                            subValue={`${formatCompactNumber(processedData.kpi.productionVolume)} Items`}
+                            trend="+5.3%"
+                            icon={Layers}
+                            color="text-amber-400"
+                            trendUp={true}
+                        />
+                        <KPICard
+                            title="Handelsvolumen"
+                            value={formatCompactNumber(processedData.kpi.tradeVolume)}
+                            subValue="Items gehandelt"
+                            trend="-2.1%"
+                            icon={Truck}
+                            color="text-blue-400"
+                            trendUp={false}
+                        />
                     </div>
-                </div>
 
-                {/* SIDE STATS / RANKING */}
-                <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl flex flex-col">
-                    <h3 className="text-slate-300 font-bold mb-4 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-amber-400" />
-                        Top Mitarbeiter
-                    </h3>
-                    <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-                        {processedData.charts.employees.map((emp, idx) => (
-                            <div key={idx} className="flex items-center gap-4 p-3 bg-slate-800/40 rounded-2xl border border-slate-700/30 hover:bg-slate-800/60 transition-colors">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-amber-400/20 text-amber-400' : idx === 1 ? 'bg-slate-400/20 text-slate-400' : idx === 2 ? 'bg-amber-700/20 text-amber-700' : 'bg-slate-700 text-slate-500'}`}>
-                                    {idx + 1}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-bold text-slate-200 truncate">{emp.name}</div>
-                                    <div className="text-xs text-slate-500">{formatCompactNumber(emp.produced)} Items produziert</div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-sm font-bold text-emerald-400">{formatCompactNumber(emp.value)} $</div>
-                                </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* BIG CHART */}
+                        <div className="lg:col-span-2 bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
+                            <h3 className="text-slate-300 font-bold mb-6 flex items-center gap-2">
+                                <Activity className="w-5 h-5 text-violet-400" />
+                                Performance Übersicht
+                            </h3>
+                            <div className="h-[350px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={processedData.charts.timeline}>
+                                        <defs>
+                                            <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                                        <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                                        <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `\$${formatCompactNumber(val)}`} dx={-10} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc' }}
+                                            itemStyle={{ color: '#fff' }}
+                                            formatter={(val) => formatCurrency(val)}
+                                        />
+                                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                        <Area type="monotone" dataKey="income" name="Umsatz" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
+                                        <Area type="monotone" dataKey="production" name="Produktionswert" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorProd)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
                             </div>
-                        ))}
+                        </div>
+
+                        {/* SIDE STATS / RANKING */}
+                        <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl flex flex-col">
+                            <h3 className="text-slate-300 font-bold mb-4 flex items-center gap-2">
+                                <Users className="w-5 h-5 text-amber-400" />
+                                Top Mitarbeiter
+                            </h3>
+                            <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+                                {processedData.charts.employees.map((emp, idx) => (
+                                    <div key={idx} className="flex items-center gap-4 p-3 bg-slate-800/40 rounded-2xl border border-slate-700/30 hover:bg-slate-800/60 transition-colors">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-amber-400/20 text-amber-400' : idx === 1 ? 'bg-slate-400/20 text-slate-400' : idx === 2 ? 'bg-amber-700/20 text-amber-700' : 'bg-slate-700 text-slate-500'}`}>
+                                            {idx + 1}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-bold text-slate-200 truncate">{emp.name}</div>
+                                            <div className="text-xs text-slate-500">{formatCompactNumber(emp.produced)} Items produziert</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-sm font-bold text-emerald-400">{formatCompactNumber(emp.value)} $</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-slate-700/50">
+                                <button onClick={() => setActiveTab('employees')} className="w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-300 uppercase tracking-wider transition-colors">
+                                    Alle anzeigen
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-slate-700/50">
-                        <button className="w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-300 uppercase tracking-wider transition-colors">
-                            Alle anzeigen
-                        </button>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
+                            <h3 className="text-slate-300 font-bold mb-6 flex items-center gap-2">
+                                <PieIcon className="w-5 h-5 text-blue-400" />
+                                Produkt Verteilung (Top 5)
+                            </h3>
+                            <div className="h-[300px] flex items-center justify-center">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={processedData.charts.pieProducts}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={80}
+                                            outerRadius={100}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {processedData.charts.pieProducts.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0)" />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc' }}
+                                            formatter={(val) => formatCurrency(val)}
+                                        />
+                                        <Legend verticalAlign="middle" align="right" layout="vertical" />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
+                            <h3 className="text-slate-300 font-bold mb-6 flex items-center gap-2">
+                                <BarChart3 className="w-5 h-5 text-emerald-400" />
+                                Einnahmen vs Ausgaben
+                            </h3>
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={processedData.charts.timeline}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                                        <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                                        <Tooltip
+                                            cursor={{ fill: '#1e293b', opacity: 0.5 }}
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc' }}
+                                            formatter={(val) => formatCurrency(val)}
+                                        />
+                                        <Bar dataKey="income" name="Einnahmen" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
+                                        <Bar dataKey="expense" name="Ausgaben" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            )}
 
-            </div>
-
-            {/* ROW 2: DETAILED CHARTS */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Product Distribution */}
-                <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6Shadow-xl">
-                    <h3 className="text-slate-300 font-bold mb-6 flex items-center gap-2">
-                        <PieIcon className="w-5 h-5 text-blue-400" />
-                        Produkt Verteilung (Top 5)
+            {activeTab === 'employees' && (
+                <div className="animate-fade-in bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
+                    <h3 className="text-slate-300 font-bold mb-6 text-xl flex items-center gap-2">
+                        <Users className="w-6 h-6 text-amber-400" />
+                        Mitarbeiter Performance
                     </h3>
-                    <div className="h-[300px] flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={processedData.charts.pieProducts}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={80}
-                                    outerRadius={100}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {processedData.charts.pieProducts.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0)" />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc' }}
-                                    formatter={(val) => formatCurrency(val)}
-                                />
-                                <Legend verticalAlign="middle" align="right" layout="vertical" />
-                            </PieChart>
-                        </ResponsiveContainer>
+                    {/* Full Employee Table */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="text-slate-400 border-b border-slate-700/50 text-sm uppercase tracking-wider">
+                                    <th className="p-4">Rank</th>
+                                    <th className="p-4">Name</th>
+                                    <th className="p-4 text-right">Produzierte Items</th>
+                                    <th className="p-4 text-right">Produktionswert</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700/30 text-slate-300">
+                                {processedData.charts.employees.map((emp, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                                        <td className="p-4 font-mono text-slate-500">#{idx + 1}</td>
+                                        <td className="p-4 font-bold text-slate-200">{emp.name}</td>
+                                        <td className="p-4 text-right font-mono text-emerald-400">{formatCompactNumber(emp.produced)}</td>
+                                        <td className="p-4 text-right font-mono text-violet-400">{formatCurrency(emp.value)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+            )}
 
-                {/* Bar Chart Comp */}
-                <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
-                    <h3 className="text-slate-300 font-bold mb-6 flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-emerald-400" />
-                        Einnahmen vs Ausgaben
+            {activeTab === 'products' && (
+                <div className="animate-fade-in bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
+                    <h3 className="text-slate-300 font-bold mb-6 text-xl flex items-center gap-2">
+                        <Package className="w-6 h-6 text-blue-400" />
+                        Produkt Analyse
                     </h3>
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={processedData.charts.timeline}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
-                                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                                <Tooltip
-                                    cursor={{ fill: '#1e293b', opacity: 0.5 }}
-                                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc' }}
-                                    formatter={(val) => formatCurrency(val)}
-                                />
-                                <Bar dataKey="income" name="Einnahmen" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
-                                <Bar dataKey="expense" name="Ausgaben" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="text-slate-400 border-b border-slate-700/50 text-sm uppercase tracking-wider">
+                                    <th className="p-4">Produkt</th>
+                                    <th className="p-4 text-right">Bewegtes Volumen</th>
+                                    <th className="p-4 text-right">Gesamtwert</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700/30 text-slate-300">
+                                {processedData.charts.products.map((p, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                                        <td className="p-4 font-bold text-slate-200">{p.name}</td>
+                                        <td className="p-4 text-right font-mono text-blue-400">{formatCompactNumber(p.volume)}</td>
+                                        <td className="p-4 text-right font-mono text-violet-400">{formatCurrency(p.value)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            </div>
+            )}
+            {activeTab === 'logistics' && (
+                <div className="animate-fade-in flex items-center justify-center p-20 text-slate-500 italic">
+                    Logistik Analyse folgt...
+                </div>
+            )}
 
         </div>
     );
