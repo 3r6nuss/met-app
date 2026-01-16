@@ -383,36 +383,93 @@ export default function AnalyticsProtocol({ logs = [], employees = [], inventory
             )}
 
             {activeTab === 'products' && (
-                <div className="animate-fade-in bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
-                    <h3 className="text-slate-300 font-bold mb-6 text-xl flex items-center gap-2">
-                        <Package className="w-6 h-6 text-blue-400" />
-                        Produkt Analyse
-                    </h3>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="text-slate-400 border-b border-slate-700/50 text-sm uppercase tracking-wider">
-                                    <th className="p-4">Produkt</th>
-                                    <th className="p-4 text-right">Bewegtes Volumen</th>
-                                    <th className="p-4 text-right">Gesamtwert</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-700/30 text-slate-300">
-                                {processedData.charts.products.map((p, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                                        <td className="p-4 font-bold text-slate-200">{p.name}</td>
-                                        <td className="p-4 text-right font-mono text-blue-400">{formatCompactNumber(p.volume)}</td>
-                                        <td className="p-4 text-right font-mono text-violet-400">{formatCurrency(p.value)}</td>
+                <div className="space-y-6 animate-fade-in">
+                    {/* Production Trend Chart */}
+                    <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
+                        <h3 className="text-slate-300 font-bold mb-6 flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-amber-400" />
+                            Produktionswert Verlauf
+                        </h3>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={processedData.charts.timeline}>
+                                    <defs>
+                                        <linearGradient id="colorProdOnly" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                                    <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `\$${formatCompactNumber(val)}`} dx={-10} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc' }}
+                                        formatter={(val) => formatCurrency(val)}
+                                    />
+                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                    <Area type="monotone" dataKey="production" name="Produktionswert" stroke="#f59e0b" strokeWidth={3} fillOpacity={1} fill="url(#colorProdOnly)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
+                        <h3 className="text-slate-300 font-bold mb-6 text-xl flex items-center gap-2">
+                            <Package className="w-6 h-6 text-blue-400" />
+                            Produkt Analyse
+                        </h3>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="text-slate-400 border-b border-slate-700/50 text-sm uppercase tracking-wider">
+                                        <th className="p-4">Produkt</th>
+                                        <th className="p-4 text-right">Bewegtes Volumen</th>
+                                        <th className="p-4 text-right">Gesamtwert</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-700/30 text-slate-300">
+                                    {processedData.charts.products.map((p, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                                            <td className="p-4 font-bold text-slate-200">{p.name}</td>
+                                            <td className="p-4 text-right font-mono text-blue-400">{formatCompactNumber(p.volume)}</td>
+                                            <td className="p-4 text-right font-mono text-violet-400">{formatCurrency(p.value)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
             {activeTab === 'logistics' && (
-                <div className="animate-fade-in flex items-center justify-center p-20 text-slate-500 italic">
-                    Logistik Analyse folgt...
+                <div className="space-y-6 animate-fade-in">
+                    <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6 shadow-xl">
+                        <h3 className="text-slate-300 font-bold mb-6 flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 text-emerald-400" />
+                            Einnahmen vs Ausgaben Verlauf
+                        </h3>
+                        <div className="h-[400px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={processedData.charts.timeline}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                                    <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `\$${formatCompactNumber(val)}`} dx={-10} />
+                                    <Tooltip
+                                        cursor={{ fill: '#1e293b', opacity: 0.5 }}
+                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc' }}
+                                        formatter={(val) => formatCurrency(val)}
+                                    />
+                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                    <Bar dataKey="income" name="Einnahmen" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
+                                    <Bar dataKey="expense" name="Ausgaben" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="p-6 bg-slate-900/50 border border-slate-700/50 rounded-3xl text-center text-slate-500 italic">
+                        Detaillierte Handelslogs folgen in Kürze...
+                    </div>
                 </div>
             )}
 
