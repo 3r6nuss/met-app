@@ -27,6 +27,7 @@ import BusinessAccountPage from './pages/BusinessAccountPage';
 import ContactsPage from './pages/ContactsPage';
 import AdsPage from './pages/AdsPage';
 import PartnersPage from './pages/PartnersPage';
+import AnalyticsProtocol from './pages/protocols/AnalyticsProtocol';
 import PersonnelPage from './pages/PersonnelPage';
 import BeginnerGuidePage from './pages/BeginnerGuidePage';
 import AuditLogPage from './pages/AuditLogPage';
@@ -882,7 +883,10 @@ function App() {
           {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
           {!isPending && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} employees={employees} onPayout={handleEmployeePayout} />} />}
           {(isBuchhaltung) && (
-            <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} inventory={inventory} employees={employees} />} />
+            <>
+              <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} inventory={inventory} employees={employees} />} />
+              <Route path="/protokolle/analytics" element={<AnalyticsProtocol logs={transactionLogs} employees={employees} inventory={inventory} />} />
+            </>
           )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 
           <Route path="/protokolle/monthly" element={<Navigate to="/protokolle/period" replace />} />

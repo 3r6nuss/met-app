@@ -82,6 +82,8 @@ export default function Navbar({ onOpenPriceList, user }) {
                                     <div className="h-px bg-slate-800 my-1"></div>
                                     <NavLink to="/protokolle/weekly" className={dropdownItemClass}>Wochenprotokolle</NavLink>
                                     <NavLink to="/protokolle/period" className={dropdownItemClass}>Zeitraum Protokolle (Monat/Jahr)</NavLink>
+                                    <div className="h-px bg-slate-800 my-1"></div>
+                                    <NavLink to="/protokolle/analytics" className={dropdownItemClass}>📊 Analyse System</NavLink>
                                 </>
                             )}
                         </div>
