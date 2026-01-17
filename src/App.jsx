@@ -28,6 +28,7 @@ import ContactsPage from './pages/ContactsPage';
 import AdsPage from './pages/AdsPage';
 import PartnersPage from './pages/PartnersPage';
 import AnalyticsProtocol from './pages/protocols/AnalyticsProtocol';
+import AutomationProtocol from './pages/protocols/AutomationProtocol';
 import PersonnelPage from './pages/PersonnelPage';
 import BeginnerGuidePage from './pages/BeginnerGuidePage';
 import AuditLogPage from './pages/AuditLogPage';
@@ -886,6 +887,7 @@ function App() {
             <>
               <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} inventory={inventory} employees={employees} />} />
               <Route path="/protokolle/analytics" element={<AnalyticsProtocol logs={transactionLogs} employees={employees} inventory={inventory} />} />
+              <Route path="/protocols/automation" element={<AutomationProtocol />} />
             </>
           )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 

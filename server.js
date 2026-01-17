@@ -14,6 +14,7 @@ import inventoryRoutes from './src/routes/inventoryRoutes.js';
 import logRoutes from './src/routes/logRoutes.js';
 import transactionRoutes from './src/routes/transactionRoutes.js';
 import accountingRoutes from './src/routes/accountingRoutes.js';
+import automationRoutes from './src/routes/automationRoutes.js';
 import adminRoutes from './src/routes/adminRoutes.js';
 import devLogsRoutes from './src/routes/devLogsRoutes.js';
 
@@ -148,7 +149,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/logs', logRoutes); // Note: /api/logs route file handles /api/logs base
 app.use('/api', transactionRoutes); // Transaction routes likely have specific paths like /transaction
 app.use('/api', accountingRoutes);
-app.use('/api', accountingRoutes);
+app.use('/api', automationRoutes);
 app.use('/api', adminRoutes);
 app.use('/api/dev-logs', devLogsRoutes);
 
