@@ -156,7 +156,16 @@ export default function OrderList({ orders, onUpdateStatus, onDelete, user }) {
                                         </button>
                                     )}
                                     <button
-                                        onClick={() => onDelete(order.id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            console.log('Delete clicked for order:', order.id);
+                                            if (onDelete) {
+                                                onDelete(order.id);
+                                            } else {
+                                                console.error('onDelete is not defined!');
+                                            }
+                                        }}
                                         className="p-2.5 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white rounded-xl transition-all"
                                         title="Löschen"
                                     >
