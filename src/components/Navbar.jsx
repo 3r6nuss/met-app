@@ -73,19 +73,34 @@ export default function Navbar({ onOpenPriceList, user }) {
                             Protokolle
                             <ChevronDown className="w-4 h-4 ml-1" />
                         </button>
-                        <div className="absolute left-0 mt-2 w-full min-w-[240px] bg-slate-900 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2">
-                            {isBuchhaltung && <NavLink to="/protokolle/trade" className={dropdownItemClass}>Tagesprotokolle An & Verkauf</NavLink>}
-
-                            <NavLink to="/protokolle/internal-storage" className={dropdownItemClass}>Tagesprotokoll Mitarbeiter</NavLink>
+                        <div className="absolute left-0 mt-2 w-full min-w-[260px] bg-slate-900 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-2 max-h-[70vh] overflow-y-auto">
+                            {/* Buchhaltung Section */}
                             {isBuchhaltung && (
                                 <>
-                                    <div className="h-px bg-slate-800 my-1"></div>
+                                    <div className="px-4 py-2 text-xs font-bold text-violet-400 uppercase tracking-wider">💼 Buchhaltung</div>
+                                    <NavLink to="/protokolle/buchhaltung" className={dropdownItemClass}>📊 Dashboard</NavLink>
+                                    <NavLink to="/protokolle/kassenbuch" className={dropdownItemClass}>📒 Kassenbuch</NavLink>
+                                    <NavLink to="/protokolle/lohn" className={dropdownItemClass}>👥 Lohnabrechnung</NavLink>
+                                    <NavLink to="/protokolle/guv" className={dropdownItemClass}>📈 Gewinn & Verlust</NavLink>
+                                    <NavLink to="/protokolle/audit" className={dropdownItemClass}>🛡️ Finanz-Audit</NavLink>
+                                    <div className="h-px bg-slate-800 my-2"></div>
+                                </>
+                            )}
+
+                            {/* Tagesprotokolle */}
+                            <div className="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Tagesprotokolle</div>
+                            {isBuchhaltung && <NavLink to="/protokolle/trade" className={dropdownItemClass}>An- & Verkauf</NavLink>}
+                            <NavLink to="/protokolle/internal-storage" className={dropdownItemClass}>Mitarbeiter</NavLink>
+
+                            {isBuchhaltung && (
+                                <>
+                                    <div className="h-px bg-slate-800 my-2"></div>
+                                    <div className="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Zeiträume</div>
                                     <NavLink to="/protokolle/weekly" className={dropdownItemClass}>Wochenprotokolle</NavLink>
-                                    <NavLink to="/protokolle/period" className={dropdownItemClass}>Zeitraum Protokolle (Monat/Jahr)</NavLink>
-                                    <div className="h-px bg-slate-800 my-1"></div>
-                                    <NavLink to="/protokolle/analytics" className={dropdownItemClass}>📊 Analyse System</NavLink>
-                                    <div className="h-px bg-slate-800 my-1"></div>
-                                    <NavLink to="/protocols/automation" className={dropdownItemClass}>🚀 Auto-Pilot</NavLink>
+                                    <NavLink to="/protokolle/period" className={dropdownItemClass}>Monat/Jahr Protokolle</NavLink>
+                                    <div className="h-px bg-slate-800 my-2"></div>
+                                    <div className="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Analyse</div>
+                                    <NavLink to="/protokolle/analytics" className={dropdownItemClass}>📊 Analytics System</NavLink>
                                 </>
                             )}
                         </div>

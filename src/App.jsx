@@ -28,7 +28,11 @@ import ContactsPage from './pages/ContactsPage';
 import AdsPage from './pages/AdsPage';
 import PartnersPage from './pages/PartnersPage';
 import AnalyticsProtocol from './pages/protocols/AnalyticsProtocol';
-import AutomationProtocol from './pages/protocols/AutomationProtocol';
+import CashBookProtocol from './pages/protocols/CashBookProtocol';
+import PayrollProtocol from './pages/protocols/PayrollProtocol';
+import FinanceAuditProtocol from './pages/protocols/FinanceAuditProtocol';
+import ProfitLossProtocol from './pages/protocols/ProfitLossProtocol';
+import AccountingDashboard from './pages/protocols/AccountingDashboard';
 import PersonnelPage from './pages/PersonnelPage';
 import BeginnerGuidePage from './pages/BeginnerGuidePage';
 import AuditLogPage from './pages/AuditLogPage';
@@ -887,7 +891,11 @@ function App() {
             <>
               <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} inventory={inventory} employees={employees} />} />
               <Route path="/protokolle/analytics" element={<AnalyticsProtocol logs={transactionLogs} employees={employees} inventory={inventory} />} />
-              <Route path="/protocols/automation" element={<AutomationProtocol />} />
+              <Route path="/protokolle/kassenbuch" element={<CashBookProtocol logs={transactionLogs} user={user} />} />
+              <Route path="/protokolle/lohn" element={<PayrollProtocol logs={transactionLogs} employees={employees} prices={prices} user={user} />} />
+              <Route path="/protokolle/audit" element={<FinanceAuditProtocol user={user} />} />
+              <Route path="/protokolle/guv" element={<ProfitLossProtocol logs={transactionLogs} employees={employees} prices={prices} inventory={inventory} />} />
+              <Route path="/protokolle/buchhaltung" element={<AccountingDashboard logs={transactionLogs} employees={employees} inventory={inventory} prices={prices} user={user} />} />
             </>
           )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 
