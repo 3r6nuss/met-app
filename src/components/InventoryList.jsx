@@ -28,25 +28,8 @@ export default function InventoryList({ inventory, isEditMode, onUpdateStock, on
     };
 
     const getStatusBadge = (status) => {
-        switch (status) {
-            case 'critical':
-                return (
-                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                    </span>
-                );
-            case 'low':
-                return (
-                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-amber-500 rounded-full border-2 border-slate-800"></span>
-                );
-            case 'full':
-                return (
-                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-500 rounded-full border-2 border-slate-800 animate-pulse"></span>
-                );
-            default:
-                return null;
-        }
+        // Removed - was too subtle/hidden
+        return null;
     };
 
     const getRowStyles = (status) => {

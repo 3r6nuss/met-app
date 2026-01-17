@@ -48,14 +48,9 @@ export default function OutstandingBalance({ user }) {
         }).format(amount);
     };
 
-    // Don't show if no balance
+    // Don't show anything if no balance
     if (balance <= 0) {
-        return (
-            <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm">
-                <Sparkles className="w-4 h-4" />
-                <span className="font-medium">Alles ausgezahlt!</span>
-            </div>
-        );
+        return null;
     }
 
     const increased = balance > previousBalance && previousBalance !== 0;
