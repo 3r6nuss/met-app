@@ -33,6 +33,9 @@ import PayrollProtocol from './pages/protocols/PayrollProtocol';
 import FinanceAuditProtocol from './pages/protocols/FinanceAuditProtocol';
 import ProfitLossProtocol from './pages/protocols/ProfitLossProtocol';
 import AccountingDashboard from './pages/protocols/AccountingDashboard';
+import BackupProtocol from './pages/protocols/BackupProtocol';
+import PerformanceDashboard from './pages/protocols/PerformanceDashboard';
+import ProductProfitability from './pages/protocols/ProductProfitability';
 import PersonnelPage from './pages/PersonnelPage';
 import BeginnerGuidePage from './pages/BeginnerGuidePage';
 import AuditLogPage from './pages/AuditLogPage';
@@ -896,6 +899,7 @@ function App() {
               <Route path="/protokolle/audit" element={<FinanceAuditProtocol user={user} />} />
               <Route path="/protokolle/guv" element={<ProfitLossProtocol logs={transactionLogs} employees={employees} prices={prices} inventory={inventory} />} />
               <Route path="/protokolle/buchhaltung" element={<AccountingDashboard logs={transactionLogs} employees={employees} inventory={inventory} prices={prices} user={user} />} />
+              <Route path="/protokolle/profitabilitaet" element={<ProductProfitability logs={transactionLogs} prices={prices} inventory={inventory} />} />
             </>
           )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 
@@ -942,7 +946,11 @@ function App() {
 
           {/* Super Admin Audit Log */}
           {(user?.discordId === '823276402320998450' || user?.discordId === '690510884639866960') && (
-            <Route path="/aktivitaetslog" element={<AuditLogPage />} />
+            <>
+              <Route path="/aktivitaetslog" element={<AuditLogPage />} />
+              <Route path="/admin/backup" element={<BackupProtocol user={user} />} />
+              <Route path="/admin/performance" element={<PerformanceDashboard user={user} />} />
+            </>
           )}
         </Routes>
       </div>

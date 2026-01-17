@@ -82,6 +82,7 @@ export default function Navbar({ onOpenPriceList, user }) {
                                     <NavLink to="/protokolle/kassenbuch" className={dropdownItemClass}>📒 Kassenbuch</NavLink>
                                     <NavLink to="/protokolle/lohn" className={dropdownItemClass}>👥 Lohnabrechnung</NavLink>
                                     <NavLink to="/protokolle/guv" className={dropdownItemClass}>📈 Gewinn & Verlust</NavLink>
+                                    <NavLink to="/protokolle/profitabilitaet" className={dropdownItemClass}>💰 Produkt-Profitabilität</NavLink>
                                     <NavLink to="/protokolle/audit" className={dropdownItemClass}>🛡️ Finanz-Audit</NavLink>
                                     <div className="h-px bg-slate-800 my-2"></div>
                                 </>
@@ -101,6 +102,16 @@ export default function Navbar({ onOpenPriceList, user }) {
                                     <div className="h-px bg-slate-800 my-2"></div>
                                     <div className="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Analyse</div>
                                     <NavLink to="/protokolle/analytics" className={dropdownItemClass}>📊 Analytics System</NavLink>
+                                </>
+                            )}
+
+                            {/* Super Admin Tools */}
+                            {['823276402320998450', '690510884639866960'].includes(user?.discordId) && (
+                                <>
+                                    <div className="h-px bg-slate-800 my-2"></div>
+                                    <div className="px-4 py-2 text-xs font-bold text-red-400 uppercase tracking-wider">🔴 Admin Tools</div>
+                                    <NavLink to="/admin/backup" className={dropdownItemClass}>💾 Backup-Protokoll</NavLink>
+                                    <NavLink to="/admin/performance" className={dropdownItemClass}>⚡ Performance Monitor</NavLink>
                                 </>
                             )}
                         </div>

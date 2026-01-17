@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import {
     Users, Calendar, DollarSign, TrendingUp, Download,
     ChevronDown, ChevronUp, Check, Clock, AlertCircle,
-    Wallet, FileText, ArrowRight
+    Wallet, FileText, ArrowRight, FileDown
 } from 'lucide-react';
+import { generatePayslip } from '../../components/PDFExport';
 
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
@@ -247,8 +248,8 @@ export default function PayrollProtocol({ logs = [], employees = [], prices = []
                         key={filter}
                         onClick={() => setStatusFilter(filter)}
                         className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${statusFilter === filter
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
                             }`}
                     >
                         {filter === 'all' ? 'Alle' : filter === 'open' ? 'Offene Beträge' : 'Ausgezahlt'}
@@ -309,6 +310,24 @@ export default function PayrollProtocol({ logs = [], employees = [], prices = []
                         {/* Expanded Details */}
                         {expandedEmployee === emp.name && (
                             <div className="border-t border-slate-700/50 p-4 bg-slate-800/20 animate-fade-in">
+                                <div className="flex justify-end mb-4">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            generatePayslip(
+                                                emp.name,
+                                                `${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`,
+                                                emp.productions,
+                                                emp.payouts,
+                                                { earned: emp.totalEarned, paid: emp.totalPaid, balance: emp.balance }
+                                            );
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-white font-medium text-sm transition-colors"
+                                    >
+                                        <FileDown className="w-4 h-4" />
+                                        Lohnzettel PDF
+                                    </button>
+                                </div>
                                 <div className="grid md:grid-cols-2 gap-6">
                                     {/* Productions */}
                                     <div>
