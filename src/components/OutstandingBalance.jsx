@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Wallet, TrendingUp, Coins, Sparkles } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 
 export default function OutstandingBalance({ user }) {
     const [balance, setBalance] = useState(0);
-    const [isAnimating, setIsAnimating] = useState(false);
-    const [previousBalance, setPreviousBalance] = useState(0);
 
     useEffect(() => {
         if (!user) return;
@@ -12,93 +10,34 @@ export default function OutstandingBalance({ user }) {
         const fetchBalance = () => {
             fetch('/api/user/balance')
                 .then(res => res.json())
-                .then(data => {
-                    const newBalance = data.balance || 0;
-                    if (newBalance !== balance && balance !== 0) {
-                        setIsAnimating(true);
-                        setTimeout(() => setIsAnimating(false), 1000);
-                    }
-                    setPreviousBalance(balance);
-                    setBalance(newBalance);
-                })
+                .then(data => setBalance(data.balance || 0))
                 .catch(err => console.error("Failed to fetch balance:", err));
         };
 
         fetchBalance();
 
+        // Poll every 30 seconds or listen to WS updates (if triggered)
+        // For now, simple polling or relying on parent re-renders if passed down could work, 
+        // but let's just fetch on mount and maybe expose a refresh method.
+        // Actually, since we have WS updates, we could listen to them if we had access to the socket context.
+        // But for simplicity, let's just fetch on mount.
+
+        // To make it reactive to global updates, we might want to move this state up to App.jsx, 
+        // but for now let's keep it self-contained and maybe add a listener if needed.
+        // Let's rely on the fact that App.jsx triggers re-renders or we can add a custom event listener.
+
         const handleUpdate = () => fetchBalance();
-        window.addEventListener('app-data-update', handleUpdate);
+        window.addEventListener('app-data-update', handleUpdate); // Custom event we can dispatch from App.jsx
 
-        // Poll every 60 seconds for updates
-        const pollInterval = setInterval(fetchBalance, 60000);
+        return () => window.removeEventListener('app-data-update', handleUpdate);
+    }, [user]);
 
-        return () => {
-            window.removeEventListener('app-data-update', handleUpdate);
-            clearInterval(pollInterval);
-        };
-    }, [user, balance]);
-
-    // Format currency nicely
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('de-DE', {
-            style: 'currency',
-            currency: 'EUR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(amount);
-    };
-
-    // Don't show anything if no balance
-    if (balance <= 0) {
-        return null;
-    }
-
-    const increased = balance > previousBalance && previousBalance !== 0;
+    if (balance <= 0) return null;
 
     return (
-        <div className={`
-            relative flex items-center gap-2.5 px-4 py-2 
-            rounded-xl text-sm font-semibold 
-            transition-all duration-300
-            ${balance >= 1000
-                ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 shadow-lg shadow-amber-500/10'
-                : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
-            }
-            ${isAnimating ? 'scale-110 animate-bounce' : ''}
-        `}>
-            {/* Icon with glow */}
-            <div className={`
-                relative
-                ${balance >= 1000 ? 'animate-pulse' : ''}
-            `}>
-                <Wallet className="w-5 h-5" />
-                {balance >= 500 && (
-                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-                    </span>
-                )}
-            </div>
-
-            {/* Amount */}
-            <span className="font-mono tracking-tight">
-                {formatCurrency(balance)}
-            </span>
-
-            {/* Increase indicator */}
-            {increased && isAnimating && (
-                <TrendingUp className="w-4 h-4 text-emerald-400 animate-bounce" />
-            )}
-
-            {/* Tooltip-like label */}
-            <span className="hidden 2xl:block text-amber-400/70 font-normal text-xs">
-                ausstehend
-            </span>
-
-            {/* High balance warning glow */}
-            {balance >= 1000 && (
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 animate-pulse -z-10"></div>
-            )}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-400 text-sm font-medium animate-fade-in">
+            <Wallet className="w-4 h-4" />
+            <span>Ausstehend: ${balance.toLocaleString()}</span>
         </div>
     );
 }
