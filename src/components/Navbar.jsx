@@ -131,10 +131,6 @@ export default function Navbar({ onOpenPriceList, user }) {
                                             <span className="menu-item-icon blue">💰</span>
                                             Profitabilität
                                         </NavLink>
-                                        <NavLink to="/protokolle/audit" className="menu-item blue">
-                                            <span className="menu-item-icon blue">🛡️</span>
-                                            Finanz-Audit
-                                        </NavLink>
                                     </div>
                                 )}
 
@@ -212,10 +208,6 @@ export default function Navbar({ onOpenPriceList, user }) {
                                         <span className="menu-item-icon violet">📢</span>
                                         Werbung
                                     </NavLink>
-                                    <NavLink to="/sonstiges/konto" className="menu-item violet">
-                                        <span className="menu-item-icon violet">🏦</span>
-                                        Geschäftskonto
-                                    </NavLink>
                                     <NavLink to="/sonstiges/kontakte" className="menu-item violet">
                                         <span className="menu-item-icon violet">📇</span>
                                         Kontakte
@@ -232,10 +224,6 @@ export default function Navbar({ onOpenPriceList, user }) {
                                     <NavLink to="/beleg" className="menu-item green">
                                         <span className="menu-item-icon green">🧾</span>
                                         Beleg erstellen
-                                    </NavLink>
-                                    <NavLink to="/rechner" className="menu-item green">
-                                        <span className="menu-item-icon green">🧮</span>
-                                        Rechner
                                     </NavLink>
                                     <NavLink to="/marketing" className="menu-item green">
                                         <span className="menu-item-icon green">📊</span>
