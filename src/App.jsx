@@ -40,6 +40,8 @@ import AuditLogPage from './pages/AuditLogPage';
 import HausordnungPage from './pages/HausordnungPage';
 import BelegPage from './pages/BelegPage';
 import MarketingPage from './pages/MarketingPage';
+import BookingHub from './pages/BookingHub';
+import ProtocolsHub from './pages/ProtocolsHub';
 
 import CreateOrderForm from './components/CreateOrderForm';
 import { api } from './services/api';
@@ -877,8 +879,9 @@ function App() {
 
           <Route path="/marketing" element={<MarketingPage prices={prices} inventory={inventory} />} />
 
-          {/* Redirect old routes */}
-          <Route path="/buchung" element={<Navigate to={isLager ? "/buchung/auslagern" : "/"} replace />} />
+          {/* Hub Pages */}
+          {!isPending && <Route path="/buchung" element={<BookingHub user={user} />} />}
+          {!isPending && <Route path="/protokolle" element={<ProtocolsHub user={user} />} />}
           <Route path="/trade" element={<Navigate to={(isHaendler || isBuchhaltung) ? "/buchung/einkauf" : "/"} replace />} />
 
           {/* Protokolle Routes */}
