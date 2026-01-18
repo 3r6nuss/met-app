@@ -12,7 +12,7 @@ export const logger = (req, res, next) => {
     }
 
     // Log body for non-GET requests (excluding massive payloads if necessary)
-    if (method !== 'GET' && Object.keys(body).length > 0) {
+    if (method !== 'GET' && body && Object.keys(body).length > 0) {
         // Create a safe copy to avoid logging sensitive fields if any (like passwords, though not applicable here yet)
         const safeBody = { ...body };
         console.log(`\tBody: ${JSON.stringify(safeBody).substring(0, 500)}${JSON.stringify(safeBody).length > 500 ? '...' : ''}`);
