@@ -20,17 +20,15 @@ import { Activity, WifiOff } from 'lucide-react';
 import UserManagement from './components/UserManagement';
 import SystemAlert from './components/SystemAlert';
 import ReloadModal from './components/ReloadModal';
-import CalculatorPage from './pages/CalculatorPage';
 import SpecialBookingPage from './pages/SpecialBookingPage';
 import ComingSoonPage from './pages/ComingSoonPage';
-import BusinessAccountPage from './pages/BusinessAccountPage';
 import ContactsPage from './pages/ContactsPage';
 import AdsPage from './pages/AdsPage';
 import PartnersPage from './pages/PartnersPage';
 import AnalyticsProtocol from './pages/protocols/AnalyticsProtocol';
 import CashBookProtocol from './pages/protocols/CashBookProtocol';
 import PayrollProtocol from './pages/protocols/PayrollProtocol';
-import FinanceAuditProtocol from './pages/protocols/FinanceAuditProtocol';
+
 import ProfitLossProtocol from './pages/protocols/ProfitLossProtocol';
 import AccountingDashboard from './pages/protocols/AccountingDashboard';
 import BackupProtocol from './pages/protocols/BackupProtocol';
@@ -894,9 +892,8 @@ function App() {
             <>
               <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} inventory={inventory} employees={employees} />} />
               <Route path="/protokolle/analytics" element={<AnalyticsProtocol logs={transactionLogs} employees={employees} inventory={inventory} />} />
-              <Route path="/protokolle/kassenbuch" element={<CashBookProtocol logs={transactionLogs} user={user} />} />
+              <Route path="/protokolle/kassenbuch" element={<CashBookProtocol logs={transactionLogs} inventory={inventory} prices={prices} onAdjustBalance={handleSpecialBooking} user={user} />} />
               <Route path="/protokolle/lohn" element={<PayrollProtocol logs={transactionLogs} employees={employees} prices={prices} user={user} />} />
-              <Route path="/protokolle/audit" element={<FinanceAuditProtocol user={user} />} />
               <Route path="/protokolle/guv" element={<ProfitLossProtocol logs={transactionLogs} employees={employees} prices={prices} inventory={inventory} />} />
               <Route path="/protokolle/buchhaltung" element={<AccountingDashboard logs={transactionLogs} employees={employees} inventory={inventory} prices={prices} user={user} />} />
               <Route path="/protokolle/profitabilitaet" element={<ProductProfitability logs={transactionLogs} prices={prices} inventory={inventory} />} />
@@ -911,7 +908,7 @@ function App() {
           {isAdmin && (
             <>
               <Route path="/sonstiges/werbung" element={<AdsPage />} />
-              <Route path="/sonstiges/konto" element={<BusinessAccountPage logs={transactionLogs} inventory={inventory} prices={prices} onAdjustBalance={handleSpecialBooking} user={user} />} />
+
               <Route path="/sonstiges/kontakte" element={<ContactsPage />} />
               <Route path="/sonstiges/partner" element={<PartnersPage />} />
               <Route path="/sonstiges/personal" element={<PersonnelPage />} />
