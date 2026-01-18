@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
     FileText, BookOpen, Users, TrendingUp, Calendar,
-    BarChart3, PieChart, Package, Clock, Wallet
+    BarChart3, PieChart, Package, Clock, Wallet, ArrowRight
 } from 'lucide-react';
 
 export default function ProtocolsHub({ user }) {
@@ -18,7 +18,7 @@ export default function ProtocolsHub({ user }) {
 
     const sections = [
         // Buchhaltung
-        ...(isBuchhaltung ? [{
+        {
             title: 'Buchhaltung',
             color: 'violet',
             cards: [
@@ -27,29 +27,24 @@ export default function ProtocolsHub({ user }) {
                 { to: '/protokolle/lohn', icon: Users, title: 'Lohnabrechnung', desc: 'Mitarbeiter-Auszahlungen' },
                 { to: '/protokolle/guv', icon: TrendingUp, title: 'Gewinn & Verlust', desc: 'Finanzübersicht' },
             ]
-        }] : []),
+        },
         // Analyse
-        ...(isBuchhaltung ? [{
+        {
             title: 'Analyse',
             color: 'blue',
             cards: [
                 { to: '/protokolle/analytics', icon: PieChart, title: 'Analytics', desc: 'Performance-Auswertung' },
                 { to: '/protokolle/profitabilitaet', icon: Wallet, title: 'Profitabilität', desc: 'Produkt-Margen' },
             ]
-        }] : []),
+        },
         // Protokolle
         {
-            title: 'Protokolle',
+            title: 'Weitere Protokolle',
             color: 'emerald',
             cards: [
-                ...(isBuchhaltung ? [
-                    { to: '/protokolle/trade', icon: Package, title: 'Tagesprotokoll', desc: 'An- & Verkäufe' },
-                ] : []),
-                { to: '/protokolle/internal-storage', icon: Users, title: 'Mitarbeiter', desc: 'Interne Lagerbewegungen' },
-                ...(isBuchhaltung ? [
-                    { to: '/protokolle/weekly', icon: Calendar, title: 'Wochenprotokoll', desc: 'Wöchentliche Übersicht' },
-                    { to: '/protokolle/period', icon: Clock, title: 'Zeitraum-Protokoll', desc: 'Flexible Auswertung' },
-                ] : []),
+                { to: '/protokolle/trade', icon: Package, title: 'Tagesprotokoll', desc: 'An- & Verkäufe' },
+                { to: '/protokolle/weekly', icon: Calendar, title: 'Wochenprotokoll', desc: 'Wöchentliche Übersicht' },
+                { to: '/protokolle/period', icon: Clock, title: 'Zeitraum-Protokoll', desc: 'Flexible Auswertung' },
                 ...(isLager ? [
                     { to: '/protokolle/storage', icon: Package, title: 'Lagerprotokoll', desc: 'Lagerbewegungen' },
                 ] : []),
@@ -74,7 +69,7 @@ export default function ProtocolsHub({ user }) {
     };
 
     return (
-        <div className="animate-fade-in space-y-10">
+        <div className="animate-fade-in space-y-8">
             {/* Header */}
             <div>
                 <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-slate-200 to-slate-400 flex items-center gap-4">
@@ -84,27 +79,49 @@ export default function ProtocolsHub({ user }) {
                 <p className="text-slate-500 mt-2 text-lg">Alle Auswertungen und Berichte</p>
             </div>
 
-            {/* Sections */}
+            {/* FEATURED: Mitarbeiter-Protokoll */}
+            <Link
+                to="/protokolle/internal-storage"
+                className="group relative block bg-gradient-to-br from-amber-900/30 to-orange-900/20 border-2 border-amber-500/30 rounded-3xl p-6 hover:border-amber-400/50 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/10"
+            >
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-5">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                            <Users className="w-8 h-8 text-white" />
+                        </div>
+                        <div>
+                            <div className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">⭐ Wichtig</div>
+                            <h2 className="text-2xl font-bold text-white">Mitarbeiter-Protokoll</h2>
+                            <p className="text-amber-200/70 mt-1">Interne Lagerbewegungen & Lohnauszahlungen</p>
+                        </div>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/30 group-hover:translate-x-1 transition-all">
+                        <ArrowRight className="w-6 h-6 text-amber-400" />
+                    </div>
+                </div>
+            </Link>
+
+            {/* Other Sections */}
             {sections.map((section) => (
                 <div key={section.title}>
                     {/* Section Header */}
-                    <h2 className={`text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r ${colorClasses[section.color].header}`}>
+                    <h2 className={`text-lg font-bold mb-3 text-transparent bg-clip-text bg-gradient-to-r ${colorClasses[section.color].header}`}>
                         {section.title}
                     </h2>
 
                     {/* Cards Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                         {section.cards.map((card) => (
                             <Link
                                 key={card.to}
                                 to={card.to}
-                                className={`group relative bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 hover:border-slate-600 transition-all duration-200 hover:bg-slate-800/60`}
+                                className="group relative bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 hover:border-slate-600 transition-all duration-200 hover:bg-slate-800/60"
                             >
-                                <div className={`w-10 h-10 rounded-xl ${colorClasses[section.color].bg} ${colorClasses[section.color].border} border flex items-center justify-center mb-3`}>
-                                    <card.icon className={`w-5 h-5 ${colorClasses[section.color].text}`} />
+                                <div className={`w-9 h-9 rounded-lg ${colorClasses[section.color].bg} ${colorClasses[section.color].border} border flex items-center justify-center mb-2`}>
+                                    <card.icon className={`w-4 h-4 ${colorClasses[section.color].text}`} />
                                 </div>
-                                <h3 className="font-bold text-white mb-1">{card.title}</h3>
-                                <p className="text-slate-500 text-sm">{card.desc}</p>
+                                <h3 className="font-semibold text-white text-sm mb-0.5">{card.title}</h3>
+                                <p className="text-slate-500 text-xs">{card.desc}</p>
                             </Link>
                         ))}
                     </div>
