@@ -874,9 +874,7 @@ function App() {
             </>
           )}
 
-          {/* Calculator Route */}
-          <Route path="/rechner" element={<CalculatorPage prices={prices} />} />
-          <Route path="/buchung/rechner" element={<CalculatorPage prices={prices} />} />
+
           <Route path="/marketing" element={<MarketingPage prices={prices} inventory={inventory} />} />
 
           {/* Redirect old routes */}
