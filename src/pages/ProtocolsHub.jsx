@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import {
     FileText, BookOpen, Users, TrendingUp, Calendar,
     BarChart3, PieChart, Package, Clock, Wallet
@@ -10,6 +10,11 @@ export default function ProtocolsHub({ user }) {
     const isBuchhaltung = user?.role === 'Buchhaltung' || isAdmin;
     const isLager = (user?.isLagerist === 1 || user?.isLagerist === true) || user?.role === 'Lager' || isBuchhaltung;
     const isSuperAdmin = ['823276402320998450', '690510884639866960'].includes(user?.discordId);
+
+    // Nicht-Buchhaltung-User direkt auf Mitarbeiter-Protokoll weiterleiten
+    if (!isBuchhaltung) {
+        return <Navigate to="/protokolle/internal-storage" replace />;
+    }
 
     const sections = [
         // Buchhaltung
