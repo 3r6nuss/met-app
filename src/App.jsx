@@ -14,7 +14,8 @@ import WeeklyProtocol from './pages/protocols/WeeklyProtocol';
 import PeriodProtocol from './pages/protocols/PeriodProtocol';
 import StorageProtocol from './pages/protocols/StorageProtocol';
 import InternalStorageProtocol from './pages/protocols/InternalStorageProtocol';
-import SystemPage from './pages/SystemPage'; import PriceListModal from './components/PriceListModal';
+import SystemPage from './pages/SystemPage';
+import PricesPage from './pages/PricesPage';
 import Login from './components/Login';
 import { Activity, WifiOff } from 'lucide-react';
 import UserManagement from './components/UserManagement';
@@ -57,7 +58,7 @@ function App() {
   const [prices, setPrices] = useState([]); // Price list
   const [orders, setOrders] = useState([]); // Orders
   const [_personnel, setPersonnel] = useState([]); // Personnel list (from /api/personnel)
-  const [showPriceList, setShowPriceList] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState('idle');
   const [user, setUser] = useState(null);
@@ -757,9 +758,7 @@ function App() {
           v.{version ? new Date(version).toISOString().slice(0, 19).replace('T', ' ') : '...'}
         </div>
 
-        <Navbar onOpenPriceList={() => setShowPriceList(true)} user={user} />
-
-        {showPriceList && <PriceListModal onClose={() => setShowPriceList(false)} />}
+        <Navbar user={user} />
 
 
 
@@ -914,6 +913,7 @@ function App() {
               <Route path="/sonstiges/partner" element={<PartnersPage />} />
               <Route path="/sonstiges/personal" element={<PersonnelPage />} />
               <Route path="/beleg" element={<BelegPage prices={prices} />} />
+              <Route path="/preise" element={<PricesPage />} />
             </>
           )}
 

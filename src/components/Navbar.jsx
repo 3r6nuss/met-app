@@ -5,7 +5,7 @@ import { cn } from '../lib/utils';
 import OutstandingBalance from './OutstandingBalance';
 import { useDeveloperConsole } from '../context/DeveloperConsoleContext';
 
-export default function Navbar({ onOpenPriceList, user }) {
+export default function Navbar({ user }) {
     const isAdmin = user?.role === 'Administrator';
     const isBuchhaltung = user?.role === 'Buchhaltung' || isAdmin;
     const isLager = (user?.isLagerist === 1 || user?.isLagerist === true) || user?.role === 'Lager' || isBuchhaltung;
@@ -21,7 +21,7 @@ export default function Navbar({ onOpenPriceList, user }) {
     );
 
     return (
-        <nav className="glass-panel rounded-2xl p-2 mb-8 w-full flex items-center sticky top-4 z-50">
+        <nav className="glass-panel rounded-2xl p-2 mb-8 flex items-center sticky top-4 z-50">
             <div className="flex-1 flex">
                 {/* Lager */}
                 <NavLink to="/" className={navLinkClass}>
@@ -53,15 +53,12 @@ export default function Navbar({ onOpenPriceList, user }) {
                     </NavLink>
                 )}
 
-                {/* Preise Button (Admin only) */}
+                {/* Preise (Admin only) */}
                 {isAdmin && (
-                    <button
-                        onClick={onOpenPriceList}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 font-medium text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
-                    >
+                    <NavLink to="/preise" className={navLinkClass}>
                         <span className="text-lg">💲</span>
                         <span className="hidden sm:inline">Preise</span>
-                    </button>
+                    </NavLink>
                 )}
 
                 {/* Aktivitätslog (SuperAdmin only) */}
