@@ -14,15 +14,15 @@ export default function Navbar({ onOpenPriceList, user }) {
     const isPending = user?.role?.includes('Pending');
 
     const navLinkClass = ({ isActive }) => cn(
-        "flex items-center gap-2 px-5 py-3 font-medium transition-all rounded-xl",
+        "flex-1 flex items-center justify-center gap-2 px-4 py-3 font-medium transition-all rounded-xl",
         isActive
             ? "bg-white/10 text-white shadow-inner"
             : "text-slate-400 hover:text-white hover:bg-white/5"
     );
 
     return (
-        <nav className="glass-panel rounded-2xl p-2 mb-8 flex justify-between items-center sticky top-4 z-50">
-            <div className="flex gap-1">
+        <nav className="glass-panel rounded-2xl p-2 mb-8 flex items-center sticky top-4 z-50">
+            <div className="flex-1 flex">
                 {/* Lager */}
                 <NavLink to="/" className={navLinkClass}>
                     <LayoutDashboard className="w-5 h-5" />
@@ -57,7 +57,7 @@ export default function Navbar({ onOpenPriceList, user }) {
                 {isAdmin && (
                     <button
                         onClick={onOpenPriceList}
-                        className="flex items-center gap-2 px-5 py-3 font-medium text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 font-medium text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
                     >
                         <span className="text-lg">💲</span>
                         <span className="hidden sm:inline">Preise</span>
