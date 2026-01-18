@@ -302,18 +302,45 @@ router.get('/backups', isBuchhaltungOrAdmin, async (req, res) => {
     try {
         const backupDir = path.join(__dirname, 'data', 'backups');
         const fs = (await import('fs/promises')).default;
-        try { await fs.access(backupDir); } catch { return res.json([]); }
+        try { await fs.access(backupDir); } catch { return res.json({ backups: [] }); }
         const files = await fs.readdir(backupDir);
         const backups = [];
         for (const file of files) {
             if (file.endsWith('.sqlite')) {
                 const stats = await fs.stat(path.join(backupDir, file));
-                backups.push({ name: file, size: stats.size, created: stats.birthtime });
+                backups.push({ filename: file, size: stats.size, createdAt: stats.birthtime });
             }
         }
-        backups.sort((a, b) => new Date(b.created) - new Date(a.created));
-        res.json(backups);
+        backups.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        res.json({ backups });
     } catch (_e) { res.status(500).json({ error: "Failed to fetch backups" }); }
+});
+
+router.get('/db-stats', isBuchhaltungOrAdmin, async (req, res) => {
+    try {
+        const db = await getDb();
+        const fs = (await import('fs/promises')).default;
+        const dbPath = path.join(__dirname, 'data', 'database.sqlite');
+
+        // Get database file size
+        let size = 0;
+        try {
+            const stats = await fs.stat(dbPath);
+            size = stats.size;
+        } catch { /* File might not exist yet */ }
+
+        // Get table row counts
+        const tables = {};
+        const tableNames = ['inventory', 'logs', 'users', 'employees', 'prices', 'personnel', 'orders', 'verifications'];
+        for (const table of tableNames) {
+            try {
+                const result = await db.get(`SELECT COUNT(*) as count FROM ${table}`);
+                tables[table] = result?.count || 0;
+            } catch { tables[table] = 0; }
+        }
+
+        res.json({ size, tables });
+    } catch (_e) { res.status(500).json({ error: "Failed to fetch DB stats" }); }
 });
 
 router.delete('/backups/:filename', isAdmin, async (req, res) => {

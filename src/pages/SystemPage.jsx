@@ -127,10 +127,10 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
 
     const fetchBackups = () => {
         setLoadingBackups(true);
-        fetch('/api/backups')
+        fetch('/api/admin/backups')
             .then(res => res.json())
             .then(data => {
-                setBackups(data);
+                setBackups(data.backups || []);
                 setLoadingBackups(false);
             })
             .catch(err => {
@@ -146,7 +146,7 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
     }, [activeTab]);
 
     const handleBackup = () => {
-        fetch('/api/backup', { method: 'POST' })
+        fetch('/api/admin/backup', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
@@ -180,7 +180,7 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
 
     const handleDeleteBackup = (filename) => {
         if (window.confirm(`Backup "${filename}" wirklich löschen?`)) {
-            fetch(`/api/backups/${filename}`, { method: 'DELETE' })
+            fetch(`/api/admin/backups/${filename}`, { method: 'DELETE' })
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) fetchBackups();
@@ -776,10 +776,11 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
                                 ) : (
                                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                                         {backups.map((backup) => (
-                                            <div key={backup.name} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 flex justify-between items-center hover:bg-slate-800/50 transition-colors">
+                                            <div key={backup.filename} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 flex justify-between items-center hover:bg-slate-800/50 transition-colors">
+                                                <div className="text-slate-200 font-medium">{backup.filename}</div>
                                                 <div>
                                                     <button
-                                                        onClick={() => handleDeleteBackup(backup.name)}
+                                                        onClick={() => handleDeleteBackup(backup.filename)}
                                                         className="p-2 text-slate-500 hover:text-red-400 transition-colors"
                                                         title="Löschen"
                                                     >
