@@ -281,7 +281,7 @@ router.get('/hausordnung', async (req, res) => { try { const db = await getDb();
 router.post('/hausordnung', isAdmin, async (req, res) => { try { const content = req.body; const db = await getDb(); const existing = await db.get('SELECT id FROM hausordnung LIMIT 1'); if (existing) await db.run('UPDATE hausordnung SET content = ? WHERE id = ?', JSON.stringify(content), existing.id); else await db.run('INSERT INTO hausordnung (content) VALUES (?)', JSON.stringify(content)); if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')(); res.json({ success: true }); } catch (_e) { res.status(500).json({ error: "DB Error" }); } });
 
 // BACKUPS
-router.post('/backup', async (req, res) => {
+router.post('/admin/backup', async (req, res) => {
     try {
         const dbPath = path.join(__dirname, 'data', 'database.sqlite');
         const backupDir = path.join(__dirname, 'data', 'backups');
@@ -298,7 +298,7 @@ router.post('/backup', async (req, res) => {
     } catch (error) { res.status(500).json({ error: "Backup failed: " + error.message }); }
 });
 
-router.get('/backups', isBuchhaltungOrAdmin, async (req, res) => {
+router.get('/admin/backups', isBuchhaltungOrAdmin, async (req, res) => {
     try {
         const backupDir = path.join(__dirname, 'data', 'backups');
         const fs = (await import('fs/promises')).default;
@@ -316,7 +316,7 @@ router.get('/backups', isBuchhaltungOrAdmin, async (req, res) => {
     } catch (_e) { res.status(500).json({ error: "Failed to fetch backups" }); }
 });
 
-router.get('/db-stats', isBuchhaltungOrAdmin, async (req, res) => {
+router.get('/admin/db-stats', isBuchhaltungOrAdmin, async (req, res) => {
     try {
         const db = await getDb();
         const fs = (await import('fs/promises')).default;
@@ -343,7 +343,7 @@ router.get('/db-stats', isBuchhaltungOrAdmin, async (req, res) => {
     } catch (_e) { res.status(500).json({ error: "Failed to fetch DB stats" }); }
 });
 
-router.delete('/backups/:filename', isAdmin, async (req, res) => {
+router.delete('/admin/backups/:filename', isAdmin, async (req, res) => {
     try {
         const { filename } = req.params;
         const backupPath = path.join(__dirname, 'data', 'backups', filename);
@@ -357,7 +357,7 @@ router.delete('/backups/:filename', isAdmin, async (req, res) => {
     } catch (_e) { res.status(500).json({ error: "Delete failed" }); }
 });
 
-router.post('/restore', isAdmin, async (req, res) => {
+router.post('/admin/restore', isAdmin, async (req, res) => {
     try {
         const { filename } = req.body;
         if (!filename) return res.status(400).json({ error: "Filename required" });
