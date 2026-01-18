@@ -21,7 +21,7 @@ export default function Navbar({ onOpenPriceList, user }) {
     );
 
     return (
-        <nav className="glass-panel rounded-2xl p-2 mb-8 flex items-center sticky top-4 z-50">
+        <nav className="glass-panel rounded-2xl p-2 mb-8 w-full flex items-center sticky top-4 z-50">
             <div className="flex-1 flex">
                 {/* Lager */}
                 <NavLink to="/" className={navLinkClass}>
