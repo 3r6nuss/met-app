@@ -43,6 +43,7 @@ import BelegPage from './pages/BelegPage';
 import MarketingPage from './pages/MarketingPage';
 import BookingHub from './pages/BookingHub';
 import ProtocolsHub from './pages/ProtocolsHub';
+import SonstigesHub from './pages/SonstigesHub';
 
 import CreateOrderForm from './components/CreateOrderForm';
 import { api } from './services/api';
@@ -881,6 +882,7 @@ function App() {
           {/* Hub Pages */}
           {!isPending && <Route path="/buchung" element={<BookingHub user={user} />} />}
           {!isPending && <Route path="/protokolle" element={<ProtocolsHub user={user} />} />}
+          {!isPending && <Route path="/sonstiges" element={<SonstigesHub user={user} />} />}
           <Route path="/trade" element={<Navigate to={(isHaendler || isBuchhaltung) ? "/buchung/einkauf" : "/"} replace />} />
 
           {/* Protokolle Routes */}

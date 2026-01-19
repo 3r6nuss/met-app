@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ArrowRightLeft, FileText, LogOut, Settings, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, FileText, LogOut, Settings, ShieldCheck, MoreHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
 import OutstandingBalance from './OutstandingBalance';
 import { useDeveloperConsole } from '../context/DeveloperConsoleContext';
@@ -42,6 +42,14 @@ export default function Navbar({ user }) {
                     <NavLink to="/protokolle" className={navLinkClass}>
                         <FileText className="w-5 h-5" />
                         <span className="hidden sm:inline">Protokolle</span>
+                    </NavLink>
+                )}
+
+                {/* Sonstiges Hub */}
+                {!isPending && (
+                    <NavLink to="/sonstiges" className={navLinkClass}>
+                        <MoreHorizontal className="w-5 h-5" />
+                        <span className="hidden sm:inline">Sonstiges</span>
                     </NavLink>
                 )}
 
