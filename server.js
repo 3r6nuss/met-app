@@ -204,7 +204,7 @@ const initNewTables = async () => {
     // Developer Logs
     await db.run(`CREATE TABLE IF NOT EXISTS developer_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, category TEXT, message TEXT, details TEXT)`);
     // Fuhrpark (Fleet Management)
-    await db.run(`CREATE TABLE IF NOT EXISTS fuhrpark (id INTEGER PRIMARY KEY AUTOINCREMENT, kennzeichen TEXT UNIQUE, fahrzeugtyp TEXT, besitzer TEXT, lastService TEXT, needsService INTEGER DEFAULT 0, lastTank TEXT, needsReparaturkit INTEGER DEFAULT 0, notes TEXT)`);
+    await db.run(`CREATE TABLE IF NOT EXISTS fuhrpark (id INTEGER PRIMARY KEY AUTOINCREMENT, kennzeichen TEXT UNIQUE, fahrzeugtyp TEXT, besitzer TEXT, kilometerstand TEXT, lastServiceKm TEXT, needsService INTEGER DEFAULT 0, lastTank TEXT, lastTankTime TEXT, needsReparaturkit INTEGER DEFAULT 0, notes TEXT)`);
 
     // Migrations
     try {
@@ -225,12 +225,19 @@ const initNewTables = async () => {
         const fuhrparkInfo = await db.all("PRAGMA table_info(fuhrpark)");
         if (fuhrparkInfo.length > 0) {
             if (!fuhrparkInfo.some(col => col.name === 'besitzer')) await db.run("ALTER TABLE fuhrpark ADD COLUMN besitzer TEXT DEFAULT ''");
+            if (!fuhrparkInfo.some(col => col.name === 'kilometerstand')) await db.run("ALTER TABLE fuhrpark ADD COLUMN kilometerstand TEXT DEFAULT ''");
+            if (!fuhrparkInfo.some(col => col.name === 'lastServiceKm')) await db.run("ALTER TABLE fuhrpark ADD COLUMN lastServiceKm TEXT DEFAULT ''");
+            if (!fuhrparkInfo.some(col => col.name === 'lastTankTime')) await db.run("ALTER TABLE fuhrpark ADD COLUMN lastTankTime TEXT DEFAULT ''");
             if (!fuhrparkInfo.some(col => col.name === 'needsService')) await db.run("ALTER TABLE fuhrpark ADD COLUMN needsService INTEGER DEFAULT 0");
             if (!fuhrparkInfo.some(col => col.name === 'needsReparaturkit')) await db.run("ALTER TABLE fuhrpark ADD COLUMN needsReparaturkit INTEGER DEFAULT 0");
             // Migrate old column name if exists
             if (fuhrparkInfo.some(col => col.name === 'needsReperkit') && !fuhrparkInfo.some(col => col.name === 'needsReparaturkit')) {
                 await db.run("ALTER TABLE fuhrpark ADD COLUMN needsReparaturkit INTEGER DEFAULT 0");
                 await db.run("UPDATE fuhrpark SET needsReparaturkit = needsReperkit");
+            }
+            // Migrate old lastService date to lastServiceKm if needed (optional data migration)
+            if (fuhrparkInfo.some(col => col.name === 'lastService') && !fuhrparkInfo.some(col => col.name === 'lastServiceKm')) {
+                await db.run("ALTER TABLE fuhrpark ADD COLUMN lastServiceKm TEXT DEFAULT ''");
             }
         }
     } catch { /* Columns already exist */ }

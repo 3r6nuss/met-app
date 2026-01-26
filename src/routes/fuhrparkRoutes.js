@@ -27,12 +27,12 @@ router.get('/fuhrpark', isFuhrparkOrAdmin, async (req, res) => {
 // POST new vehicle
 router.post('/fuhrpark', isFuhrparkOrAdmin, async (req, res) => {
     try {
-        const { kennzeichen, fahrzeugtyp, besitzer, lastService, needsService, lastTank, needsReparaturkit, notes } = req.body;
+        const { kennzeichen, fahrzeugtyp, besitzer, kilometerstand, lastServiceKm, needsService, lastTank, lastTankTime, needsReparaturkit, notes } = req.body;
         const db = await getDb();
 
         const result = await db.run(
-            'INSERT INTO fuhrpark (kennzeichen, fahrzeugtyp, besitzer, lastService, needsService, lastTank, needsReparaturkit, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            kennzeichen, fahrzeugtyp || '', besitzer || '', lastService || '', needsService ? 1 : 0, lastTank || '', needsReparaturkit ? 1 : 0, notes || ''
+            'INSERT INTO fuhrpark (kennzeichen, fahrzeugtyp, besitzer, kilometerstand, lastServiceKm, needsService, lastTank, lastTankTime, needsReparaturkit, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            kennzeichen, fahrzeugtyp || '', besitzer || '', kilometerstand || '', lastServiceKm || '', needsService ? 1 : 0, lastTank || '', lastTankTime || '', needsReparaturkit ? 1 : 0, notes || ''
         );
 
         const newVehicle = await db.get('SELECT * FROM fuhrpark WHERE id = ?', result.lastID);
@@ -57,15 +57,15 @@ router.post('/fuhrpark', isFuhrparkOrAdmin, async (req, res) => {
 router.put('/fuhrpark/:id', isFuhrparkOrAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const { kennzeichen, fahrzeugtyp, besitzer, lastService, needsService, lastTank, needsReparaturkit, notes } = req.body;
+        const { kennzeichen, fahrzeugtyp, besitzer, kilometerstand, lastServiceKm, needsService, lastTank, lastTankTime, needsReparaturkit, notes } = req.body;
         const db = await getDb();
 
         // Get old vehicle for diff logging
         const oldVehicle = await db.get('SELECT * FROM fuhrpark WHERE id = ?', id);
 
         await db.run(
-            'UPDATE fuhrpark SET kennzeichen = ?, fahrzeugtyp = ?, besitzer = ?, lastService = ?, needsService = ?, lastTank = ?, needsReparaturkit = ?, notes = ? WHERE id = ?',
-            kennzeichen, fahrzeugtyp || '', besitzer || '', lastService || '', needsService ? 1 : 0, lastTank || '', needsReparaturkit ? 1 : 0, notes || '', id
+            'UPDATE fuhrpark SET kennzeichen = ?, fahrzeugtyp = ?, besitzer = ?, kilometerstand = ?, lastServiceKm = ?, needsService = ?, lastTank = ?, lastTankTime = ?, needsReparaturkit = ?, notes = ? WHERE id = ?',
+            kennzeichen, fahrzeugtyp || '', besitzer || '', kilometerstand || '', lastServiceKm || '', needsService ? 1 : 0, lastTank || '', lastTankTime || '', needsReparaturkit ? 1 : 0, notes || '', id
         );
 
         // Build changes log
@@ -73,9 +73,11 @@ router.put('/fuhrpark/:id', isFuhrparkOrAdmin, async (req, res) => {
         if (oldVehicle) {
             if (oldVehicle.kennzeichen !== kennzeichen) changes.push(`Kennzeichen: ${oldVehicle.kennzeichen} → ${kennzeichen}`);
             if (oldVehicle.besitzer !== besitzer) changes.push(`Besitzer: ${oldVehicle.besitzer || '-'} → ${besitzer || '-'}`);
-            if (oldVehicle.lastService !== lastService) changes.push(`Service: ${oldVehicle.lastService || '-'} → ${lastService || '-'}`);
+            if (oldVehicle.kilometerstand !== kilometerstand) changes.push(`Km: ${oldVehicle.kilometerstand || '-'} → ${kilometerstand || '-'}`);
+            if (oldVehicle.lastServiceKm !== lastServiceKm) changes.push(`Service-Km: ${oldVehicle.lastServiceKm || '-'} → ${lastServiceKm || '-'}`);
             if (Boolean(oldVehicle.needsService) !== Boolean(needsService)) changes.push(`Service benötigt: ${oldVehicle.needsService ? 'Ja' : 'Nein'} → ${needsService ? 'Ja' : 'Nein'}`);
             if (oldVehicle.lastTank !== lastTank) changes.push(`Tankung: ${oldVehicle.lastTank || '-'} → ${lastTank || '-'}`);
+            if (oldVehicle.lastTankTime !== lastTankTime) changes.push(`Tank-Zeit: ${oldVehicle.lastTankTime || '-'} → ${lastTankTime || '-'}`);
             if (Boolean(oldVehicle.needsReparaturkit) !== Boolean(needsReparaturkit)) changes.push(`Reparaturkit: ${oldVehicle.needsReparaturkit ? 'benötigt' : 'OK'} → ${needsReparaturkit ? 'benötigt' : 'OK'}`);
         }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Car, Fuel, Wrench, AlertTriangle, Plus, Save, Trash2, Edit2, X, Check, Calendar, User } from 'lucide-react';
+import { Car, Fuel, Wrench, AlertTriangle, Plus, Save, Trash2, Edit2, X, Check, Calendar, User, Gauge, Clock } from 'lucide-react';
 
 export default function FuhrparkPage({ user }) {
     const isAdmin = user?.role === 'Administrator';
@@ -14,9 +14,11 @@ export default function FuhrparkPage({ user }) {
         kennzeichen: '',
         fahrzeugtyp: '',
         besitzer: '',
-        lastService: '',
+        kilometerstand: '',
+        lastServiceKm: '',
         needsService: false,
         lastTank: '',
+        lastTankTime: '',
         needsReparaturkit: false,
         notes: ''
     });
@@ -50,7 +52,7 @@ export default function FuhrparkPage({ user }) {
             if (res.ok) {
                 const added = await res.json();
                 setVehicles([...vehicles, added]);
-                setNewVehicle({ kennzeichen: '', fahrzeugtyp: '', besitzer: '', lastService: '', needsService: false, lastTank: '', needsReparaturkit: false, notes: '' });
+                setNewVehicle({ kennzeichen: '', fahrzeugtyp: '', besitzer: '', kilometerstand: '', lastServiceKm: '', needsService: false, lastTank: '', lastTankTime: '', needsReparaturkit: false, notes: '' });
                 setShowAddForm(false);
             }
         } catch (err) {
@@ -97,9 +99,20 @@ export default function FuhrparkPage({ user }) {
         await handleUpdateVehicle(updated);
     };
 
-    const setTankToday = async (vehicle) => {
-        const today = new Date().toISOString().split('T')[0];
-        const updated = { ...vehicle, lastTank: today };
+    const setTankNow = async (vehicle) => {
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const time = now.toTimeString().slice(0, 5);
+        const updated = { ...vehicle, lastTank: today, lastTankTime: time };
+        await handleUpdateVehicle(updated);
+    };
+
+    const markServiceDone = async (vehicle) => {
+        const updated = {
+            ...vehicle,
+            lastServiceKm: vehicle.kilometerstand || vehicle.lastServiceKm,
+            needsService: false
+        };
         await handleUpdateVehicle(updated);
     };
 
@@ -111,6 +124,14 @@ export default function FuhrparkPage({ user }) {
     const cancelEditing = () => {
         setEditingId(null);
         setEditingVehicle(null);
+    };
+
+    // Calculate km since last service
+    const getKmSinceService = (vehicle) => {
+        const current = parseInt(vehicle.kilometerstand) || 0;
+        const lastService = parseInt(vehicle.lastServiceKm) || 0;
+        if (current === 0 || lastService === 0) return null;
+        return current - lastService;
     };
 
     if (!isFuhrpark) {
@@ -173,12 +194,23 @@ export default function FuhrparkPage({ user }) {
                             className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-cyan-500 outline-none"
                         />
                         <div className="flex items-center gap-2">
+                            <Gauge size={18} className="text-blue-400" />
                             <input
-                                type="date"
-                                placeholder="Letzter Service"
-                                value={newVehicle.lastService}
-                                onChange={(e) => setNewVehicle({ ...newVehicle, lastService: e.target.value })}
-                                className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none flex-1"
+                                type="number"
+                                placeholder="Kilometerstand"
+                                value={newVehicle.kilometerstand}
+                                onChange={(e) => setNewVehicle({ ...newVehicle, kilometerstand: e.target.value })}
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-cyan-500 outline-none flex-1"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Wrench size={18} className="text-amber-400" />
+                            <input
+                                type="number"
+                                placeholder="Letzter Service (km)"
+                                value={newVehicle.lastServiceKm}
+                                onChange={(e) => setNewVehicle({ ...newVehicle, lastServiceKm: e.target.value })}
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-cyan-500 outline-none flex-1"
                             />
                         </div>
                         <label className="flex items-center gap-2 text-slate-300">
@@ -198,13 +230,26 @@ export default function FuhrparkPage({ user }) {
                                 onChange={(e) => setNewVehicle({ ...newVehicle, lastTank: e.target.value })}
                                 className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none flex-1"
                             />
+                            <input
+                                type="time"
+                                value={newVehicle.lastTankTime}
+                                onChange={(e) => setNewVehicle({ ...newVehicle, lastTankTime: e.target.value })}
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none w-28"
+                            />
                             <button
                                 type="button"
-                                onClick={() => setNewVehicle({ ...newVehicle, lastTank: new Date().toISOString().split('T')[0] })}
+                                onClick={() => {
+                                    const now = new Date();
+                                    setNewVehicle({
+                                        ...newVehicle,
+                                        lastTank: now.toISOString().split('T')[0],
+                                        lastTankTime: now.toTimeString().slice(0, 5)
+                                    });
+                                }}
                                 className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-                                title="Heute setzen"
+                                title="Jetzt setzen"
                             >
-                                <Calendar size={18} />
+                                <Clock size={18} />
                             </button>
                         </div>
                         <label className="flex items-center gap-2 text-slate-300">
@@ -221,7 +266,7 @@ export default function FuhrparkPage({ user }) {
                             placeholder="Notizen"
                             value={newVehicle.notes}
                             onChange={(e) => setNewVehicle({ ...newVehicle, notes: e.target.value })}
-                            className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-cyan-500 outline-none md:col-span-2"
+                            className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-cyan-500 outline-none"
                         />
                     </div>
                     <div className="flex gap-2 mt-4">
@@ -269,12 +314,26 @@ export default function FuhrparkPage({ user }) {
                             onChange={(e) => setEditingVehicle({ ...editingVehicle, besitzer: e.target.value })}
                             className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-cyan-500 outline-none"
                         />
-                        <input
-                            type="date"
-                            value={editingVehicle.lastService || ''}
-                            onChange={(e) => setEditingVehicle({ ...editingVehicle, lastService: e.target.value })}
-                            className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none"
-                        />
+                        <div className="flex items-center gap-2">
+                            <Gauge size={18} className="text-blue-400" />
+                            <input
+                                type="number"
+                                placeholder="Kilometerstand"
+                                value={editingVehicle.kilometerstand || ''}
+                                onChange={(e) => setEditingVehicle({ ...editingVehicle, kilometerstand: e.target.value })}
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-cyan-500 outline-none flex-1"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Wrench size={18} className="text-amber-400" />
+                            <input
+                                type="number"
+                                placeholder="Letzter Service (km)"
+                                value={editingVehicle.lastServiceKm || ''}
+                                onChange={(e) => setEditingVehicle({ ...editingVehicle, lastServiceKm: e.target.value })}
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-cyan-500 outline-none flex-1"
+                            />
+                        </div>
                         <label className="flex items-center gap-2 text-slate-300">
                             <input
                                 type="checkbox"
@@ -291,13 +350,26 @@ export default function FuhrparkPage({ user }) {
                                 onChange={(e) => setEditingVehicle({ ...editingVehicle, lastTank: e.target.value })}
                                 className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none flex-1"
                             />
+                            <input
+                                type="time"
+                                value={editingVehicle.lastTankTime || ''}
+                                onChange={(e) => setEditingVehicle({ ...editingVehicle, lastTankTime: e.target.value })}
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none w-28"
+                            />
                             <button
                                 type="button"
-                                onClick={() => setEditingVehicle({ ...editingVehicle, lastTank: new Date().toISOString().split('T')[0] })}
+                                onClick={() => {
+                                    const now = new Date();
+                                    setEditingVehicle({
+                                        ...editingVehicle,
+                                        lastTank: now.toISOString().split('T')[0],
+                                        lastTankTime: now.toTimeString().slice(0, 5)
+                                    });
+                                }}
                                 className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-                                title="Heute setzen"
+                                title="Jetzt setzen"
                             >
-                                <Calendar size={18} />
+                                <Clock size={18} />
                             </button>
                         </div>
                         <label className="flex items-center gap-2 text-slate-300">
@@ -338,13 +410,13 @@ export default function FuhrparkPage({ user }) {
 
             {/* Vehicle List */}
             <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl overflow-hidden overflow-x-auto">
-                <table className="w-full min-w-[900px]">
+                <table className="w-full min-w-[1000px]">
                     <thead className="bg-slate-900/60">
                         <tr className="text-left text-slate-400 text-sm uppercase">
                             <th className="p-4">Kennzeichen</th>
                             <th className="p-4">Typ</th>
                             <th className="p-4">Besitzer</th>
-                            <th className="p-4">Service</th>
+                            <th className="p-4">Tacho / Service</th>
                             <th className="p-4">Tankung</th>
                             <th className="p-4 text-center">Rep.Kit</th>
                             <th className="p-4">Notizen</th>
@@ -359,82 +431,112 @@ export default function FuhrparkPage({ user }) {
                                 </td>
                             </tr>
                         ) : (
-                            vehicles.map((vehicle) => (
-                                <tr key={vehicle.id} className="hover:bg-slate-800/40 transition-colors">
-                                    <td className="p-4">
-                                        <span className="font-mono font-semibold text-white">{vehicle.kennzeichen}</span>
-                                    </td>
-                                    <td className="p-4 text-slate-300">{vehicle.fahrzeugtyp || '-'}</td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2 text-slate-300">
-                                            <User size={14} className="text-blue-400" />
-                                            {vehicle.besitzer || '-'}
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2">
+                            vehicles.map((vehicle) => {
+                                const kmSinceService = getKmSinceService(vehicle);
+                                return (
+                                    <tr key={vehicle.id} className="hover:bg-slate-800/40 transition-colors">
+                                        <td className="p-4">
+                                            <span className="font-mono font-semibold text-white">{vehicle.kennzeichen}</span>
+                                        </td>
+                                        <td className="p-4 text-slate-300">{vehicle.fahrzeugtyp || '-'}</td>
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-2 text-slate-300">
+                                                <User size={14} className="text-blue-400" />
+                                                {vehicle.besitzer || '-'}
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <Gauge size={14} className="text-blue-400" />
+                                                    <span className="text-white font-mono">{vehicle.kilometerstand ? `${Number(vehicle.kilometerstand).toLocaleString('de-DE')} km` : '-'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => toggleNeedsService(vehicle)}
+                                                        className={`p-1 rounded transition-colors ${vehicle.needsService
+                                                                ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                                                                : 'bg-slate-700/50 text-slate-500 hover:bg-slate-700'
+                                                            }`}
+                                                        title={vehicle.needsService ? 'Service benötigt!' : 'Service OK'}
+                                                    >
+                                                        <Wrench size={12} />
+                                                    </button>
+                                                    <span className="text-xs text-slate-500">
+                                                        {vehicle.lastServiceKm ? `@ ${Number(vehicle.lastServiceKm).toLocaleString('de-DE')} km` : 'Kein Service'}
+                                                        {kmSinceService !== null && kmSinceService > 0 && (
+                                                            <span className={`ml-1 ${kmSinceService > 10000 ? 'text-amber-400' : 'text-slate-400'}`}>
+                                                                (+{kmSinceService.toLocaleString('de-DE')})
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                    {vehicle.needsService && (
+                                                        <button
+                                                            onClick={() => markServiceDone(vehicle)}
+                                                            className="text-xs px-2 py-0.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded transition-colors"
+                                                            title="Service als erledigt markieren"
+                                                        >
+                                                            ✓
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setTankNow(vehicle)}
+                                                    className="p-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded-lg transition-colors"
+                                                    title="Tankung jetzt setzen"
+                                                >
+                                                    <Fuel size={14} />
+                                                </button>
+                                                <div className="flex flex-col">
+                                                    <span className="text-slate-300 text-sm">{vehicle.lastTank || '-'}</span>
+                                                    {vehicle.lastTankTime && (
+                                                        <span className="text-xs text-slate-500">{vehicle.lastTankTime} Uhr</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-center">
                                             <button
-                                                onClick={() => toggleNeedsService(vehicle)}
-                                                className={`p-1.5 rounded-lg transition-colors ${vehicle.needsService
-                                                        ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                                                onClick={() => toggleReparaturkit(vehicle)}
+                                                className={`p-2 rounded-lg transition-colors ${vehicle.needsReparaturkit
+                                                        ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
                                                         : 'bg-slate-700/50 text-slate-500 hover:bg-slate-700'
                                                     }`}
-                                                title={vehicle.needsService ? 'Service benötigt!' : 'Service OK'}
+                                                title={vehicle.needsReparaturkit ? 'Reparaturkit benötigt!' : 'Reparaturkit OK'}
                                             >
-                                                <Wrench size={14} />
+                                                {vehicle.needsReparaturkit ? (
+                                                    <AlertTriangle size={18} />
+                                                ) : (
+                                                    <Check size={18} />
+                                                )}
                                             </button>
-                                            <span className="text-slate-300 text-sm">{vehicle.lastService || '-'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => setTankToday(vehicle)}
-                                                className="p-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded-lg transition-colors"
-                                                title="Tankung auf heute setzen"
-                                            >
-                                                <Fuel size={14} />
-                                            </button>
-                                            <span className="text-slate-300 text-sm">{vehicle.lastTank || '-'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        <button
-                                            onClick={() => toggleReparaturkit(vehicle)}
-                                            className={`p-2 rounded-lg transition-colors ${vehicle.needsReparaturkit
-                                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                                    : 'bg-slate-700/50 text-slate-500 hover:bg-slate-700'
-                                                }`}
-                                            title={vehicle.needsReparaturkit ? 'Reparaturkit benötigt!' : 'Reparaturkit OK'}
-                                        >
-                                            {vehicle.needsReparaturkit ? (
-                                                <AlertTriangle size={18} />
-                                            ) : (
-                                                <Check size={18} />
-                                            )}
-                                        </button>
-                                    </td>
-                                    <td className="p-4 text-slate-400 text-sm max-w-[150px] truncate">{vehicle.notes || '-'}</td>
-                                    <td className="p-4">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <button
-                                                onClick={() => startEditing(vehicle)}
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                                                title="Bearbeiten"
-                                            >
-                                                <Edit2 size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteVehicle(vehicle.id)}
-                                                className="p-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg transition-colors"
-                                                title="Löschen"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
+                                        </td>
+                                        <td className="p-4 text-slate-400 text-sm max-w-[150px] truncate">{vehicle.notes || '-'}</td>
+                                        <td className="p-4">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => startEditing(vehicle)}
+                                                    className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                                                    title="Bearbeiten"
+                                                >
+                                                    <Edit2 size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteVehicle(vehicle.id)}
+                                                    className="p-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg transition-colors"
+                                                    title="Löschen"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>
