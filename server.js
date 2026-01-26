@@ -204,7 +204,7 @@ const initNewTables = async () => {
     // Developer Logs
     await db.run(`CREATE TABLE IF NOT EXISTS developer_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, category TEXT, message TEXT, details TEXT)`);
     // Fuhrpark (Fleet Management)
-    await db.run(`CREATE TABLE IF NOT EXISTS fuhrpark (id INTEGER PRIMARY KEY AUTOINCREMENT, kennzeichen TEXT UNIQUE, fahrzeugtyp TEXT, lastService TEXT, lastTank TEXT, needsReperkit INTEGER DEFAULT 0, notes TEXT)`);
+    await db.run(`CREATE TABLE IF NOT EXISTS fuhrpark (id INTEGER PRIMARY KEY AUTOINCREMENT, kennzeichen TEXT UNIQUE, fahrzeugtyp TEXT, besitzer TEXT, lastService TEXT, needsService INTEGER DEFAULT 0, lastTank TEXT, needsReparaturkit INTEGER DEFAULT 0, notes TEXT)`);
 
     // Migrations
     try {
@@ -219,6 +219,21 @@ const initNewTables = async () => {
         const pricesInfo = await db.all("PRAGMA table_info(prices)");
         if (!pricesInfo.some(col => col.name === 'noteVK')) await db.run("ALTER TABLE prices ADD COLUMN noteVK TEXT DEFAULT ''");
     } catch { /* Column already exists */ }
+
+    // Fuhrpark migrations
+    try {
+        const fuhrparkInfo = await db.all("PRAGMA table_info(fuhrpark)");
+        if (fuhrparkInfo.length > 0) {
+            if (!fuhrparkInfo.some(col => col.name === 'besitzer')) await db.run("ALTER TABLE fuhrpark ADD COLUMN besitzer TEXT DEFAULT ''");
+            if (!fuhrparkInfo.some(col => col.name === 'needsService')) await db.run("ALTER TABLE fuhrpark ADD COLUMN needsService INTEGER DEFAULT 0");
+            if (!fuhrparkInfo.some(col => col.name === 'needsReparaturkit')) await db.run("ALTER TABLE fuhrpark ADD COLUMN needsReparaturkit INTEGER DEFAULT 0");
+            // Migrate old column name if exists
+            if (fuhrparkInfo.some(col => col.name === 'needsReperkit') && !fuhrparkInfo.some(col => col.name === 'needsReparaturkit')) {
+                await db.run("ALTER TABLE fuhrpark ADD COLUMN needsReparaturkit INTEGER DEFAULT 0");
+                await db.run("UPDATE fuhrpark SET needsReparaturkit = needsReperkit");
+            }
+        }
+    } catch { /* Columns already exist */ }
 
     // Seed Data checks (implied)
 };

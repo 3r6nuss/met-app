@@ -27,17 +27,24 @@ router.get('/fuhrpark', isFuhrparkOrAdmin, async (req, res) => {
 // POST new vehicle
 router.post('/fuhrpark', isFuhrparkOrAdmin, async (req, res) => {
     try {
-        const { kennzeichen, fahrzeugtyp, lastService, lastTank, needsReperkit, notes } = req.body;
+        const { kennzeichen, fahrzeugtyp, besitzer, lastService, needsService, lastTank, needsReparaturkit, notes } = req.body;
         const db = await getDb();
 
         const result = await db.run(
-            'INSERT INTO fuhrpark (kennzeichen, fahrzeugtyp, lastService, lastTank, needsReperkit, notes) VALUES (?, ?, ?, ?, ?, ?)',
-            kennzeichen, fahrzeugtyp || '', lastService || '', lastTank || '', needsReperkit ? 1 : 0, notes || ''
+            'INSERT INTO fuhrpark (kennzeichen, fahrzeugtyp, besitzer, lastService, needsService, lastTank, needsReparaturkit, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            kennzeichen, fahrzeugtyp || '', besitzer || '', lastService || '', needsService ? 1 : 0, lastTank || '', needsReparaturkit ? 1 : 0, notes || ''
         );
 
         const newVehicle = await db.get('SELECT * FROM fuhrpark WHERE id = ?', result.lastID);
 
-        await serverLog(LogCategory.CONTENT, `Fahrzeug hinzugefügt: ${kennzeichen}`, { vehicle: newVehicle, addedBy: req.user?.username });
+        await serverLog(LogCategory.CONTENT, `Fuhrpark: Fahrzeug hinzugefügt - ${kennzeichen}`, {
+            vehicle: newVehicle,
+            addedBy: req.user?.username
+        });
+
+        // Broadcast update to all clients
+        const broadcastUpdate = req.app.get('broadcastUpdate');
+        if (broadcastUpdate) broadcastUpdate({ type: 'UPDATE' });
 
         res.json(newVehicle);
     } catch (err) {
@@ -50,15 +57,37 @@ router.post('/fuhrpark', isFuhrparkOrAdmin, async (req, res) => {
 router.put('/fuhrpark/:id', isFuhrparkOrAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const { kennzeichen, fahrzeugtyp, lastService, lastTank, needsReperkit, notes } = req.body;
+        const { kennzeichen, fahrzeugtyp, besitzer, lastService, needsService, lastTank, needsReparaturkit, notes } = req.body;
         const db = await getDb();
 
+        // Get old vehicle for diff logging
+        const oldVehicle = await db.get('SELECT * FROM fuhrpark WHERE id = ?', id);
+
         await db.run(
-            'UPDATE fuhrpark SET kennzeichen = ?, fahrzeugtyp = ?, lastService = ?, lastTank = ?, needsReperkit = ?, notes = ? WHERE id = ?',
-            kennzeichen, fahrzeugtyp || '', lastService || '', lastTank || '', needsReperkit ? 1 : 0, notes || '', id
+            'UPDATE fuhrpark SET kennzeichen = ?, fahrzeugtyp = ?, besitzer = ?, lastService = ?, needsService = ?, lastTank = ?, needsReparaturkit = ?, notes = ? WHERE id = ?',
+            kennzeichen, fahrzeugtyp || '', besitzer || '', lastService || '', needsService ? 1 : 0, lastTank || '', needsReparaturkit ? 1 : 0, notes || '', id
         );
 
-        await serverLog(LogCategory.CONTENT, `Fahrzeug aktualisiert: ${kennzeichen}`, { id, updatedBy: req.user?.username });
+        // Build changes log
+        const changes = [];
+        if (oldVehicle) {
+            if (oldVehicle.kennzeichen !== kennzeichen) changes.push(`Kennzeichen: ${oldVehicle.kennzeichen} → ${kennzeichen}`);
+            if (oldVehicle.besitzer !== besitzer) changes.push(`Besitzer: ${oldVehicle.besitzer || '-'} → ${besitzer || '-'}`);
+            if (oldVehicle.lastService !== lastService) changes.push(`Service: ${oldVehicle.lastService || '-'} → ${lastService || '-'}`);
+            if (Boolean(oldVehicle.needsService) !== Boolean(needsService)) changes.push(`Service benötigt: ${oldVehicle.needsService ? 'Ja' : 'Nein'} → ${needsService ? 'Ja' : 'Nein'}`);
+            if (oldVehicle.lastTank !== lastTank) changes.push(`Tankung: ${oldVehicle.lastTank || '-'} → ${lastTank || '-'}`);
+            if (Boolean(oldVehicle.needsReparaturkit) !== Boolean(needsReparaturkit)) changes.push(`Reparaturkit: ${oldVehicle.needsReparaturkit ? 'benötigt' : 'OK'} → ${needsReparaturkit ? 'benötigt' : 'OK'}`);
+        }
+
+        await serverLog(LogCategory.CONTENT, `Fuhrpark: Fahrzeug aktualisiert - ${kennzeichen}`, {
+            id,
+            changes: changes.length > 0 ? changes : ['Keine wesentlichen Änderungen'],
+            updatedBy: req.user?.username
+        });
+
+        // Broadcast update to all clients
+        const broadcastUpdate = req.app.get('broadcastUpdate');
+        if (broadcastUpdate) broadcastUpdate({ type: 'UPDATE' });
 
         res.json({ success: true });
     } catch (err) {
@@ -76,7 +105,15 @@ router.delete('/fuhrpark/:id', isFuhrparkOrAdmin, async (req, res) => {
         const vehicle = await db.get('SELECT * FROM fuhrpark WHERE id = ?', id);
         await db.run('DELETE FROM fuhrpark WHERE id = ?', id);
 
-        await serverLog(LogCategory.CONTENT, `Fahrzeug gelöscht: ${vehicle?.kennzeichen}`, { id, deletedBy: req.user?.username });
+        await serverLog(LogCategory.CONTENT, `Fuhrpark: Fahrzeug gelöscht - ${vehicle?.kennzeichen}`, {
+            id,
+            vehicle,
+            deletedBy: req.user?.username
+        });
+
+        // Broadcast update to all clients
+        const broadcastUpdate = req.app.get('broadcastUpdate');
+        if (broadcastUpdate) broadcastUpdate({ type: 'UPDATE' });
 
         res.json({ success: true });
     } catch (err) {
