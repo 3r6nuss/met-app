@@ -16,6 +16,7 @@ import transactionRoutes from './src/routes/transactionRoutes.js';
 import accountingRoutes from './src/routes/accountingRoutes.js';
 import adminRoutes from './src/routes/adminRoutes.js';
 import devLogsRoutes from './src/routes/devLogsRoutes.js';
+import fuhrparkRoutes from './src/routes/fuhrparkRoutes.js';
 
 // Import Middleware
 import { logger } from './src/middleware/logger.js';
@@ -151,6 +152,7 @@ app.use('/api', accountingRoutes);
 app.use('/api', accountingRoutes);
 app.use('/api', adminRoutes);
 app.use('/api/dev-logs', devLogsRoutes);
+app.use('/api', fuhrparkRoutes);
 
 app.get('/api/user', (req, res) => {
     if (req.isAuthenticated()) {
@@ -201,6 +203,8 @@ const initNewTables = async () => {
     await db.run(`CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY AUTOINCREMENT, item_name TEXT, quantity INTEGER, requester TEXT, status TEXT DEFAULT 'open', timestamp TEXT, note TEXT)`);
     // Developer Logs
     await db.run(`CREATE TABLE IF NOT EXISTS developer_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, category TEXT, message TEXT, details TEXT)`);
+    // Fuhrpark (Fleet Management)
+    await db.run(`CREATE TABLE IF NOT EXISTS fuhrpark (id INTEGER PRIMARY KEY AUTOINCREMENT, kennzeichen TEXT UNIQUE, fahrzeugtyp TEXT, lastService TEXT, lastTank TEXT, needsReperkit INTEGER DEFAULT 0, notes TEXT)`);
 
     // Migrations
     try {

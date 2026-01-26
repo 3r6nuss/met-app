@@ -44,6 +44,7 @@ import MarketingPage from './pages/MarketingPage';
 import BookingHub from './pages/BookingHub';
 import ProtocolsHub from './pages/ProtocolsHub';
 import SonstigesHub from './pages/SonstigesHub';
+import FuhrparkPage from './pages/FuhrparkPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 import { api } from './services/api';
@@ -698,6 +699,7 @@ function App() {
   const isBuchhaltung = user.role === 'Buchhaltung' || isAdmin;
   const isLager = (user?.isLagerist === 1 || user?.isLagerist === true) || user.role === 'Lager' || isBuchhaltung;
   const isHaendler = (user?.isHaendler === 1 || user?.isHaendler === true) || user?.role === 'Händler' || isBuchhaltung;
+  const isFuhrpark = user.role === 'Fuhrparkmanager' || isAdmin;
   const isPending = user.role === 'Pending';
 
   if (isPending) {
@@ -926,6 +928,11 @@ function App() {
               <Route path="/sonstiges/hausordnung" element={<HausordnungPage user={user} />} />
               <Route path="/sonstiges/beginner-guide" element={<BeginnerGuidePage user={user} />} />
             </>
+          )}
+
+          {/* Fuhrpark Route - Fuhrparkmanager & Admin */}
+          {isFuhrpark && (
+            <Route path="/sonstiges/fuhrpark" element={<FuhrparkPage user={user} />} />
           )}
 
           {/* System Routes */}

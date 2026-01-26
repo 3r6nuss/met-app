@@ -91,6 +91,7 @@ export default function UserManagement({ employees = [] }) {
                                         <option value="Benutzer">Benutzer</option>
                                         <option value="Händler">Händler</option>
                                         <option value="Lager">Lager</option>
+                                        <option value="Fuhrparkmanager">Fuhrparkmanager</option>
                                         <option value="Buchhaltung">Buchhaltung</option>
                                         <option value="Administrator">Administrator</option>
                                     </select>

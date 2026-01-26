@@ -26,6 +26,7 @@ export const TRANSACTION_STATUS = {
 export const USER_ROLES = {
     ADMINISTRATOR: 'Administrator',
     BUCHHALTUNG: 'Buchhaltung',
+    FUHRPARKMANAGER: 'Fuhrparkmanager',
     LAGER: 'Lager',
     HAENDLER: 'Händler',
     PENDING: 'Pending'
