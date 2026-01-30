@@ -45,6 +45,7 @@ import BookingHub from './pages/BookingHub';
 import ProtocolsHub from './pages/ProtocolsHub';
 import SonstigesHub from './pages/SonstigesHub';
 import FuhrparkPage from './pages/FuhrparkPage';
+import DiscordIntegrationPage from './pages/protocols/DiscordIntegrationPage';
 
 import CreateOrderForm from './components/CreateOrderForm';
 import { api } from './services/api';
@@ -903,6 +904,11 @@ function App() {
               <Route path="/protokolle/profitabilitaet" element={<ProductProfitability logs={transactionLogs} prices={prices} inventory={inventory} />} />
             </>
           )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
+
+          {/* Discord Integration - Super Admin Only */}
+          {['823276402320998450', '690510884639866960'].includes(user?.discordId) && (
+            <Route path="/protokolle/discord" element={<DiscordIntegrationPage />} />
+          )}
 
           <Route path="/protokolle/monthly" element={<Navigate to="/protokolle/period" replace />} />
 

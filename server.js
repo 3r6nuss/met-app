@@ -17,6 +17,7 @@ import accountingRoutes from './src/routes/accountingRoutes.js';
 import adminRoutes from './src/routes/adminRoutes.js';
 import devLogsRoutes from './src/routes/devLogsRoutes.js';
 import fuhrparkRoutes from './src/routes/fuhrparkRoutes.js';
+import discordIntegrationRoutes from './src/routes/discordIntegrationRoutes.js';
 
 // Import Middleware
 import { logger } from './src/middleware/logger.js';
@@ -153,6 +154,7 @@ app.use('/api', accountingRoutes);
 app.use('/api', adminRoutes);
 app.use('/api/dev-logs', devLogsRoutes);
 app.use('/api', fuhrparkRoutes);
+app.use('/api/discord', discordIntegrationRoutes);
 
 app.get('/api/user', (req, res) => {
     if (req.isAuthenticated()) {
@@ -261,9 +263,21 @@ initNewTables().catch(console.error);
 
 // Only start server if not running in test mode
 if (process.env.NODE_ENV !== 'test') {
-    server.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, '0.0.0.0', async () => {
         console.log(`Server running on http://0.0.0.0:${PORT}`);
         console.log('Discord Callback URL:', process.env.DISCORD_CALLBACK_URL);
+
+        // Auto-start Discord Bot if configured
+        if (process.env.DISCORD_BOT_TOKEN) {
+            try {
+                const { getDiscordBot } = await import('./src/services/discordBot.js');
+                const bot = getDiscordBot();
+                await bot.start();
+                console.log('[Server] Discord Bot auto-started');
+            } catch (error) {
+                console.error('[Server] Failed to auto-start Discord Bot:', error.message);
+            }
+        }
     });
 }
 

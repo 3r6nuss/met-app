@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
     FileText, BookOpen, Users, TrendingUp, Calendar,
-    BarChart3, PieChart, Package, Clock, Wallet, ArrowRight
+    BarChart3, PieChart, Package, Clock, Wallet, ArrowRight, Bot
 } from 'lucide-react';
 
 export default function ProtocolsHub({ user }) {
@@ -55,6 +55,7 @@ export default function ProtocolsHub({ user }) {
             title: 'Admin',
             color: 'red',
             cards: [
+                { to: '/protokolle/discord', icon: Bot, title: 'Discord Bot', desc: 'FiveM Log-Abgleich' },
                 { to: '/admin/backup', icon: FileText, title: 'Backup', desc: 'Datensicherung' },
                 { to: '/admin/performance', icon: BarChart3, title: 'Performance', desc: 'System-Performance' },
             ]

@@ -91,6 +91,37 @@ export async function getDb() {
         CREATE TABLE IF NOT EXISTS violations (id INTEGER PRIMARY KEY AUTOINCREMENT, personnel_id INTEGER, date TEXT, violation TEXT, remark TEXT, percentage INTEGER, FOREIGN KEY(personnel_id) REFERENCES personnel(id) ON DELETE CASCADE);
         CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, user_id TEXT, username TEXT, action TEXT, details TEXT, debug_log TEXT DEFAULT NULL);
         CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY AUTOINCREMENT, item_name TEXT, quantity INTEGER, requester TEXT, status TEXT DEFAULT 'open', timestamp TEXT, note TEXT);
+
+        -- Discord Bot Integration Tables
+        CREATE TABLE IF NOT EXISTS discord_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            discord_message_id TEXT UNIQUE,
+            channel_id TEXT,
+            raw_content TEXT,
+            parsed_type TEXT,
+            employee_name TEXT,
+            customer_name TEXT,
+            amount REAL,
+            reason TEXT,
+            log_timestamp TEXT,
+            matched_log_id TEXT,
+            match_status TEXT DEFAULT 'pending',
+            discrepancy_type TEXT,
+            discrepancy_details TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS discrepancy_resolutions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            discord_log_id INTEGER,
+            resolved_by TEXT,
+            resolution_type TEXT,
+            old_value TEXT,
+            new_value TEXT,
+            note TEXT,
+            resolved_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(discord_log_id) REFERENCES discord_logs(id)
+        );
     `);
 
     // Migration: Add isHaendler column if it doesn't exist
