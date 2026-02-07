@@ -1,10 +1,16 @@
 import React from 'react';
-import { LogIn } from 'lucide-react';
+import { LogIn, Code } from 'lucide-react';
 
 export default function Login() {
     const handleLogin = () => {
         window.location.href = '/auth/discord';
     };
+
+    const handleDevLogin = () => {
+        window.location.href = '/auth/dev-login';
+    };
+
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
@@ -19,7 +25,18 @@ export default function Login() {
                     <LogIn className="w-5 h-5" />
                     Mit Discord anmelden
                 </button>
+
+                {isLocalhost && (
+                    <button
+                        onClick={handleDevLogin}
+                        className="w-full mt-4 flex items-center justify-center gap-3 bg-amber-600 hover:bg-amber-500 text-white font-medium py-3 px-6 rounded-xl transition-all"
+                    >
+                        <Code className="w-5 h-5" />
+                        Dev Login (Super Admin)
+                    </button>
+                )}
             </div>
         </div>
     );
 }
+

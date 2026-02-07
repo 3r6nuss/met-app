@@ -229,10 +229,194 @@ router.post('/discrepancy/:id/resolve', isBuchhaltungOrAdmin, async (req, res) =
     }
 });
 
+// ============================================
+// USER CONFIRMATION ENDPOINTS
+// ============================================
+
 /**
- * POST /api/discord/match/:id
- * Re-run matching for a specific Discord log
+ * GET /api/discord/my-recent-transactions
+ * Get recent transactions for the current user to match against Discord logs
  */
+router.get('/my-recent-transactions', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const db = await getDb();
+        const { employeeName } = req.user;
+
+        if (!employeeName) {
+            return res.json({ transactions: [] });
+        }
+
+        // Get transactions from the last 12 hours for this employee (increased from 2h)
+        const timeWindow = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+
+        // Get list of already matched log IDs to exclude them
+        const matchedLogs = await db.all('SELECT matched_log_id FROM discord_logs WHERE match_status = "matched" AND matched_log_id IS NOT NULL');
+        // Handle potential comma-separated IDs (though confirm uses single ID)
+        const matchedIds = new Set();
+        matchedLogs.forEach(log => {
+            if (log.matched_log_id) {
+                log.matched_log_id.split(',').forEach(id => matchedIds.add(id.trim()));
+            }
+        });
+
+        const transactions = await db.all(`
+            SELECT timestamp, type, category, itemName, quantity, price, depositor,
+                   (quantity * price) as total
+            FROM logs 
+            WHERE depositor LIKE ?
+            AND timestamp >= ?
+            AND category = 'trade'
+            ORDER BY timestamp DESC
+            LIMIT 50
+        `, `%${employeeName}%`, timeWindow);
+
+        // Filter out transactions that are already matched
+        const availableTransactions = transactions.filter(tx => !matchedIds.has(tx.timestamp));
+
+        res.json({ transactions: availableTransactions });
+    } catch (error) {
+        console.error('[DiscordRoutes] Error fetching user transactions:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * POST /api/discord/confirm/:id
+ * User confirms a Discord log matches their transaction
+ */
+router.post('/confirm/:id', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const { id } = req.params;
+        const { transactionTimestamp } = req.body;
+        const db = await getDb();
+
+        const discordLog = await db.get('SELECT * FROM discord_logs WHERE id = ?', id);
+
+        if (!discordLog) {
+            return res.status(404).json({ error: 'Discord log not found' });
+        }
+
+        // Check for price discrepancy and correct if needed
+        const metLog = await db.get('SELECT * FROM logs WHERE timestamp = ?', transactionTimestamp);
+        let resolutionNote = `User confirmed match with transaction at ${transactionTimestamp}`;
+
+        if (metLog) {
+            const metTotal = metLog.quantity * metLog.price;
+            const diff = Math.abs(metTotal - discordLog.amount);
+
+            // If difference is greater than 1 cent
+            if (diff > 0.01) {
+                console.log(`[DiscordRoutes] Discrepancy detected: MET ${metTotal} vs Discord ${discordLog.amount}`);
+
+                // Calculate new price per unit to match Discord total
+                // newPrice = discordAmount / quantity
+                const newPrice = discordLog.amount / metLog.quantity;
+
+                // Update the MET log with corrected price
+                await db.run(
+                    'UPDATE logs SET price = ? WHERE timestamp = ?',
+                    newPrice,
+                    transactionTimestamp
+                );
+
+                resolutionNote += `. Auto-corrected price from ${metLog.price} to ${newPrice} (Total: ${metTotal} -> ${discordLog.amount})`;
+                console.log(`[DiscordRoutes] Auto-corrected price to ${newPrice}`);
+
+                // Trigger broadcast update to refresh UI
+                if (req.app.get('broadcastUpdate')) {
+                    req.app.get('broadcastUpdate')({ type: 'UPDATE' });
+                }
+            }
+        }
+
+        // Update the discord log as matched
+        await db.run(`
+            UPDATE discord_logs 
+            SET match_status = 'matched',
+                matched_log_id = ?,
+                discrepancy_type = NULL,
+                discrepancy_details = ?
+            WHERE id = ?
+        `,
+            transactionTimestamp,
+            JSON.stringify({
+                confirmedBy: req.user.username,
+                confirmedAt: new Date().toISOString(),
+                method: 'user_confirmation',
+                autoCorrected: resolutionNote.includes('Auto-corrected')
+            }),
+            id
+        );
+
+        // Record the resolution
+        await db.run(`
+            INSERT INTO discrepancy_resolutions (
+                discord_log_id, resolved_by, resolution_type,
+                note, resolved_at
+            ) VALUES (?, ?, 'user_confirmed', ?, datetime('now'))
+        `,
+            id,
+            req.user.username,
+            resolutionNote
+        );
+
+        if (req.app.get('broadcastUpdate')) {
+            req.app.get('broadcastUpdate')();
+        }
+
+        res.json({ success: true, message: 'Confirmation saved' });
+    } catch (error) {
+        console.error('[DiscordRoutes] Error confirming log:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * POST /api/discord/dismiss/:id
+ * User dismisses a Discord log (not their transaction)
+ */
+router.post('/dismiss/:id', async (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const { id } = req.params;
+        const db = await getDb();
+
+        const discordLog = await db.get('SELECT * FROM discord_logs WHERE id = ?', id);
+
+        if (!discordLog) {
+            return res.status(404).json({ error: 'Discord log not found' });
+        }
+
+        // Just log that this user dismissed it, don't change status
+        // (might belong to another user with similar name)
+        await db.run(`
+            INSERT INTO discrepancy_resolutions (
+                discord_log_id, resolved_by, resolution_type,
+                note, resolved_at
+            ) VALUES (?, ?, 'user_dismissed', ?, datetime('now'))
+        `,
+            id,
+            req.user.username,
+            `${req.user.username} indicated this is not their transaction`
+        );
+
+        res.json({ success: true, message: 'Dismissal recorded' });
+    } catch (error) {
+        console.error('[DiscordRoutes] Error dismissing log:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 router.post('/match/:id', isBuchhaltungOrAdmin, async (req, res) => {
     try {
         const { id } = req.params;

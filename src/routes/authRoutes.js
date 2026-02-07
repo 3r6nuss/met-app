@@ -83,6 +83,68 @@ router.get('/discord/callback', passport.authenticate('discord', {
     res.redirect('/');
 });
 
+// DEV LOGIN - Only works on localhost, bypasses Discord OAuth
+router.get('/dev-login', async (req, res) => {
+    // Only allow on localhost
+    const host = req.get('host') || '';
+    if (!host.includes('localhost') && !host.includes('127.0.0.1')) {
+        return res.status(403).json({ error: 'Dev login only allowed on localhost' });
+    }
+
+    try {
+        const db = await getDb();
+
+        // Check if user already exists
+        const existingUser = await db.get('SELECT * FROM users WHERE discordId = ?', '823276402320998450');
+
+        let devUser;
+        if (existingUser) {
+            // Use existing user data, just ensure admin role
+            devUser = {
+                ...existingUser,
+                role: 'Administrator',
+                isHaendler: 1,
+                isLagerist: 1
+            };
+            // Update role only if needed
+            await db.run(`
+                UPDATE users SET role = ?, isHaendler = ?, isLagerist = ?
+                WHERE discordId = ?
+            `, 'Administrator', 1, 1, existingUser.discordId);
+        } else {
+            // Create new dev user
+            devUser = {
+                discordId: '823276402320998450',
+                username: 'DevAdmin',
+                discriminator: '0000',
+                avatar: null,
+                role: 'Administrator',
+                employeeName: null,
+                isHaendler: 1,
+                isLagerist: 1
+            };
+            await db.run(`
+                INSERT INTO users (discordId, username, discriminator, avatar, role, employeeName, isHaendler, isLagerist) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `, devUser.discordId, devUser.username, devUser.discriminator, devUser.avatar,
+                devUser.role, devUser.employeeName, devUser.isHaendler, devUser.isLagerist);
+        }
+
+        // Log the user in
+        req.login(devUser, (err) => {
+            if (err) {
+                console.error('Dev login error:', err);
+                return res.status(500).json({ error: 'Login failed' });
+            }
+            console.log('[Auth] Dev login successful as', devUser.username, 'employeeName:', devUser.employeeName);
+            res.redirect('/');
+        });
+    } catch (error) {
+        console.error('Dev login error:', error);
+        res.status(500).json({ error: 'Dev login failed' });
+    }
+});
+
 router.get('/logout', async (req, res, next) => {
     const username = req.user?.username;
     const userId = req.user?.discordId;

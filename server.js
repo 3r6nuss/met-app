@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { WebSocketServer } from 'ws';
 import http from 'http';
 import { getDb } from './src/db/database.js';
+import { initBroadcaster } from './src/services/broadcaster.js';
 
 // Import Routes
 import authRoutes, { setupPassport } from './src/routes/authRoutes.js';
@@ -41,6 +42,9 @@ const SERVER_START_TIME = Date.now();
 
 // Setup WebSocket Server
 const wss = new WebSocketServer({ server });
+
+// Initialize broadcaster for real-time notifications
+initBroadcaster(wss);
 
 wss.on('connection', (ws) => {
     console.log('New client connected');

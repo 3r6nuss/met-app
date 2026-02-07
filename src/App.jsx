@@ -46,6 +46,7 @@ import ProtocolsHub from './pages/ProtocolsHub';
 import SonstigesHub from './pages/SonstigesHub';
 import FuhrparkPage from './pages/FuhrparkPage';
 import DiscordIntegrationPage from './pages/protocols/DiscordIntegrationPage';
+import DiscordConfirmationModal from './components/DiscordConfirmationModal';
 
 import CreateOrderForm from './components/CreateOrderForm';
 import { api } from './services/api';
@@ -70,6 +71,10 @@ function App() {
   const [version, setVersion] = useState(null);
   const currentVersionRef = useRef(null);
   const retryCount = useRef(0);
+
+  // Discord confirmation modal state
+  const [pendingDiscordLog, setPendingDiscordLog] = useState(null);
+  const [recentTransactions, setRecentTransactions] = useState([]);
 
   const { log } = useDeveloperConsole();
 
@@ -135,6 +140,13 @@ function App() {
 
   // WebSocket Connection
   // WebSocket Connection
+  const userRef = useRef(user);
+
+  // Update user ref when user changes
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   useEffect(() => {
     let ws;
     let reconnectTimer;
@@ -175,6 +187,39 @@ function App() {
           } else if (data.type === 'RELOAD') {
             console.log("Generic Force Reload triggered");
             setShowReloadModal(true);
+          } else if (data.type === 'DISCORD_LOG' && data.data) {
+            // Check if this log is for the current user
+            const discordLog = data.data;
+            const currentUser = userRef.current;
+
+            console.log("[WS] Discord log received:", discordLog);
+            console.log("[WS] Current User:", currentUser);
+
+            // Match employee name with current user's employeeName
+            if (currentUser && currentUser.employeeName && discordLog.employeeName) {
+              const userNameLower = currentUser.employeeName.toLowerCase();
+              const logNameLower = discordLog.employeeName.toLowerCase();
+
+              console.log(`[WS] Checking match: '${logNameLower}' vs '${userNameLower}'`);
+
+              // Check if names match (fuzzy - contains check)
+              if (logNameLower.includes(userNameLower) || userNameLower.includes(logNameLower)) {
+                console.log("[WS] Discord log matches current user, showing confirmation modal");
+
+                // Fetch recent transactions for this user
+                fetch('/api/discord/my-recent-transactions', { credentials: 'include' })
+                  .then(res => res.json())
+                  .then(data => {
+                    setRecentTransactions(data.transactions || []);
+                    setPendingDiscordLog(discordLog);
+                  })
+                  .catch(err => console.error("Error fetching transactions:", err));
+              } else {
+                console.log("[WS] Name mismatch - popup not shown");
+              }
+            } else {
+              console.log("[WS] User or employeeName missing, or log name missing");
+            }
           }
         } catch (e) {
           console.error("Error parsing WS message:", e);
@@ -192,7 +237,7 @@ function App() {
 
         log('WS', 'Disconnected', { reconnectIn: delay });
 
-        retryCount.current = retryCount.current + 1;
+        retryCount.current += 1;
         reconnectTimer = setTimeout(connect, delay);
       };
 
@@ -966,6 +1011,42 @@ function App() {
             </>
           )}
         </Routes>
+
+        {/* Discord Confirmation Modal */}
+        {pendingDiscordLog && (
+          <DiscordConfirmationModal
+            discordLog={pendingDiscordLog}
+            recentTransactions={recentTransactions}
+            onConfirm={async (discordLogId, transaction) => {
+              try {
+                const res = await fetch(`/api/discord/confirm/${discordLogId}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify({ transactionTimestamp: transaction.timestamp })
+                });
+                if (res.ok) {
+                  console.log('[Discord] Confirmation saved');
+                  setPendingDiscordLog(null);
+                }
+              } catch (err) {
+                console.error('[Discord] Confirmation failed:', err);
+              }
+            }}
+            onDismiss={() => setPendingDiscordLog(null)}
+            onNotMine={async () => {
+              try {
+                await fetch(`/api/discord/dismiss/${pendingDiscordLog.id}`, {
+                  method: 'POST',
+                  credentials: 'include'
+                });
+                setPendingDiscordLog(null);
+              } catch (err) {
+                console.error('[Discord] Dismiss failed:', err);
+              }
+            }}
+          />
+        )}
       </div>
     </Router>
   );

@@ -85,7 +85,7 @@ export default function PeriodProtocol({ logs, employees: _employees = [], inven
     const filteredLogs = useMemo(() => {
         return logs.filter(log => {
             if (log.itemName === 'Korrektur Geschäftskonto' || log.msg?.includes('Korrektur Geschäftskonto')) return false;
-            // if (log.price === 0) return false; // Optional: Keep 0 price for quantity tracking?
+            if (log.price === 0) return false; // Filter out 0 price entries (Rückgabe)
 
             const logDate = new Date(log.timestamp);
             if (logDate < start || logDate > end) return false;

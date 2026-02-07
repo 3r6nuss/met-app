@@ -75,6 +75,7 @@ export default function InternalStorageProtocol({ logs, user, employees, onPayou
             ((l.category === 'internal' && l.type === 'in') ||
                 (l.itemName === 'Auszahlung' && l.category === 'internal')) &&
             l.itemName !== 'Korrektur Geschäftskonto' &&
+            l.price !== 0 && // Filter out 0 price entries (Rückgabe)
             // Filter by visibility based on mapping
             isDepositorVisible(l.depositor)
         );

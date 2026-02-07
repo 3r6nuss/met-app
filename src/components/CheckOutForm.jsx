@@ -299,8 +299,8 @@ export default function CheckOutForm({
                     )}
                 </div>
 
-                {/* Estimated Earnings Display */}
-                {showPrice && selectedId && quantity > 0 && price && (
+                {/* Estimated Earnings Display - Keep rendered even if price is 0 to prevent React/Translation DOM errors */}
+                {showPrice && selectedId && quantity > 0 && price !== '' && (
                     <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 animate-fade-in">
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-slate-400">Geschätzter Betrag:</span>

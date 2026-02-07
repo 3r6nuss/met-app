@@ -75,6 +75,19 @@ export async function matchDiscordLog(discordMessageId) {
     // For Rechnung (invoice paid) → look for 'out' transactions (selling to customer)
     const matchType = isAnkauf ? 'in' : 'out';
 
+    // Get already matched timestamps to exclude them
+    const alreadyMatched = await db.all(`
+        SELECT matched_log_id FROM discord_logs 
+        WHERE matched_log_id IS NOT NULL 
+        AND match_status = 'matched'
+    `);
+    const matchedTimestamps = new Set();
+    alreadyMatched.forEach(row => {
+        if (row.matched_log_id) {
+            row.matched_log_id.split(',').forEach(ts => matchedTimestamps.add(ts.trim()));
+        }
+    });
+
     let query = `
         SELECT * FROM logs 
         WHERE timestamp BETWEEN ? AND ?
@@ -88,7 +101,10 @@ export async function matchDiscordLog(discordMessageId) {
         params.push(`%${employee_name}%`, `%${employee_name.split(' ')[0]}%`);
     }
 
-    const candidates = await db.all(query, ...params);
+    let candidates = await db.all(query, ...params);
+
+    // Filter out already matched logs
+    candidates = candidates.filter(log => !matchedTimestamps.has(log.timestamp));
 
     if (candidates.length === 0) {
         // No matches found

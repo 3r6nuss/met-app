@@ -6,6 +6,7 @@
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { parseLogWithAI, validateParsedLog } from './geminiParser.js';
 import { getDb } from '../db/database.js';
+import { broadcastDiscordLog } from './broadcaster.js';
 
 class DiscordBotService {
     constructor() {
@@ -182,8 +183,20 @@ class DiscordBotService {
 
         console.log(`[DiscordBot] Stored log: ${parsedData.type} - ${parsedData.amount}$ by ${parsedData.employee}`);
 
-        // Trigger matching process
-        await this.triggerMatching(message.id);
+        // Get the inserted log with its ID
+        const insertedLog = await db.get(
+            'SELECT * FROM discord_logs WHERE discord_message_id = ?',
+            message.id
+        );
+
+        // Broadcast to frontend clients for confirmation popup
+        if (insertedLog) {
+            broadcastDiscordLog(insertedLog);
+            console.log(`[DiscordBot] Broadcasted log ${insertedLog.id} to clients`);
+        }
+
+        // Don't trigger automatic matching - wait for user confirmation
+        // await this.triggerMatching(message.id);
     }
 
     /**
