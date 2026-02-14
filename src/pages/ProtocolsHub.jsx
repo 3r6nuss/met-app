@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
     FileText, BookOpen, Users, TrendingUp, Calendar,
-    BarChart3, PieChart, Package, Clock, Wallet, ArrowRight, Bot
+    BarChart3, PieChart, Package, Clock, Wallet, ArrowRight, Bot, Search
 } from 'lucide-react';
 
 export default function ProtocolsHub({ user }) {
@@ -48,6 +48,7 @@ export default function ProtocolsHub({ user }) {
                 ...(isLager ? [
                     { to: '/protokolle/storage', icon: Package, title: 'Lagerprotokoll', desc: 'Lagerbewegungen' },
                 ] : []),
+                { to: '/protokolle/transaction-search', icon: Search, title: 'Transaktions-Suche', desc: 'Suche per Referenz-ID' },
             ]
         },
         // Admin

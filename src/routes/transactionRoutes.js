@@ -4,6 +4,16 @@ import { logTransaction, logAccounting, logError, serverLog, LogCategory } from 
 
 const router = express.Router();
 
+// Generate a unique 6-character alphanumeric transaction ID
+// Uses charset without ambiguous characters (0/O, 1/I/L)
+const CHARSET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function generateTransactionId() {
+    let id = '';
+    for (let i = 0; i < 6; i++) {
+        id += CHARSET[Math.floor(Math.random() * CHARSET.length)];
+    }
+    return id;
+}
 const auditLog = async (req, action, details, debugSteps = []) => {
     if (!req.user) return;
     try {
@@ -27,6 +37,9 @@ router.post('/transaction', async (req, res) => {
 
         db = await getDb();
         await db.run('BEGIN TRANSACTION');
+
+        // Use client-provided transactionId if available, otherwise generate one
+        const transactionId = transactions[0]?.transactionId || generateTransactionId();
 
         const results = [];
 
@@ -103,7 +116,8 @@ router.post('/transaction', async (req, res) => {
                 price,
                 msg: `${type === 'in' ? (category === 'trade' ? 'Gekauft' : (skipInventory ? 'Sonderbuchung' : 'Eingelagert')) : (category === 'trade' ? 'Verkauft' : 'Ausgelagert')}: ${quantity}x ${itemName} (${depositor})${warningIgnored ? ' (Warnung ignoriert)' : ''}`,
                 time: new Date().toLocaleTimeString(),
-                status: 'pending'
+                status: 'pending',
+                transaction_id: transactionId
             };
 
             let logInserted = false;
@@ -113,8 +127,8 @@ router.post('/transaction', async (req, res) => {
             while (!logInserted && retries < 5) {
                 try {
                     await db.run(
-                        'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                        currentTimestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time, logEntry.status
+                        'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status, transaction_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        currentTimestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time, logEntry.status, logEntry.transaction_id
                     );
                     logInserted = true;
                     results.push(logEntry);
@@ -152,6 +166,62 @@ router.post('/transaction', async (req, res) => {
             );
         }
 
+        // ===== AUTOMATIC DISCORD LOG MATCHING =====
+        // After a trade transaction, check if there are pending Discord logs that match
+        for (const result of results) {
+            const tx = transactions[results.indexOf(result)];
+            if (tx.category === 'trade' && tx.depositor && tx.depositor !== 'Unbekannt') {
+                try {
+                    // Find pending Discord logs that might match this transaction
+                    const pendingLogs = await db.all(`
+                        SELECT * FROM discord_logs 
+                        WHERE match_status = 'pending'
+                        AND employeeName IS NOT NULL
+                        ORDER BY createdAt DESC
+                        LIMIT 20
+                    `);
+
+                    // Check for matching logs (same employee, created in last 24 hours)
+                    const depositorLower = tx.depositor.toLowerCase();
+                    for (const discordLog of pendingLogs) {
+                        const logEmployeeLower = (discordLog.employeeName || '').toLowerCase();
+
+                        // Fuzzy name matching
+                        if (logEmployeeLower.includes(depositorLower) || depositorLower.includes(logEmployeeLower)) {
+                            console.log(`[AutoMatch] Found pending Discord log ${discordLog.id} for ${tx.depositor}`);
+
+                            // Broadcast this Discord log to trigger the confirmation popup
+                            const broadcastDiscordLog = req.app.get('broadcastDiscordLog');
+                            if (broadcastDiscordLog) {
+                                broadcastDiscordLog({
+                                    id: discordLog.id,
+                                    discordMessageId: discordLog.discordMessageId,
+                                    parsedType: discordLog.parsedType,
+                                    employeeName: discordLog.employeeName,
+                                    customerName: discordLog.customerName,
+                                    amount: discordLog.amount,
+                                    reason: discordLog.reason,
+                                    logTimestamp: discordLog.logTimestamp,
+                                    createdAt: discordLog.createdAt,
+                                    // Include the new transaction info for easy matching
+                                    suggestedTransaction: {
+                                        timestamp: result.timestamp,
+                                        itemName: result.itemName,
+                                        quantity: tx.quantity,
+                                        price: tx.price,
+                                        total: tx.quantity * tx.price
+                                    }
+                                });
+                            }
+                            break; // Only broadcast one log per transaction to avoid spam
+                        }
+                    }
+                } catch (matchError) {
+                    console.error('[AutoMatch] Error checking for pending Discord logs:', matchError);
+                }
+            }
+        }
+
         if (req.user) {
             let summary = '';
             if (transactions.length > 1) {
@@ -168,7 +238,7 @@ router.post('/transaction', async (req, res) => {
         }
 
         if (req.app.get('broadcastUpdate')) req.app.get('broadcastUpdate')();
-        res.json({ success: true, logs: results });
+        res.json({ success: true, logs: results, transactionId });
 
     } catch (error) {
         if (db) {

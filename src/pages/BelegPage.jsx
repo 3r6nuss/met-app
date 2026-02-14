@@ -5,7 +5,7 @@ export default function BelegPage({ prices = [] }) {
     // Use passed prices or fallback to initialPrices
     const availableItems = prices.length > 0 ? prices : initialPrices;
     const [isViewMode, setIsViewMode] = useState(false);
-
+    const [referenzId, setReferenzId] = useState('');
     const [rows, setRows] = useState([
         { id: 1, quantity: 1, item: '', oldPrice: 0, newPrice: 0, total: 0 }
     ]);
@@ -108,9 +108,33 @@ export default function BelegPage({ prices = [] }) {
                         </div>
                     </div>
 
-                    <h1 className="text-6xl font-black text-white drop-shadow-lg mb-8 tracking-wide uppercase">
+                    <h1 className="text-6xl font-black text-white drop-shadow-lg mb-4 tracking-wide uppercase">
                         BELEG
                     </h1>
+
+                    {/* Referenz-ID */}
+                    <div className="mb-6">
+                        {isViewMode ? (
+                            referenzId && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-violet-300 text-sm font-semibold uppercase tracking-wider">Referenz-ID:</span>
+                                    <span className="text-white font-mono font-bold text-lg tracking-wider bg-violet-500/20 border border-violet-500/30 px-3 py-1 rounded">{referenzId}</span>
+                                </div>
+                            )
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <label className="text-violet-300 text-sm font-semibold uppercase tracking-wider whitespace-nowrap">Referenz-ID:</label>
+                                <input
+                                    type="text"
+                                    value={referenzId}
+                                    onChange={(e) => setReferenzId(e.target.value.toUpperCase())}
+                                    placeholder="z.B. A7X9K"
+                                    maxLength={5}
+                                    className="bg-slate-900/60 border border-violet-500/30 rounded px-3 py-1.5 text-white font-mono font-bold text-lg tracking-wider w-32 focus:border-violet-400 focus:ring-1 focus:ring-violet-400 outline-none transition-all placeholder:text-slate-600 placeholder:font-normal placeholder:text-sm"
+                                />
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Table Section */}

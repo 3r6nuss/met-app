@@ -47,6 +47,7 @@ import SonstigesHub from './pages/SonstigesHub';
 import FuhrparkPage from './pages/FuhrparkPage';
 import DiscordIntegrationPage from './pages/protocols/DiscordIntegrationPage';
 import DiscordConfirmationModal from './components/DiscordConfirmationModal';
+import TransactionSearchProtocol from './pages/protocols/TransactionSearchProtocol';
 
 import CreateOrderForm from './components/CreateOrderForm';
 import { api } from './services/api';
@@ -75,6 +76,10 @@ function App() {
   // Discord confirmation modal state
   const [pendingDiscordLog, setPendingDiscordLog] = useState(null);
   const [recentTransactions, setRecentTransactions] = useState([]);
+
+  // Last transaction ID for copy-to-clipboard
+  const [lastTransactionId, setLastTransactionId] = useState(null);
+  const lastTxIdTimerRef = useRef(null);
 
   const { log } = useDeveloperConsole();
 
@@ -204,14 +209,34 @@ function App() {
 
               // Check if names match (fuzzy - contains check)
               if (logNameLower.includes(userNameLower) || userNameLower.includes(logNameLower)) {
-                console.log("[WS] Discord log matches current user, showing confirmation modal");
+                console.log("[WS] Discord log matches current user, checking for transactions...");
 
                 // Fetch recent transactions for this user
                 fetch('/api/discord/my-recent-transactions', { credentials: 'include' })
                   .then(res => res.json())
-                  .then(data => {
-                    setRecentTransactions(data.transactions || []);
-                    setPendingDiscordLog(discordLog);
+                  .then(txData => {
+                    let transactions = txData.transactions || [];
+
+                    // If auto-match provided a suggested transaction, add it to the list if not already present
+                    if (discordLog.suggestedTransaction) {
+                      const suggestedTs = discordLog.suggestedTransaction.timestamp;
+                      const alreadyExists = transactions.some(tx => tx.timestamp === suggestedTs);
+                      if (!alreadyExists) {
+                        // Add suggested transaction at the beginning
+                        transactions = [discordLog.suggestedTransaction, ...transactions];
+                      }
+                    }
+
+                    // ONLY show popup if there are transactions to select from
+                    // If Discord arrives first (no transactions yet), don't show popup
+                    // The auto-match will trigger it when the MET booking is created
+                    if (transactions.length > 0) {
+                      console.log(`[WS] Found ${transactions.length} transactions, showing popup`);
+                      setRecentTransactions(transactions);
+                      setPendingDiscordLog(discordLog);
+                    } else {
+                      console.log("[WS] No transactions to match - popup skipped (auto-match will handle it later)");
+                    }
                   })
                   .catch(err => console.error("Error fetching transactions:", err));
               } else {
@@ -285,7 +310,7 @@ function App() {
     api.saveLog(newLog).catch(err => console.error("Failed to save log:", err));
   };
 
-  const handleCheckIn = (idOrData, quantity, depositor, price = 0, customDate = null, _type = 'in', category = 'internal', warningIgnored = false, skipInventory = false) => {
+  const handleCheckIn = (idOrData, quantity, depositor, price = 0, customDate = null, _type = 'in', category = 'internal', warningIgnored = false, skipInventory = false, transactionId = null) => {
     let payload;
     let logDetail = null;
 
@@ -300,7 +325,8 @@ function App() {
         price: item.price,
         timestamp: item.date,
         warningIgnored: item.warningIgnored,
-        skipInventory: item.skipInventory
+        skipInventory: item.skipInventory,
+        transactionId: item.transactionId || transactionId
       }));
       // Prepare detailed log for batch
       logDetail = {
@@ -331,7 +357,8 @@ function App() {
         price,
         timestamp: customDate,
         warningIgnored,
-        skipInventory
+        skipInventory,
+        transactionId
       };
 
       logDetail = {
@@ -362,6 +389,13 @@ function App() {
             const item = inventory.find(i => i.id === idOrData);
             addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Eingelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
           }
+
+          // Set transaction ID for copy-to-clipboard
+          if (data.transactionId) {
+            setLastTransactionId(data.transactionId);
+            if (lastTxIdTimerRef.current) clearTimeout(lastTxIdTimerRef.current);
+            lastTxIdTimerRef.current = setTimeout(() => setLastTransactionId(null), 30000);
+          }
         } else {
           console.error("Transaction failed:", data.error);
           alert("Fehler bei der Transaktion: " + data.error);
@@ -375,7 +409,7 @@ function App() {
       });
   };
 
-  const handleCheckOut = (idOrData, quantity, depositor, price = 0, customDate = null, _type = 'out', category = 'internal', _warningIgnored = false, skipInventory = false) => {
+  const handleCheckOut = (idOrData, quantity, depositor, price = 0, customDate = null, _type = 'out', category = 'internal', _warningIgnored = false, skipInventory = false, transactionId = null) => {
     let payload;
     let logDetail = null;
 
@@ -389,7 +423,8 @@ function App() {
         depositor: item.depositor || 'Unbekannt',
         price: item.price,
         timestamp: item.date,
-        skipInventory: item.skipInventory
+        skipInventory: item.skipInventory,
+        transactionId: item.transactionId || transactionId
       }));
       // Prepare detailed log for batch
       logDetail = {
@@ -419,7 +454,8 @@ function App() {
         depositor: depositor || 'Unbekannt',
         price,
         timestamp: customDate,
-        skipInventory
+        skipInventory,
+        transactionId
       };
 
       logDetail = {
@@ -448,6 +484,13 @@ function App() {
           } else {
             const item = inventory.find(i => i.id === idOrData);
             addLog(`${skipInventory ? '[PROTOKOLL] ' : ''}Ausgelagert: ${quantity}x ${item.name} (${depositor || 'Unbekannt'})`);
+          }
+
+          // Set transaction ID for copy-to-clipboard
+          if (data.transactionId) {
+            setLastTransactionId(data.transactionId);
+            if (lastTxIdTimerRef.current) clearTimeout(lastTxIdTimerRef.current);
+            lastTxIdTimerRef.current = setTimeout(() => setLastTransactionId(null), 30000);
           }
         } else {
           console.error("Transaction failed:", data.error);
@@ -663,7 +706,15 @@ function App() {
           fetchData('Special Booking');
           addLog(`Sonderbuchung: ${amount}€ für ${employee} (${reason})`);
           log('TX', 'Special Booking', { employee, reason, amount });
-          alert("Sonderbuchung erfolgreich!");
+
+          // Set transaction ID for copy-to-clipboard
+          if (data.transactionId) {
+            setLastTransactionId(data.transactionId);
+            if (lastTxIdTimerRef.current) clearTimeout(lastTxIdTimerRef.current);
+            lastTxIdTimerRef.current = setTimeout(() => setLastTransactionId(null), 30000);
+          }
+
+          alert(`Sonderbuchung erfolgreich!${data.transactionId ? `\nReferenz-ID: ${data.transactionId}` : ''}`);
         } else {
           alert("Fehler: " + data.error);
         }
@@ -848,12 +899,13 @@ function App() {
                 prices={prices}
                 employeeInventory={employeeInventory}
                 onConsumeIngredients={handleConsumeIngredients}
-                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckIn(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory)}
+                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckIn(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory, transactionId)}
                 type="in"
                 title="Einlagern"
                 label="Mitarbeiter"
                 showPrice={true}
                 user={user}
+                lastTransactionId={lastTransactionId}
               />
             } />
           )}
@@ -865,12 +917,13 @@ function App() {
                 inventory={inventory}
                 employees={employees.filter(e => e.status !== 'fired')} // Only active employees
                 prices={prices}
-                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckOut(id, qty, dep, price, date, 'out', 'internal', warningIgnored, skipInventory)}
+                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckOut(id, qty, dep, price, date, 'out', 'internal', warningIgnored, skipInventory, transactionId)}
                 type="out"
                 title="Auslagern"
                 label="Mitarbeiter"
                 showPrice={isBuchhaltung}
                 user={user}
+                lastTransactionId={lastTransactionId}
               />
             } />
           )}
@@ -902,11 +955,12 @@ function App() {
                   inventory={inventory}
                   employees={employees}
                   prices={prices}
-                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckIn(id, qty, dep, price, date, 'in', 'trade', warningIgnored, skipInventory)}
+                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckIn(id, qty, dep, price, date, 'in', 'trade', warningIgnored, skipInventory, transactionId)}
                   type="in"
                   title="Einkauf (Ankauf)"
                   label="Verkäufer"
                   user={user}
+                  lastTransactionId={lastTransactionId}
                 />
               } />
               <Route path="/buchung/verkauf" element={
@@ -914,11 +968,12 @@ function App() {
                   inventory={inventory}
                   employees={employees}
                   prices={prices}
-                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckOut(id, qty, dep, price, date, 'out', 'trade', warningIgnored, skipInventory)}
+                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckOut(id, qty, dep, price, date, 'out', 'trade', warningIgnored, skipInventory, transactionId)}
                   type="out"
                   title="Verkauf (Abverkauf)"
                   label="Käufer"
                   user={user}
+                  lastTransactionId={lastTransactionId}
                 />
               } />
             </>
@@ -947,6 +1002,7 @@ function App() {
               <Route path="/protokolle/guv" element={<ProfitLossProtocol logs={transactionLogs} employees={employees} prices={prices} inventory={inventory} />} />
               <Route path="/protokolle/buchhaltung" element={<AccountingDashboard logs={transactionLogs} employees={employees} inventory={inventory} prices={prices} user={user} />} />
               <Route path="/protokolle/profitabilitaet" element={<ProductProfitability logs={transactionLogs} prices={prices} inventory={inventory} />} />
+              <Route path="/protokolle/transaction-search" element={<TransactionSearchProtocol logs={transactionLogs} />} />
             </>
           )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 
