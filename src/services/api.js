@@ -223,5 +223,102 @@ export const api = {
             credentials: 'include'
         });
         return handleResponse(res);
+    },
+
+    // Sammel-Event (Collection Competition)
+    getSammelConfig: async () => {
+        const res = await fetch(`${API_URL}/sammel-event/config`, { credentials: 'include' });
+        return handleResponse(res);
+    },
+    getSammelSettings: async () => {
+        const res = await fetch(`${API_URL}/sammel-event/settings`, { credentials: 'include' });
+        return handleResponse(res);
+    },
+    updateSammelSettings: async (data) => {
+        const res = await fetch(`${API_URL}/sammel-event/settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+        return handleResponse(res);
+    },
+    saveSammelProducts: async (products) => {
+        const res = await fetch(`${API_URL}/sammel-event/config/products`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ products })
+        });
+        return handleResponse(res);
+    },
+    getSammelTeams: async () => {
+        const res = await fetch(`${API_URL}/sammel-event/teams`, { credentials: 'include' });
+        return handleResponse(res);
+    },
+    createSammelTeam: async (data) => {
+        const res = await fetch(`${API_URL}/sammel-event/teams`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+        return handleResponse(res);
+    },
+    updateSammelTeam: async (id, data) => {
+        const res = await fetch(`${API_URL}/sammel-event/teams/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+        return handleResponse(res);
+    },
+    deleteSammelTeam: async (id) => {
+        const res = await fetch(`${API_URL}/sammel-event/teams/${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        return handleResponse(res);
+    },
+    addSammelTeamMember: async (teamId, employeeName) => {
+        const res = await fetch(`${API_URL}/sammel-event/teams/${teamId}/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ employee_name: employeeName })
+        });
+        return handleResponse(res);
+    },
+    removeSammelTeamMember: async (memberId) => {
+        const res = await fetch(`${API_URL}/sammel-event/members/${memberId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        return handleResponse(res);
+    },
+    getSammelEntries: async () => {
+        const res = await fetch(`${API_URL}/sammel-event/entries`, { credentials: 'include' });
+        return handleResponse(res);
+    },
+    createSammelEntry: async (data) => {
+        const res = await fetch(`${API_URL}/sammel-event/entries`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        });
+        return handleResponse(res);
+    },
+    deleteSammelEntry: async (id) => {
+        const res = await fetch(`${API_URL}/sammel-event/entries/${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        return handleResponse(res);
+    },
+    getSammelStats: async () => {
+        const res = await fetch(`${API_URL}/sammel-event/stats`, { credentials: 'include' });
+        return handleResponse(res);
     }
 };

@@ -152,6 +152,41 @@ router.post('/transaction', async (req, res) => {
             );
         }
 
+        // === Sammel-Event Auto-Entry ===
+        // After successful transaction, check if any 'in' items match active Sammel-Event products
+        try {
+            const activeProducts = await db.all('SELECT product_name FROM sammel_config WHERE active = 1');
+            const settings = await db.get('SELECT * FROM sammel_settings WHERE id = 1');
+            const now = new Date().toISOString();
+
+            // Check if event is active (within date range, if set)
+            const eventActive = (!settings?.start_date || now >= settings.start_date) &&
+                (!settings?.end_date || now <= settings.end_date);
+
+            if (eventActive && activeProducts.length > 0) {
+                const productNames = activeProducts.map(p => p.product_name);
+
+                for (let i = 0; i < transactions.length; i++) {
+                    const tx = transactions[i];
+                    const result = results[i];
+                    if (tx.type === 'in' && result?.itemName && productNames.includes(result.itemName) && tx.depositor && tx.depositor !== 'Unbekannt') {
+                        // Check if depositor is in a team
+                        const member = await db.get('SELECT team_id FROM sammel_team_members WHERE employee_name = ?', tx.depositor);
+                        if (member) {
+                            await db.run(
+                                'INSERT INTO sammel_entries (employee_name, team_id, product_name, quantity, timestamp) VALUES (?, ?, ?, ?, ?)',
+                                tx.depositor, member.team_id, result.itemName, tx.quantity, now
+                            );
+                            console.log(`[SammelEvent] Auto-entry: ${tx.quantity}x ${result.itemName} for ${tx.depositor} (Team ${member.team_id})`);
+                        }
+                    }
+                }
+            }
+        } catch (sammelErr) {
+            // Don't fail the entire transaction for sammel-event issues
+            console.error('[SammelEvent] Auto-entry error:', sammelErr);
+        }
+
         if (req.user) {
             let summary = '';
             if (transactions.length > 1) {

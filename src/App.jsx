@@ -45,6 +45,8 @@ import BookingHub from './pages/BookingHub';
 import ProtocolsHub from './pages/ProtocolsHub';
 import SonstigesHub from './pages/SonstigesHub';
 import FuhrparkPage from './pages/FuhrparkPage';
+import SammelEventPage from './pages/SammelEventPage';
+import SammelEventConfigPage from './pages/SammelEventConfigPage';
 import DiscordIntegrationPage from './pages/protocols/DiscordIntegrationPage';
 import DiscordConfirmationModal from './components/DiscordConfirmationModal';
 
@@ -978,6 +980,16 @@ function App() {
             <>
               <Route path="/sonstiges/hausordnung" element={<HausordnungPage user={user} />} />
               <Route path="/sonstiges/beginner-guide" element={<BeginnerGuidePage user={user} />} />
+            </>
+          )}
+
+          {/* Sammel-Event Routes */}
+          {!isPending && (
+            <>
+              <Route path="/sammel-event" element={<SammelEventPage employees={employees} />} />
+              {isBuchhaltung && (
+                <Route path="/sammel-event/config" element={<SammelEventConfigPage employees={employees} inventory={inventory} />} />
+              )}
             </>
           )}
 

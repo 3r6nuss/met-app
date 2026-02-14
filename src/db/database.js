@@ -122,6 +122,40 @@ export async function getDb() {
             resolved_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(discord_log_id) REFERENCES discord_logs(id)
         );
+
+        -- Sammel-Event (Collection Competition)
+        CREATE TABLE IF NOT EXISTS sammel_teams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            color TEXT DEFAULT '#8b5cf6'
+        );
+        CREATE TABLE IF NOT EXISTS sammel_team_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            team_id INTEGER NOT NULL,
+            employee_name TEXT NOT NULL,
+            FOREIGN KEY(team_id) REFERENCES sammel_teams(id) ON DELETE CASCADE,
+            UNIQUE(employee_name)
+        );
+        CREATE TABLE IF NOT EXISTS sammel_config (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_name TEXT NOT NULL,
+            active INTEGER DEFAULT 1
+        );
+        CREATE TABLE IF NOT EXISTS sammel_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_name TEXT NOT NULL,
+            team_id INTEGER NOT NULL,
+            product_name TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(team_id) REFERENCES sammel_teams(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS sammel_settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            start_date TEXT,
+            end_date TEXT
+        );
+        INSERT OR IGNORE INTO sammel_settings (id) VALUES (1);
     `);
 
     // Migration: Add isHaendler column if it doesn't exist

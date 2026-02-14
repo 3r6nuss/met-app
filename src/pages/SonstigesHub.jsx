@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
     MoreHorizontal, Phone, Megaphone, Handshake, Users,
-    FileText, Calculator, BookOpen, GraduationCap, Shield, Search, Car
+    FileText, Calculator, BookOpen, GraduationCap, Shield, Search, Car, Trophy
 } from 'lucide-react';
 
 export default function SonstigesHub({ user }) {
@@ -13,6 +13,7 @@ export default function SonstigesHub({ user }) {
     const publicCards = [
         { to: '/sonstiges/hausordnung', icon: Shield, title: 'Hausordnung', desc: 'Regeln & Richtlinien', color: 'amber' },
         { to: '/sonstiges/beginner-guide', icon: GraduationCap, title: 'Beginner Guide', desc: 'Einführung für neue Mitarbeiter', color: 'blue' },
+        { to: '/sammel-event', icon: Trophy, title: 'Sammel-Event', desc: 'Team-Wettbewerb & Statistiken', color: 'amber' },
     ];
 
     const buchhaltungCards = [
