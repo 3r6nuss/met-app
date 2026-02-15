@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, User, ChevronRight, X, Package, Edit2, Save } from 'lucide-react';
+import { Calendar, User, ChevronRight, X, Package, Edit2, Save, Trash2, Search, Filter } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function ControlPage({ employeeInventory = [], employees = [], inventory = [] }) {
     const [history, setHistory] = useState([]);
@@ -35,20 +49,32 @@ export default function ControlPage({ employeeInventory = [], employees = [], in
         })
             .then(res => res.json())
             .then(data => {
-                if (!data.success) alert("Fehler beim Speichern");
+                if (!data.success) toast.error("Fehler beim Speichern");
+                else toast.success("Bestand aktualisiert");
             })
-            .catch(_err => alert("Netzwerkfehler"));
+            .catch(_err => toast.error("Netzwerkfehler"));
     };
 
     return (
-        <div className="animate-fade-in pb-24 max-w-4xl mx-auto">
+        <div className="animate-fade-in pb-24 max-w-5xl mx-auto space-y-8">
+
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400">
+                        Kontrolle & Übersicht
+                    </h1>
+                    <p className="text-slate-400 mt-1">
+                        Verwaltung der Mitarbeiter-Bestände und Prüfprotokolle
+                    </p>
+                </div>
+            </div>
 
             {/* Employee Inventory Section */}
-            <section className="mb-12">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-violet-400">
-                    <Package className="w-6 h-6" />
-                    Mitarbeiter Lager
-                </h2>
+            <section className="space-y-4">
+                <div className="flex items-center gap-2 text-violet-400 mb-2">
+                    <Package className="w-5 h-5" />
+                    <h2 className="text-lg font-semibold tracking-wide uppercase text-xs">Mitarbeiter Lager</h2>
+                </div>
 
                 <div className="grid grid-cols-1 gap-4">
                     {employees.map((emp, idx) => {
@@ -66,69 +92,87 @@ export default function ControlPage({ employeeInventory = [], employees = [], in
                 </div>
             </section>
 
-            <div className="space-y-3">
-                {history.length === 0 ? (
-                    <div className="text-center text-slate-500 py-12 bg-slate-900/50 rounded-xl border border-white/5">
-                        Keine Einträge vorhanden.
-                    </div>
-                ) : (
-                    history.map((entry, index) => (
-                        <div
-                            key={index}
-                            onClick={() => setSelectedEntry(entry)}
-                            className="bg-slate-800/50 hover:bg-slate-800 border border-white/5 rounded-xl p-4 cursor-pointer transition-all flex items-center justify-between group"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                                    <User className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <div className="font-bold text-slate-200">{entry.verifier}</div>
-                                    <div className="text-xs text-slate-400">{new Date(entry.timestamp).toLocaleString()}</div>
-                                </div>
+            {/* Verification History Section */}
+            <section className="space-y-4">
+                <div className="flex items-center gap-2 text-emerald-400 mb-2">
+                    <Calendar className="w-5 h-5" />
+                    <h2 className="text-lg font-semibold tracking-wide uppercase text-xs">Verlauf</h2>
+                </div>
+
+                <Card className="bg-slate-950/50 border-slate-800 backdrop-blur-sm">
+                    <CardContent className="p-0">
+                        <ScrollArea className="h-[400px]">
+                            <div className="p-4 space-y-2">
+                                {history.length === 0 ? (
+                                    <div className="text-center text-slate-500 py-12">
+                                        Keine Einträge vorhanden.
+                                    </div>
+                                ) : (
+                                    history.map((entry, index) => (
+                                        <div
+                                            key={index}
+                                            onClick={() => setSelectedEntry(entry)}
+                                            className="group flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800 hover:bg-slate-800/80 hover:border-slate-700 transition-all cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                                                    <User className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-slate-200 group-hover:text-emerald-300 transition-colors">{entry.verifier}</div>
+                                                    <div className="text-xs text-slate-500">{new Date(entry.timestamp).toLocaleString()}</div>
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
+                                        </div>
+                                    ))
+                                )}
                             </div>
-                            <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-white transition-colors" />
-                        </div>
-                    ))
-                )}
-            </div>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+            </section>
 
             {/* Detail Modal */}
-            {selectedEntry && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
-                        <div className="p-4 border-b border-white/10 flex justify-between items-center">
-                            <h3 className="font-bold text-lg">Kontrolle Details</h3>
-                            <button onClick={() => setSelectedEntry(null)} className="text-slate-400 hover:text-white">
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
+            <Dialog open={!!selectedEntry} onOpenChange={(open) => !open && setSelectedEntry(null)}>
+                <DialogContent className="max-w-2xl bg-slate-950 border-slate-800">
+                    <DialogHeader>
+                        <DialogTitle>Kontrolle Details</DialogTitle>
+                        <DialogDescription>
+                            Detaillierte Ansicht des Prüfprotokolls
+                        </DialogDescription>
+                    </DialogHeader>
 
-                        <div className="p-6 overflow-y-auto">
-                            <div className="flex justify-between mb-6 bg-slate-800/50 p-4 rounded-lg">
+                    {selectedEntry && (
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center bg-slate-900/50 p-4 rounded-xl border border-slate-800">
                                 <div>
-                                    <div className="text-xs text-slate-400 uppercase">Prüfer</div>
-                                    <div className="font-bold text-lg">{selectedEntry.verifier}</div>
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold mb-1">Prüfer</div>
+                                    <div className="font-bold text-lg text-emerald-400">{selectedEntry.verifier}</div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-xs text-slate-400 uppercase">Zeitpunkt</div>
-                                    <div className="font-mono">{new Date(selectedEntry.timestamp).toLocaleString()}</div>
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold mb-1">Zeitpunkt</div>
+                                    <div className="font-mono text-slate-300">{new Date(selectedEntry.timestamp).toLocaleString()}</div>
                                 </div>
                             </div>
 
-                            <h4 className="font-bold text-slate-400 mb-3 text-sm uppercase">Bestand zum Zeitpunkt der Prüfung</h4>
-                            <div className="space-y-1">
-                                {selectedEntry.snapshot.map(item => (
-                                    <div key={item.id} className="flex justify-between p-2 hover:bg-white/5 rounded border-b border-white/5 last:border-0 text-sm">
-                                        <span className="text-slate-300">{item.name}</span>
-                                        <span className="font-mono text-slate-400">{item.current.toLocaleString()}</span>
+                            <div>
+                                <h4 className="font-semibold text-slate-400 mb-3 text-xs uppercase tracking-widest">Bestand zum Zeitpunkt der Prüfung</h4>
+                                <ScrollArea className="h-[300px] rounded-xl border border-slate-800 bg-slate-900/30">
+                                    <div className="divide-y divide-slate-800">
+                                        {selectedEntry.snapshot.map(item => (
+                                            <div key={item.id} className="flex justify-between items-center p-3 hover:bg-slate-800/50 transition-colors text-sm">
+                                                <span className="text-slate-300 font-medium">{item.name}</span>
+                                                <span className="font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{item.current.toLocaleString()}</span>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                </ScrollArea>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
@@ -149,67 +193,85 @@ function EmployeeInventoryCard({ name, items, allInventory, onUpdate }) {
     };
 
     return (
-        <div className="bg-slate-900/50 border border-slate-700 rounded-xl overflow-hidden">
+        <Card className={cn(
+            "border-slate-800 bg-slate-900/40 transition-all duration-300 overflow-hidden",
+            expanded ? "ring-1 ring-violet-500/50 bg-slate-900/80 shadow-lg shadow-violet-500/10" : "hover:bg-slate-900/60"
+        )}>
             <div
                 onClick={() => setExpanded(!expanded)}
-                className="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-800/50 transition-colors"
+                className="p-4 flex justify-between items-center cursor-pointer select-none"
             >
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 font-bold">
+                <div className="flex items-center gap-4">
+                    <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition-colors",
+                        expanded ? "bg-violet-500 text-white" : "bg-slate-800 text-slate-400"
+                    )}>
                         {name.charAt(0)}
                     </div>
-                    <span className="font-medium text-slate-200">{name}</span>
-                    <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded-full">
-                        {items.length} Items
-                    </span>
+                    <div>
+                        <div className={cn("font-medium transition-colors", expanded ? "text-violet-300" : "text-slate-200")}>{name}</div>
+                        <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 border-slate-700 text-slate-500">
+                                {items.length} Items
+                            </Badge>
+                        </div>
+                    </div>
                 </div>
-                <ChevronRight className={`w-5 h-5 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+                <ChevronRight className={cn("w-5 h-5 text-slate-600 transition-transform duration-300", expanded && "rotate-90 text-violet-500")} />
             </div>
 
             {expanded && (
-                <div className="border-t border-slate-800 p-4 bg-slate-950/30">
-                    {items.length === 0 ? (
-                        <div className="text-center text-slate-500 text-sm py-2">Leer</div>
-                    ) : (
-                        <div className="space-y-2">
-                            {items.map(item => {
+                <div className="border-t border-slate-800/80 bg-slate-950/30">
+                    <div className="p-4 space-y-2">
+                        {items.length === 0 ? (
+                            <div className="text-center text-slate-500 text-sm py-4 italic">Keine Items im Inventar.</div>
+                        ) : (
+                            items.map(item => {
                                 const itemDef = allInventory.find(i => i.id === item.item_id);
                                 const itemName = itemDef ? itemDef.name : `Item #${item.item_id}`;
 
                                 return (
-                                    <div key={item.item_id} className="flex justify-between items-center text-sm bg-slate-900/50 p-2 rounded border border-slate-800">
-                                        <span className="text-slate-300">{itemName}</span>
+                                    <div key={item.item_id} className="group flex justify-between items-center text-sm bg-slate-900/80 p-3 rounded-lg border border-slate-800/50 hover:border-violet-500/30 transition-colors">
+                                        <span className="text-slate-300 font-medium">{itemName}</span>
 
                                         {editingId === item.item_id ? (
-                                            <div className="flex items-center gap-2">
-                                                <input
+                                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-200">
+                                                <Input
                                                     type="number"
                                                     value={editValue}
                                                     onChange={(e) => setEditValue(e.target.value)}
-                                                    className="w-16 bg-slate-950 border border-violet-500 rounded px-1 py-0.5 text-right text-white"
+                                                    className="w-20 h-8 bg-slate-950 border-violet-500 focus:ring-violet-500/20 text-right font-mono"
+                                                    autoFocus
                                                 />
-                                                <button onClick={() => saveEdit(item.item_id)} className="text-emerald-400 hover:text-emerald-300">
+                                                <Button size="icon" variant="ghost" onClick={() => saveEdit(item.item_id)} className="h-8 w-8 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10">
                                                     <Save className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-300">
+                                                </Button>
+                                                <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-8 w-8 text-slate-400 hover:text-slate-300 hover:bg-slate-800">
                                                     <X className="w-4 h-4" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-3">
-                                                <span className="font-mono text-violet-300 font-bold">{item.quantity}</span>
-                                                <button onClick={() => startEdit(item.item_id, item.quantity)} className="text-slate-600 hover:text-violet-400">
+                                                <span className="font-mono text-violet-300 font-bold bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/20">
+                                                    {item.quantity}
+                                                </span>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => startEdit(item.item_id, item.quantity)}
+                                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-violet-400 hover:bg-violet-500/10"
+                                                >
                                                     <Edit2 className="w-3.5 h-3.5" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         )}
                                     </div>
                                 );
-                            })}
-                        </div>
-                    )}
+                            })
+                        )}
+                    </div>
                 </div>
             )}
-        </div>
+        </Card>
     );
 }

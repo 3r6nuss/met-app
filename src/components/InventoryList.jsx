@@ -1,21 +1,25 @@
 import React from 'react';
-import { cn } from '../lib/utils';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ArrowUp, ArrowDown, AlertTriangle, Package } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 export default function InventoryList({ inventory, isEditMode, onUpdateStock, onUpdateTarget, onReorder }) {
-    // Split into 3 columns to match the design
-    // Note: To support reordering across columns, we need to know the global index
+    // Split inventory into 3 balanced columns dynamically
+    const itemsPerCol = Math.ceil(inventory.length / 3);
     const columns = [
-        inventory.slice(0, 10),
-        inventory.slice(10, 16),
-        inventory.slice(16)
+        inventory.slice(0, itemsPerCol),
+        inventory.slice(itemsPerCol, itemsPerCol * 2),
+        inventory.slice(itemsPerCol * 2)
     ];
 
-    const getPriorityBorderColor = (item) => {
-        if (item.priority === 'high') return 'border-red-500';
-        if (item.priority === 'medium') return 'border-orange-500';
-        if (item.priority === 'low') return 'border-green-500';
-        return 'border-slate-700';
+    const getPriorityColor = (priority) => {
+        if (priority === 'high') return 'text-red-500 border-red-500/50 bg-red-500/10';
+        if (priority === 'medium') return 'text-orange-500 border-orange-500/50 bg-orange-500/10';
+        if (priority === 'low') return 'text-emerald-500 border-emerald-500/50 bg-emerald-500/10';
+        return 'text-slate-500 border-slate-700 bg-slate-800/50';
     };
 
     const handleMove = (index, direction) => {
@@ -31,82 +35,104 @@ export default function InventoryList({ inventory, isEditMode, onUpdateStock, on
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-24">
             {columns.map((colItems, colIndex) => (
-                <div key={colIndex} className="flex flex-col gap-2">
-                    {/* Header */}
-                    <div className="grid grid-cols-[2fr_1fr_1fr] gap-2 p-3 bg-slate-800/50 rounded-t-lg font-bold text-slate-300 text-sm uppercase tracking-wider">
-                        <div>Artikel</div>
+                <div key={colIndex} className="flex flex-col gap-3">
+                    {/* Column Header */}
+                    <div className="grid grid-cols-[2fr_1fr_1fr] gap-4 px-4 py-3 bg-slate-900/80 backdrop-blur border border-slate-800 rounded-xl text-xs font-bold text-slate-400 uppercase tracking-wider shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <Package className="w-3 h-3" /> Artikel
+                        </div>
                         <div className="text-right">Bestand</div>
                         <div className="text-right">Soll</div>
                     </div>
 
                     {/* Rows */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-2">
                         {colItems.map((item) => {
-                            // Find global index
+                            // Find global index for reordering
                             const globalIndex = inventory.findIndex(i => i.id === item.id);
+                            const isLowStock = item.current < (item.target || 0);
 
                             return (
-                                <div
+                                <Card
                                     key={item.id}
                                     className={cn(
-                                        "grid grid-cols-[2fr_1fr_1fr] gap-2 p-3 rounded bg-slate-800 items-center transition-colors hover:bg-slate-700 border-l-4 relative group",
-                                        getPriorityBorderColor(item)
+                                        "grid grid-cols-[2fr_1fr_1fr] gap-4 p-3 items-center transition-all duration-200 border-l-4",
+                                        "bg-slate-950/40 hover:bg-slate-900/60 border-y-slate-800/50 border-r-slate-800/50",
+                                        getPriorityColor(item.priority).replace('text-', 'border-l-') // Use the color for the left border
                                     )}
                                 >
-                                    <div className="font-medium text-slate-200 truncate flex items-center gap-2">
+                                    {/* Name & Tools */}
+                                    <div className="font-medium text-slate-200 truncate flex items-center gap-3">
                                         {isEditMode && (
-                                            <div className="flex flex-col gap-0.5 mr-1">
-                                                <button
+                                            <div className="flex flex-col gap-0.5 -ml-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-5 w-5 rounded-full hover:bg-slate-700"
                                                     onClick={() => handleMove(globalIndex, -1)}
                                                     disabled={globalIndex === 0}
-                                                    className="p-0.5 hover:bg-slate-600 rounded text-slate-400 hover:text-white disabled:opacity-30"
                                                 >
                                                     <ArrowUp className="w-3 h-3" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-5 w-5 rounded-full hover:bg-slate-700"
                                                     onClick={() => handleMove(globalIndex, 1)}
                                                     disabled={globalIndex === inventory.length - 1}
-                                                    className="p-0.5 hover:bg-slate-600 rounded text-slate-400 hover:text-white disabled:opacity-30"
                                                 >
                                                     <ArrowDown className="w-3 h-3" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         )}
-                                        {item.name}
+
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="truncate">{item.name}</span>
+                                            {isLowStock && !isEditMode && (
+                                                <span className="text-[10px] text-red-400 flex items-center gap-1 font-bold">
+                                                    <AlertTriangle className="w-3 h-3" /> Knapp
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
+                                    {/* Current Stock */}
                                     <div className="text-right">
                                         {isEditMode ? (
-                                            <input
+                                            <Input
                                                 type="number"
                                                 value={item.current}
                                                 onChange={(e) => onUpdateStock(item.id, parseInt(e.target.value) || 0)}
-                                                className="w-full bg-slate-900/80 border border-slate-600 rounded px-2 py-1 text-right text-sm focus:border-violet-500 outline-none"
+                                                className="h-8 text-right font-mono bg-slate-900 border-slate-700 focus:border-violet-500"
                                             />
                                         ) : (
-                                            <span className="font-mono font-medium text-slate-200">{(item.current || 0).toLocaleString()}</span>
+                                            <span className={cn(
+                                                "font-mono font-bold text-lg",
+                                                isLowStock ? "text-red-400" : "text-emerald-400"
+                                            )}>
+                                                {(item.current || 0).toLocaleString()}
+                                            </span>
                                         )}
                                     </div>
 
+                                    {/* Target Stock */}
                                     <div className="text-right">
                                         {isEditMode ? (
-                                            <input
+                                            <Input
                                                 type="number"
                                                 value={item.target || 0}
                                                 onChange={(e) => onUpdateTarget(item.id, parseInt(e.target.value) || 0)}
-                                                className="w-full bg-slate-900/80 border border-slate-600 rounded px-2 py-1 text-right text-sm focus:border-violet-500 outline-none"
+                                                className="h-8 text-right font-mono bg-slate-900 border-slate-700 focus:border-violet-500"
                                             />
                                         ) : (
-                                            item.target != null ? (
-                                                <span className="text-slate-400 text-sm">{item.target.toLocaleString()}</span>
-                                            ) : (
-                                                <span className="text-slate-600">-</span>
-                                            )
+                                            <Badge variant="outline" className="font-mono text-slate-400 border-slate-700 bg-slate-900/50">
+                                                {item.target != null ? item.target.toLocaleString() : '-'}
+                                            </Badge>
                                         )}
                                     </div>
-                                </div>
+                                </Card>
                             )
                         })}
                     </div>

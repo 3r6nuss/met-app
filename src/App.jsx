@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster, toast } from 'sonner';
 import { initialInventory } from './data/initialData';
 import { initialPrices as _initialPrices } from './data/initialPrices';
 import Navbar from './components/Navbar';
@@ -400,13 +401,13 @@ function App() {
           }
         } else {
           console.error("Transaction failed:", data.error);
-          alert("Fehler bei der Transaktion: " + data.error);
+          toast.error("Fehler bei der Transaktion: " + data.error);
           log('ERROR', 'Check-In Transaction Failed', { error: data.error, payload });
         }
       })
       .catch(err => {
         console.error("Transaction error:", err);
-        alert("Netzwerkfehler bei der Transaktion");
+        toast.error("Netzwerkfehler bei der Transaktion");
         log('ERROR', 'Check-In Network Error', err);
       });
   };
@@ -633,12 +634,12 @@ function App() {
             addLog("Eintrag gelöscht");
             log('TX', 'Log Deleted', { timestamp });
           } else {
-            alert("Fehler beim Löschen: " + data.error);
+            toast.error("Fehler beim Löschen: " + data.error);
             log('ERROR', 'Delete Log Failed', data.error);
           }
         })
         .catch(err => {
-          alert("Netzwerkfehler");
+          toast.error("Netzwerkfehler");
           log('ERROR', 'Delete Log Network Error', err);
         });
     }
@@ -657,12 +658,12 @@ function App() {
           fetchData('Order Created');
           addLog(`Neuer Auftrag: ${orderData.quantity}x ${orderData.itemName}`);
           log('TX', 'Order Created', orderData);
-          alert("Auftrag erfolgreich erstellt!");
+          toast.success("Auftrag erfolgreich erstellt!");
         } else {
-          alert("Fehler beim Erstellen des Auftrags");
+          toast.error("Fehler beim Erstellen des Auftrags");
         }
       })
-      .catch(_err => alert("Netzwerkfehler"));
+      .catch(_err => toast.error("Netzwerkfehler"));
   };
 
   const handleUpdateOrderStatus = (id, status) => {
@@ -716,12 +717,12 @@ function App() {
             lastTxIdTimerRef.current = setTimeout(() => setLastTransactionId(null), 30000);
           }
 
-          alert(`Sonderbuchung erfolgreich!${data.transactionId ? `\nReferenz-ID: ${data.transactionId}` : ''}`);
+          toast.success(`Sonderbuchung erfolgreich!`, { description: data.transactionId ? `Referenz-ID: ${data.transactionId}` : undefined });
         } else {
-          alert("Fehler: " + data.error);
+          toast.error("Fehler: " + data.error);
         }
       })
-      .catch(_err => alert("Netzwerkfehler"));
+      .catch(_err => toast.error("Netzwerkfehler"));
   };
 
   const handleConsumeIngredients = (employeeName, items) => {
@@ -818,305 +819,308 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto">
-        <header className="mb-6 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <img src="/logo.png" alt="MET Logo" className="w-16 h-16 md:w-20 md:h-20" />
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400">
-                Syncrolog
-              </h1>
-              <p className="text-slate-400 mt-1">MET System Dashboard</p>
+    <>
+      <Toaster position="top-right" theme="dark" richColors />
+      <Router>
+        <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto">
+          <header className="mb-6 flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <img src="/logo.png" alt="MET Logo" className="w-16 h-16 md:w-20 md:h-20" />
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400">
+                  Syncrolog
+                </h1>
+                <p className="text-slate-400 mt-1">MET System Dashboard</p>
+              </div>
+              <SystemAlert />
             </div>
-            <SystemAlert />
-          </div>
-          <div className="text-right hidden md:block">
-            <div className="text-sm text-slate-500 mb-1">System Status</div>
-            <div className="flex flex-col items-end gap-1">
-              <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium justify-end">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Online
+            <div className="text-right hidden md:block">
+              <div className="text-sm text-slate-500 mb-1">System Status</div>
+              <div className="flex flex-col items-end gap-1">
+                <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium justify-end">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Online
+                </div>
+                {saveStatus === 'saving' && <span className="text-xs text-amber-400">Speichere...</span>}
+                {saveStatus === 'saved' && <span className="text-xs text-emerald-400">Gespeichert</span>}
+                {saveStatus === 'error' && <span className="text-xs text-red-500 font-bold">Fehler beim Speichern!</span>}
               </div>
-              {saveStatus === 'saving' && <span className="text-xs text-amber-400">Speichere...</span>}
-              {saveStatus === 'saved' && <span className="text-xs text-emerald-400">Gespeichert</span>}
-              {saveStatus === 'error' && <span className="text-xs text-red-500 font-bold">Fehler beim Speichern!</span>}
             </div>
+          </header>
+
+          {!isConnected && (
+            <div className="fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-red-500/90 text-white rounded-lg shadow-lg backdrop-blur animate-pulse">
+              <WifiOff className="w-5 h-5" />
+              <span className="font-medium">Verbindung verloren</span>
+            </div>
+          )}
+
+
+
+          {showReloadModal && <ReloadModal />}
+
+          <div className="fixed bottom-1 right-1 px-2 py-1 bg-slate-950/80 rounded text-[10px] text-slate-600 font-mono z-50 pointer-events-none select-none">
+            v.{version ? new Date(version).toISOString().slice(0, 19).replace('T', ' ') : '...'}
           </div>
-        </header>
 
-        {!isConnected && (
-          <div className="fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-red-500/90 text-white rounded-lg shadow-lg backdrop-blur animate-pulse">
-            <WifiOff className="w-5 h-5" />
-            <span className="font-medium">Verbindung verloren</span>
-          </div>
-        )}
+          <Navbar user={user} />
 
 
 
-        {showReloadModal && <ReloadModal />}
+          {logs.length > 0 && (
+            <div className="mb-6 flex gap-4 overflow-x-auto pb-2">
+              {logs.map(log => (
+                <div key={log.id} className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full whitespace-nowrap border border-slate-700">
+                  <Activity className="w-3 h-3" />
+                  <span className="text-slate-500">{log.time}</span>
+                  <span>{log.msg}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
-        <div className="fixed bottom-1 right-1 px-2 py-1 bg-slate-950/80 rounded text-[10px] text-slate-600 font-mono z-50 pointer-events-none select-none">
-          v.{version ? new Date(version).toISOString().slice(0, 19).replace('T', ' ') : '...'}
-        </div>
-
-        <Navbar user={user} />
-
-
-
-        {logs.length > 0 && (
-          <div className="mb-6 flex gap-4 overflow-x-auto pb-2">
-            {logs.map(log => (
-              <div key={log.id} className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full whitespace-nowrap border border-slate-700">
-                <Activity className="w-3 h-3" />
-                <span className="text-slate-500">{log.time}</span>
-                <span>{log.msg}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <Routes>
-          <Route path="/" element={
-            <InventoryPage
-              inventory={inventory}
-              onUpdateStock={handleUpdateStock}
-              onUpdateTarget={handleUpdateTarget}
-              onReorder={handleReorder}
-              onVerify={handleVerify}
-              user={user}
-              orders={orders}
-              onUpdateOrderStatus={handleUpdateOrderStatus}
-              onDeleteOrder={handleDeleteOrder}
-            />
-          } />
-
-          {/* Buchung Routes */}
-          {/* Einlagern: Lager & Buchhaltung/Admin */}
-          {(isLager || isBuchhaltung) && (
-            <Route path="/buchung/einlagern" element={
-              <ActionPage
+          <Routes>
+            <Route path="/" element={
+              <InventoryPage
                 inventory={inventory}
-                employees={employees.filter(e => e.status !== 'fired')} // Only active employees
-                prices={prices}
-                employeeInventory={employeeInventory}
-                onConsumeIngredients={handleConsumeIngredients}
-                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckIn(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory, transactionId)}
-                type="in"
-                title="Einlagern"
-                label="Mitarbeiter"
-                showPrice={true}
+                onUpdateStock={handleUpdateStock}
+                onUpdateTarget={handleUpdateTarget}
+                onReorder={handleReorder}
+                onVerify={handleVerify}
                 user={user}
-                lastTransactionId={lastTransactionId}
+                orders={orders}
+                onUpdateOrderStatus={handleUpdateOrderStatus}
+                onDeleteOrder={handleDeleteOrder}
               />
             } />
-          )}
 
-          {/* Auslagern: Lager & Buchhaltung/Admin */}
-          {(isLager || isBuchhaltung) && (
-            <Route path="/buchung/auslagern" element={
-              <ActionPage
-                inventory={inventory}
-                employees={employees.filter(e => e.status !== 'fired')} // Only active employees
-                prices={prices}
-                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckOut(id, qty, dep, price, date, 'out', 'internal', warningIgnored, skipInventory, transactionId)}
-                type="out"
-                title="Auslagern"
-                label="Mitarbeiter"
-                showPrice={isBuchhaltung}
-                user={user}
-                lastTransactionId={lastTransactionId}
-              />
-            } />
-          )}
-
-          {/* Sonderbuchung: Buchhaltung/Admin only */}
-          {isBuchhaltung && (
-            <Route path="/buchung/sonderbuchung" element={
-              <SpecialBookingPage
-                employees={employees}
-                onAction={handleSpecialBooking}
-              />
-            } />
-          )}
-
-          {/* Auftrag: Händler & Buchhaltung/Admin (Lager removed) */}
-          {(isHaendler || isBuchhaltung) && (
-            <Route path="/buchung/auftrag" element={
-              <div className="animate-fade-in">
-                <CreateOrderForm inventory={inventory} onSubmit={handleCreateOrder} />
-              </div>
-            } />
-          )}
-
-          {/* Trade Routes - Händler/Buchhaltung/Admin */}
-          {(isHaendler || isBuchhaltung) && (
-            <>
-              <Route path="/buchung/einkauf" element={
+            {/* Buchung Routes */}
+            {/* Einlagern: Lager & Buchhaltung/Admin */}
+            {(isLager || isBuchhaltung) && (
+              <Route path="/buchung/einlagern" element={
                 <ActionPage
                   inventory={inventory}
-                  employees={employees}
+                  employees={employees.filter(e => e.status !== 'fired')} // Only active employees
                   prices={prices}
-                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckIn(id, qty, dep, price, date, 'in', 'trade', warningIgnored, skipInventory, transactionId)}
+                  employeeInventory={employeeInventory}
+                  onConsumeIngredients={handleConsumeIngredients}
+                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckIn(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory, transactionId)}
                   type="in"
-                  title="Einkauf (Ankauf)"
-                  label="Verkäufer"
+                  title="Einlagern"
+                  label="Mitarbeiter"
+                  showPrice={true}
                   user={user}
                   lastTransactionId={lastTransactionId}
                 />
               } />
-              <Route path="/buchung/verkauf" element={
+            )}
+
+            {/* Auslagern: Lager & Buchhaltung/Admin */}
+            {(isLager || isBuchhaltung) && (
+              <Route path="/buchung/auslagern" element={
                 <ActionPage
                   inventory={inventory}
-                  employees={employees}
+                  employees={employees.filter(e => e.status !== 'fired')} // Only active employees
                   prices={prices}
-                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckOut(id, qty, dep, price, date, 'out', 'trade', warningIgnored, skipInventory, transactionId)}
+                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckOut(id, qty, dep, price, date, 'out', 'internal', warningIgnored, skipInventory, transactionId)}
                   type="out"
-                  title="Verkauf (Abverkauf)"
-                  label="Käufer"
+                  title="Auslagern"
+                  label="Mitarbeiter"
+                  showPrice={isBuchhaltung}
                   user={user}
                   lastTransactionId={lastTransactionId}
                 />
               } />
-            </>
-          )}
+            )}
 
-
-          <Route path="/marketing" element={<MarketingPage prices={prices} inventory={inventory} />} />
-
-          {/* Hub Pages */}
-          {!isPending && <Route path="/buchung" element={<BookingHub user={user} />} />}
-          {!isPending && <Route path="/protokolle" element={<ProtocolsHub user={user} />} />}
-          {!isPending && <Route path="/sonstiges" element={<SonstigesHub user={user} />} />}
-          <Route path="/trade" element={<Navigate to={(isHaendler || isBuchhaltung) ? "/buchung/einkauf" : "/"} replace />} />
-
-          {/* Protokolle Routes */}
-          {isBuchhaltung && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
-
-          {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
-          {!isPending && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} employees={employees} onPayout={handleEmployeePayout} />} />}
-          {(isBuchhaltung) && (
-            <>
-              <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} inventory={inventory} employees={employees} />} />
-              <Route path="/protokolle/analytics" element={<AnalyticsProtocol logs={transactionLogs} employees={employees} inventory={inventory} />} />
-              <Route path="/protokolle/kassenbuch" element={<CashBookProtocol logs={transactionLogs} inventory={inventory} prices={prices} onAdjustBalance={handleSpecialBooking} user={user} />} />
-              <Route path="/protokolle/lohn" element={<PayrollProtocol logs={transactionLogs} employees={employees} prices={prices} user={user} />} />
-              <Route path="/protokolle/guv" element={<ProfitLossProtocol logs={transactionLogs} employees={employees} prices={prices} inventory={inventory} />} />
-              <Route path="/protokolle/buchhaltung" element={<AccountingDashboard logs={transactionLogs} employees={employees} inventory={inventory} prices={prices} user={user} />} />
-              <Route path="/protokolle/profitabilitaet" element={<ProductProfitability logs={transactionLogs} prices={prices} inventory={inventory} />} />
-              <Route path="/protokolle/transaction-search" element={<TransactionSearchProtocol logs={transactionLogs} />} />
-            </>
-          )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
-
-          {/* Discord Integration - Super Admin Only */}
-          {['823276402320998450', '690510884639866960'].includes(user?.discordId) && (
-            <Route path="/protokolle/discord" element={<DiscordIntegrationPage />} />
-          )}
-
-          <Route path="/protokolle/monthly" element={<Navigate to="/protokolle/period" replace />} />
-
-          {isBuchhaltung && <Route path="/kontrolle" element={<ControlPage employeeInventory={employeeInventory} employees={employees} inventory={inventory} />} />}
-
-          {/* Sonstiges Routes - Admin Only */}
-          {isAdmin && (
-            <>
-              <Route path="/sonstiges/werbung" element={<AdsPage />} />
-
-              <Route path="/sonstiges/kontakte" element={<ContactsPage />} />
-              <Route path="/sonstiges/partner" element={<PartnersPage />} />
-              <Route path="/sonstiges/personal" element={<PersonnelPage />} />
-              <Route path="/beleg" element={<BelegPage prices={prices} />} />
-              <Route path="/preise" element={<PricesPage />} />
-            </>
-          )}
-
-
-          {/* Sonstiges Routes - Public for all users */}
-          {!isPending && (
-            <>
-              <Route path="/sonstiges/hausordnung" element={<HausordnungPage user={user} />} />
-              <Route path="/sonstiges/beginner-guide" element={<BeginnerGuidePage user={user} />} />
-            </>
-          )}
-
-          {/* Sammel-Event Routes */}
-          {!isPending && (
-            <>
-              <Route path="/sammel-event" element={<SammelEventPage employees={employees} />} />
-              {isBuchhaltung && (
-                <Route path="/sammel-event/config" element={<SammelEventConfigPage employees={employees} inventory={inventory} />} />
-              )}
-            </>
-          )}
-
-          {/* Fuhrpark Route - Fuhrparkmanager & Admin */}
-          {isFuhrpark && (
-            <Route path="/sonstiges/fuhrpark" element={<FuhrparkPage user={user} />} />
-          )}
-
-          {/* System Routes */}
-          {isBuchhaltung && (
-            <>
-              <Route path="/system" element={
-                <ErrorBoundary>
-                  <SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />
-                </ErrorBoundary>
+            {/* Sonderbuchung: Buchhaltung/Admin only */}
+            {isBuchhaltung && (
+              <Route path="/buchung/sonderbuchung" element={
+                <SpecialBookingPage
+                  employees={employees}
+                  onAction={handleSpecialBooking}
+                />
               } />
-              <Route path="/system/employees" element={
-                <ErrorBoundary>
-                  <SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />
-                </ErrorBoundary>
+            )}
+
+            {/* Auftrag: Händler & Buchhaltung/Admin (Lager removed) */}
+            {(isHaendler || isBuchhaltung) && (
+              <Route path="/buchung/auftrag" element={
+                <div className="animate-fade-in">
+                  <CreateOrderForm inventory={inventory} onSubmit={handleCreateOrder} />
+                </div>
               } />
-            </>
-          )}
+            )}
 
-          {/* Super Admin Audit Log */}
-          {(user?.discordId === '823276402320998450' || user?.discordId === '690510884639866960') && (
-            <>
-              <Route path="/aktivitaetslog" element={<AuditLogPage />} />
-              <Route path="/admin/backup" element={<BackupProtocol user={user} />} />
-              <Route path="/admin/performance" element={<PerformanceDashboard user={user} />} />
-            </>
-          )}
-        </Routes>
+            {/* Trade Routes - Händler/Buchhaltung/Admin */}
+            {(isHaendler || isBuchhaltung) && (
+              <>
+                <Route path="/buchung/einkauf" element={
+                  <ActionPage
+                    inventory={inventory}
+                    employees={employees}
+                    prices={prices}
+                    onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckIn(id, qty, dep, price, date, 'in', 'trade', warningIgnored, skipInventory, transactionId)}
+                    type="in"
+                    title="Einkauf (Ankauf)"
+                    label="Verkäufer"
+                    user={user}
+                    lastTransactionId={lastTransactionId}
+                  />
+                } />
+                <Route path="/buchung/verkauf" element={
+                  <ActionPage
+                    inventory={inventory}
+                    employees={employees}
+                    prices={prices}
+                    onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckOut(id, qty, dep, price, date, 'out', 'trade', warningIgnored, skipInventory, transactionId)}
+                    type="out"
+                    title="Verkauf (Abverkauf)"
+                    label="Käufer"
+                    user={user}
+                    lastTransactionId={lastTransactionId}
+                  />
+                } />
+              </>
+            )}
 
-        {/* Discord Confirmation Modal */}
-        {pendingDiscordLog && (
-          <DiscordConfirmationModal
-            discordLog={pendingDiscordLog}
-            recentTransactions={recentTransactions}
-            onConfirm={async (discordLogId, transaction) => {
-              try {
-                const res = await fetch(`/api/discord/confirm/${discordLogId}`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  credentials: 'include',
-                  body: JSON.stringify({ transactionTimestamp: transaction.timestamp })
-                });
-                if (res.ok) {
-                  console.log('[Discord] Confirmation saved');
-                  setPendingDiscordLog(null);
+
+            <Route path="/marketing" element={<MarketingPage prices={prices} inventory={inventory} />} />
+
+            {/* Hub Pages */}
+            {!isPending && <Route path="/buchung" element={<BookingHub user={user} />} />}
+            {!isPending && <Route path="/protokolle" element={<ProtocolsHub user={user} />} />}
+            {!isPending && <Route path="/sonstiges" element={<SonstigesHub user={user} />} />}
+            <Route path="/trade" element={<Navigate to={(isHaendler || isBuchhaltung) ? "/buchung/einkauf" : "/"} replace />} />
+
+            {/* Protokolle Routes */}
+            {isBuchhaltung && <Route path="/protokolle/trade" element={<DailyTradeLog logs={transactionLogs} />} />}
+
+            {isBuchhaltung && <Route path="/protokolle/weekly" element={<WeeklyProtocol logs={transactionLogs} user={user} />} />}
+            {!isPending && <Route path="/protokolle/internal-storage" element={<InternalStorageProtocol logs={transactionLogs} user={user} employees={employees} onPayout={handleEmployeePayout} />} />}
+            {(isBuchhaltung) && (
+              <>
+                <Route path="/protokolle/period" element={<PeriodProtocol logs={transactionLogs} inventory={inventory} employees={employees} />} />
+                <Route path="/protokolle/analytics" element={<AnalyticsProtocol logs={transactionLogs} employees={employees} inventory={inventory} />} />
+                <Route path="/protokolle/kassenbuch" element={<CashBookProtocol logs={transactionLogs} inventory={inventory} prices={prices} onAdjustBalance={handleSpecialBooking} user={user} />} />
+                <Route path="/protokolle/lohn" element={<PayrollProtocol logs={transactionLogs} employees={employees} prices={prices} user={user} />} />
+                <Route path="/protokolle/guv" element={<ProfitLossProtocol logs={transactionLogs} employees={employees} prices={prices} inventory={inventory} />} />
+                <Route path="/protokolle/buchhaltung" element={<AccountingDashboard logs={transactionLogs} employees={employees} inventory={inventory} prices={prices} user={user} />} />
+                <Route path="/protokolle/profitabilitaet" element={<ProductProfitability logs={transactionLogs} prices={prices} inventory={inventory} />} />
+                <Route path="/protokolle/transaction-search" element={<TransactionSearchProtocol logs={transactionLogs} />} />
+              </>
+            )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
+
+            {/* Discord Integration - Super Admin Only */}
+            {['823276402320998450', '690510884639866960'].includes(user?.discordId) && (
+              <Route path="/protokolle/discord" element={<DiscordIntegrationPage />} />
+            )}
+
+            <Route path="/protokolle/monthly" element={<Navigate to="/protokolle/period" replace />} />
+
+            {isBuchhaltung && <Route path="/kontrolle" element={<ControlPage employeeInventory={employeeInventory} employees={employees} inventory={inventory} />} />}
+
+            {/* Sonstiges Routes - Admin Only */}
+            {isAdmin && (
+              <>
+                <Route path="/sonstiges/werbung" element={<AdsPage />} />
+
+                <Route path="/sonstiges/kontakte" element={<ContactsPage />} />
+                <Route path="/sonstiges/partner" element={<PartnersPage />} />
+                <Route path="/sonstiges/personal" element={<PersonnelPage />} />
+                <Route path="/beleg" element={<BelegPage prices={prices} />} />
+                <Route path="/preise" element={<PricesPage />} />
+              </>
+            )}
+
+
+            {/* Sonstiges Routes - Public for all users */}
+            {!isPending && (
+              <>
+                <Route path="/sonstiges/hausordnung" element={<HausordnungPage user={user} />} />
+                <Route path="/sonstiges/beginner-guide" element={<BeginnerGuidePage user={user} />} />
+              </>
+            )}
+
+            {/* Sammel-Event Routes */}
+            {!isPending && (
+              <>
+                <Route path="/sammel-event" element={<SammelEventPage employees={employees} />} />
+                {isBuchhaltung && (
+                  <Route path="/sammel-event/config" element={<SammelEventConfigPage employees={employees} inventory={inventory} />} />
+                )}
+              </>
+            )}
+
+            {/* Fuhrpark Route - Fuhrparkmanager & Admin */}
+            {isFuhrpark && (
+              <Route path="/sonstiges/fuhrpark" element={<FuhrparkPage user={user} />} />
+            )}
+
+            {/* System Routes */}
+            {isBuchhaltung && (
+              <>
+                <Route path="/system" element={
+                  <ErrorBoundary>
+                    <SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />
+                  </ErrorBoundary>
+                } />
+                <Route path="/system/employees" element={
+                  <ErrorBoundary>
+                    <SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />
+                  </ErrorBoundary>
+                } />
+              </>
+            )}
+
+            {/* Super Admin Audit Log */}
+            {(user?.discordId === '823276402320998450' || user?.discordId === '690510884639866960') && (
+              <>
+                <Route path="/aktivitaetslog" element={<AuditLogPage />} />
+                <Route path="/admin/backup" element={<BackupProtocol user={user} />} />
+                <Route path="/admin/performance" element={<PerformanceDashboard user={user} />} />
+              </>
+            )}
+          </Routes>
+
+          {/* Discord Confirmation Modal */}
+          {pendingDiscordLog && (
+            <DiscordConfirmationModal
+              discordLog={pendingDiscordLog}
+              recentTransactions={recentTransactions}
+              onConfirm={async (discordLogId, transaction) => {
+                try {
+                  const res = await fetch(`/api/discord/confirm/${discordLogId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ transactionTimestamp: transaction.timestamp })
+                  });
+                  if (res.ok) {
+                    console.log('[Discord] Confirmation saved');
+                    setPendingDiscordLog(null);
+                  }
+                } catch (err) {
+                  console.error('[Discord] Confirmation failed:', err);
                 }
-              } catch (err) {
-                console.error('[Discord] Confirmation failed:', err);
-              }
-            }}
-            onDismiss={() => setPendingDiscordLog(null)}
-            onNotMine={async () => {
-              try {
-                await fetch(`/api/discord/dismiss/${pendingDiscordLog.id}`, {
-                  method: 'POST',
-                  credentials: 'include'
-                });
-                setPendingDiscordLog(null);
-              } catch (err) {
-                console.error('[Discord] Dismiss failed:', err);
-              }
-            }}
-          />
-        )}
-      </div>
-    </Router>
+              }}
+              onDismiss={() => setPendingDiscordLog(null)}
+              onNotMine={async () => {
+                try {
+                  await fetch(`/api/discord/dismiss/${pendingDiscordLog.id}`, {
+                    method: 'POST',
+                    credentials: 'include'
+                  });
+                  setPendingDiscordLog(null);
+                } catch (err) {
+                  console.error('[Discord] Dismiss failed:', err);
+                }
+              }}
+            />
+          )}
+        </div>
+      </Router>
+    </>
   );
 }
 

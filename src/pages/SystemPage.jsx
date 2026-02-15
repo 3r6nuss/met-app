@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, Trash2, UserPlus, FileText, ArrowUpRight, ArrowDownLeft, ShieldAlert, Edit2, X, Users, Plus, Circle, Eye, EyeOff } from 'lucide-react';
 import UserManagement from '../components/UserManagement';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function SystemPage({ employees = [], onUpdateEmployees, logs = [], onDeleteLog, onReset, user, inventory = [] }) {
     console.log("SystemPage Mounted", { employees, logs, user, inventory });
@@ -146,47 +161,44 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
     }, [activeTab]);
 
     const handleBackup = () => {
-        fetch('/api/admin/backup', { method: 'POST' })
+        const promise = fetch('/api/admin/backup', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    alert("Backup erfolgreich erstellt!");
                     fetchBackups(); // Refresh list
+                    return data;
+                } else {
+                    throw new Error(data.error || "Unbekannter Fehler");
                 }
-                else alert("Backup fehlgeschlagen: " + (data.error || "Unbekannter Fehler"));
-            })
-            .catch(err => alert("Netzwerkfehler: " + err));
+            });
+
+        toast.promise(promise, {
+            loading: 'Erstelle Backup...',
+            success: 'Backup erfolgreich erstellt!',
+            error: (err) => `Backup fehlgeschlagen: ${err.message}`
+        });
     };
 
-    const _handleRestoreBackup = (filename) => {
-        if (window.confirm(`WARNUNG: Möchtest du wirklich das Backup "${filename}" wiederherstellen? \n\nALLE aktuellen Daten gehen verloren und werden durch das Backup ersetzt!`)) {
-            fetch('/api/restore', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        alert("Wiederherstellung erfolgreich! Die Seite wird neu geladen.");
-                        window.location.reload();
-                    } else {
-                        alert("Fehler bei Wiederherstellung: " + (data.error || "Unbekannter Fehler"));
-                    }
-                })
-                .catch(err => alert("Netzwerkfehler: " + err));
-        }
-    };
+
 
     const handleDeleteBackup = (filename) => {
         if (window.confirm(`Backup "${filename}" wirklich löschen?`)) {
-            fetch(`/api/admin/backups/${filename}`, { method: 'DELETE' })
+            const promise = fetch(`/api/admin/backups/${filename}`, { method: 'DELETE' })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success) fetchBackups();
-                    else alert("Fehler beim Löschen: " + (data.error || "Unbekannter Fehler"));
-                })
-                .catch(err => alert("Netzwerkfehler: " + err));
+                    if (data.success) {
+                        fetchBackups();
+                        return data;
+                    } else {
+                        throw new Error(data.error || "Unbekannter Fehler");
+                    }
+                });
+
+            toast.promise(promise, {
+                loading: 'Lösche Backup...',
+                success: 'Backup gelöscht',
+                error: (err) => `Fehler beim Löschen: ${err.message}`
+            });
         }
     };
 
@@ -197,657 +209,664 @@ export default function SystemPage({ employees = [], onUpdateEmployees, logs = [
     };
 
     return (
-        <div className="animate-fade-in max-w-4xl mx-auto">
-            <div className="bg-blue-500 text-white p-2 mb-4 rounded text-center text-xs font-mono">DEBUG: SystemPage Loaded</div>
-            <h2 className="text-2xl font-bold mb-6 text-slate-200 flex items-center gap-2">
-                <ShieldAlert className="w-6 h-6 text-violet-400" />
-                Systemverwaltung
-            </h2>
-
-            {/* Tabs */}
-            <div className="flex gap-2 mb-6 border-b border-slate-700 pb-1">
-                <button
-                    onClick={() => setActiveTab('employees')}
-                    className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'employees' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
-                >
-                    Mitarbeiter
-                </button>
-                {isAdmin && (
-                    <>
-                        <button
-                            onClick={() => setActiveTab('users')}
-                            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'users' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            Benutzer
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('recipes')}
-                            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'recipes' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            Rezepte
-                        </button>
-                    </>
-                )}
-                {(isAdmin || user?.role === 'Buchhaltung') && (
-                    <>
-                        <button
-                            onClick={() => setActiveTab('protokoll')}
-                            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'protokoll' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            Protokoll-Zuordnung
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('priorities')}
-                            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'priorities' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            Prioritäten
-                        </button>
-                    </>
-                )}
-                {isAdmin && (
-                    <>
-                        <button
-                            onClick={() => setActiveTab('system')}
-                            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'system' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            System & Backup
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('logs')}
-                            className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${activeTab === 'logs' ? 'bg-slate-800 text-violet-400 border-t border-x border-slate-700' : 'text-slate-400 hover:text-slate-200'}`}
-                        >
-                            Logs
-                        </button>
-                    </>
-                )}
+        <div className="animate-fade-in max-w-6xl mx-auto pb-24 space-y-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400">
+                        Systemverwaltung
+                    </h1>
+                    <p className="text-slate-400 mt-1">
+                        Verwaltung von Mitarbeitern, Benutzern, Rezepten und Systemeinstellungen
+                    </p>
+                </div>
             </div>
 
-            <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-6">
-                {/* Employee Management */}
-                {activeTab === 'employees' && (
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-300 mb-4">Mitarbeiter verwalten</h3>
-                        <div className="flex gap-2 mb-6">
-                            <input
-                                type="text"
-                                value={newEmployeeName}
-                                onChange={(e) => setNewEmployeeName(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleAddEmployee()}
-                                placeholder="Neuer Mitarbeiter Name..."
-                                className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-violet-500"
-                            />
-                            <button
-                                onClick={handleAddEmployee}
-                                className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                            >
-                                <UserPlus className="w-4 h-4" />
-                                Hinzufügen
-                            </button>
-                        </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 h-auto mb-6 bg-slate-900 border border-slate-800">
+                    <TabsTrigger value="employees" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg">Mitarbeiter</TabsTrigger>
+                    {isAdmin && <TabsTrigger value="users">Benutzer</TabsTrigger>}
+                    {isAdmin && <TabsTrigger value="recipes">Rezepte</TabsTrigger>}
+                    {(isAdmin || user?.role === 'Buchhaltung') && <TabsTrigger value="protokoll">Zuordnung</TabsTrigger>}
+                    {(isAdmin || user?.role === 'Buchhaltung') && <TabsTrigger value="priorities">Prioritäten</TabsTrigger>}
+                    {isAdmin && <TabsTrigger value="system">System</TabsTrigger>}
+                    {isAdmin && <TabsTrigger value="logs">Logs</TabsTrigger>}
+                </TabsList>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {Array.isArray(employees) && employees.map((empData, idx) => {
-                                // Handle both string (legacy) and object formats
-                                const emp = typeof empData === 'string' ? { name: empData, status: 'active' } : empData;
-                                const isFired = emp.status === 'fired';
-
-                                return (
-                                    <div key={idx} className={`flex justify-between items-center px-4 py-3 rounded-lg border transition-colors ${isFired ? 'bg-red-900/10 border-red-900/30' : 'bg-slate-800/50 border-slate-700/50'}`}>
-                                        {editingIndex === idx ? (
-                                            <div className="flex gap-2 flex-1 mr-2">
-                                                <input
-                                                    type="text"
-                                                    value={editName}
-                                                    onChange={(e) => setEditName(e.target.value)}
-                                                    className="flex-1 bg-slate-950 border border-slate-600 rounded px-2 py-1 text-sm text-white"
-                                                    autoFocus
-                                                />
-                                                <button onClick={() => saveEdit(idx)} className="text-emerald-400 hover:text-emerald-300"><Save className="w-4 h-4" /></button>
-                                                <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-300"><X className="w-4 h-4" /></button>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`font-medium ${isFired ? 'text-red-400 line-through decoration-red-500/50' : 'text-slate-200'}`}>
-                                                        {emp.name}
-                                                    </span>
-                                                    {isFired && <span className="text-[10px] uppercase bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded font-bold">Gefeuert</span>}
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    <button
-                                                        onClick={() => startEdit(idx, emp.name)}
-                                                        className="text-slate-500 hover:text-violet-400 p-2 transition-colors"
-                                                        title="Umbenennen"
-                                                    >
-                                                        <Edit2 className="w-4 h-4" />
-                                                    </button>
-
-                                                    {isFired ? (
-                                                        <button
-                                                            onClick={() => {
-                                                                if (window.confirm(`Mitarbeiter "${emp.name}" wieder einstellen?`)) {
-                                                                    const updated = [...employees];
-                                                                    const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active' } : updated[idx];
-                                                                    updated[idx] = { ...current, status: 'active' };
-                                                                    onUpdateEmployees(updated);
-                                                                }
-                                                            }}
-                                                            className="text-slate-500 hover:text-emerald-400 p-2 transition-colors"
-                                                            title="Wieder einstellen"
-                                                        >
-                                                            <UserPlus className="w-4 h-4" />
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => {
-                                                                if (window.confirm(`Mitarbeiter "${emp.name}" wirklich feuern? Er wird aus Listen entfernt, bleibt aber in der Historie.`)) {
-                                                                    const updated = [...employees];
-                                                                    const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active' } : updated[idx];
-                                                                    updated[idx] = { ...current, status: 'fired' };
-                                                                    onUpdateEmployees(updated);
-                                                                }
-                                                            }}
-                                                            className="text-slate-500 hover:text-red-400 p-2 transition-colors"
-                                                            title="Feuern"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                            {(!employees || employees.length === 0) && (
-                                <div className="text-slate-500 italic col-span-2 text-center py-4">Keine Mitarbeiter angelegt.</div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* User Management (Admin Only) */}
-                {activeTab === 'users' && isAdmin && (
-                    <UserManagement employees={employees} />
-                )}
-
-                {/* Protokoll-Zuordnung (Admin/Buchhaltung) */}
-                {activeTab === 'protokoll' && (isAdmin || user?.role === 'Buchhaltung') && (
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
-                            <Eye className="w-5 h-5 text-violet-400" />
-                            Protokoll-Zuordnung
-                        </h3>
-                        <p className="text-slate-400 text-sm mb-6">
-                            Steuere, welche Mitarbeiter in Protokollen angezeigt werden und unter welchem Namen.
-                            Mehrere Mitarbeiter mit gleichem Protokoll-Namen werden zusammengefasst.
-                        </p>
-                        <div className="space-y-2">
-                            <div className="grid grid-cols-[1fr_80px_200px] gap-4 px-4 py-2 text-xs text-slate-400 uppercase font-bold border-b border-slate-700">
-                                <span>Mitarbeiter</span>
-                                <span className="text-center">Sichtbar</span>
-                                <span>Protokoll-Name</span>
+                <TabsContent value="employees">
+                    <Card className="border-slate-800 bg-slate-900/50">
+                        <CardHeader>
+                            <CardTitle className="text-xl flex items-center gap-2">
+                                <Users className="w-5 h-5 text-violet-400" />
+                                Mitarbeiter verwalten
+                            </CardTitle>
+                            <CardDescription>
+                                Verwalte die Liste aller Mitarbeiter und deren Status.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex gap-2">
+                                <Input
+                                    value={newEmployeeName}
+                                    onChange={(e) => setNewEmployeeName(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleAddEmployee()}
+                                    placeholder="Neuer Mitarbeiter Name..."
+                                    className="bg-slate-950 border-slate-700"
+                                />
+                                <Button onClick={handleAddEmployee} className="bg-violet-600 hover:bg-violet-700">
+                                    <UserPlus className="w-4 h-4 mr-2" />
+                                    Hinzufügen
+                                </Button>
                             </div>
-                            {Array.isArray(employees) && employees.map((empData, idx) => {
-                                const emp = typeof empData === 'string' ? { name: empData, status: 'active', visible_in_protocol: 1, protocol_name: null } : empData;
-                                const isFired = emp.status === 'fired';
-                                const isVisible = emp.visible_in_protocol === 1 || emp.visible_in_protocol === true;
 
-                                // Get all unique protocol names for dropdown
-                                const existingProtocolNames = [...new Set(
-                                    employees
-                                        .map(e => typeof e === 'object' ? e.protocol_name : null)
-                                        .filter(n => n && n.trim())
-                                )];
+                            <ScrollArea className="h-[500px] w-full pr-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {Array.isArray(employees) && employees.map((empData, idx) => {
+                                        const emp = typeof empData === 'string' ? { name: empData, status: 'active' } : empData;
+                                        const isFired = emp.status === 'fired';
 
-                                return (
-                                    <div key={idx} className={`grid grid-cols-[1fr_80px_200px] gap-4 px-4 py-3 rounded-lg border transition-colors ${isFired ? 'bg-red-900/10 border-red-900/30 opacity-50' : 'bg-slate-800/30 border-slate-700/50'}`}>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`font-medium ${isFired ? 'text-red-400 line-through' : 'text-slate-200'}`}>
-                                                {emp.name}
-                                            </span>
-                                            {isFired && <span className="text-[10px] uppercase bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded font-bold">Gefeuert</span>}
-                                        </div>
-                                        <div className="flex justify-center">
-                                            <button
-                                                onClick={() => {
-                                                    const updated = [...employees];
-                                                    const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active', visible_in_protocol: 1, protocol_name: null } : updated[idx];
-                                                    updated[idx] = { ...current, visible_in_protocol: isVisible ? 0 : 1 };
-                                                    onUpdateEmployees(updated);
-                                                }}
-                                                className={`p-2 rounded-lg transition-colors ${isVisible ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-slate-700 text-slate-500 hover:bg-slate-600'}`}
-                                                title={isVisible ? 'Sichtbar - Klicken zum Ausblenden' : 'Ausgeblendet - Klicken zum Einblenden'}
-                                            >
-                                                {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                                            </button>
-                                        </div>
-                                        <div>
-                                            <select
-                                                value={emp.protocol_name || ''}
-                                                onChange={(e) => {
-                                                    const updated = [...employees];
-                                                    const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active', visible_in_protocol: 1, protocol_name: null } : updated[idx];
-                                                    updated[idx] = { ...current, protocol_name: e.target.value || null };
-                                                    onUpdateEmployees(updated);
-                                                }}
-                                                className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-500"
-                                            >
-                                                <option value="">— Eigener Name —</option>
-                                                {existingProtocolNames.map(name => (
-                                                    <option key={name} value={name}>{name}</option>
-                                                ))}
-                                            </select>
-                                            <input
-                                                type="text"
-                                                placeholder="Neuer Name..."
-                                                className="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-3 py-1 text-white text-xs focus:outline-none focus:border-violet-500"
-                                                onKeyPress={(e) => {
-                                                    if (e.key === 'Enter' && e.target.value.trim()) {
-                                                        const updated = [...employees];
-                                                        const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active', visible_in_protocol: 1, protocol_name: null } : updated[idx];
-                                                        updated[idx] = { ...current, protocol_name: e.target.value.trim() };
-                                                        onUpdateEmployees(updated);
-                                                        e.target.value = '';
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            {(!employees || employees.length === 0) && (
-                                <div className="text-slate-500 italic text-center py-4">Keine Mitarbeiter angelegt.</div>
-                            )}
-                        </div>
-                    </div>
+                                        return (
+                                            <div key={idx} className={cn(
+                                                "flex flex-col p-3 rounded-lg border transition-all",
+                                                isFired ? "bg-red-950/20 border-red-900/30" : "bg-slate-950/50 border-slate-800 hover:border-violet-500/30"
+                                            )}>
+                                                {editingIndex === idx ? (
+                                                    <div className="flex gap-2 items-center h-full">
+                                                        <Input
+                                                            value={editName}
+                                                            onChange={(e) => setEditName(e.target.value)}
+                                                            className="h-8"
+                                                            autoFocus
+                                                        />
+                                                        <Button size="icon" variant="ghost" onClick={() => saveEdit(idx)} className="h-8 w-8 text-emerald-400 hover:text-emerald-300"><Save className="w-4 h-4" /></Button>
+                                                        <Button size="icon" variant="ghost" onClick={cancelEdit} className="h-8 w-8 text-slate-400 hover:text-slate-300"><X className="w-4 h-4" /></Button>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="font-semibold text-slate-200 truncate pr-2" title={emp.name}>
+                                                                {emp.name}
+                                                            </div>
+                                                            {isFired && <Badge variant="destructive" className="text-[10px] h-5 px-1.5">Gefeuert</Badge>}
+                                                        </div>
+                                                        <div className="mt-auto flex justify-end gap-1">
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                onClick={() => startEdit(idx, emp.name)}
+                                                                className="h-7 w-7 text-slate-500 hover:text-violet-400 hover:bg-violet-500/10"
+                                                            >
+                                                                <Edit2 className="w-3.5 h-3.5" />
+                                                            </Button>
+
+                                                            {isFired ? (
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                    onClick={() => {
+                                                                        if (window.confirm(`Mitarbeiter "${emp.name}" wieder einstellen?`)) {
+                                                                            const updated = [...employees];
+                                                                            const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active' } : updated[idx];
+                                                                            updated[idx] = { ...current, status: 'active' };
+                                                                            onUpdateEmployees(updated);
+                                                                            toast.success("Mitarbeiter wieder eingestellt");
+                                                                        }
+                                                                    }}
+                                                                    className="h-7 w-7 text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10"
+                                                                >
+                                                                    <UserPlus className="w-3.5 h-3.5" />
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                    onClick={() => {
+                                                                        if (window.confirm(`Mitarbeiter "${emp.name}" wirklich feuern?`)) {
+                                                                            const updated = [...employees];
+                                                                            const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active' } : updated[idx];
+                                                                            updated[idx] = { ...current, status: 'fired' };
+                                                                            onUpdateEmployees(updated);
+                                                                            toast.success("Mitarbeiter gefeuert");
+                                                                        }
+                                                                    }}
+                                                                    className="h-7 w-7 text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {(!employees || employees.length === 0) && (
+                                        <div className="text-slate-500 italic col-span-full text-center py-8">Keine Mitarbeiter angelegt.</div>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {isAdmin && (
+                    <TabsContent value="users">
+                        <UserManagement employees={employees} />
+                    </TabsContent>
                 )}
 
-                {/* Recipe Management */}
-                {activeTab === 'recipes' && isAdmin && (
-                    <div className="space-y-8">
-                        {/* Add Recipe Form */}
-                        <div className="bg-slate-800/30 p-4 rounded-lg border border-slate-700">
-                            <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
-                                <Plus className="w-5 h-5 text-violet-400" />
-                                Neues Rezept erstellen / bearbeiten
-                            </h3>
-
-                            <div className="space-y-4">
+                {/* Placeholders for other tabs - will be replaced in next steps */}
+                {isAdmin && <TabsContent value="recipes">
+                    <div className="space-y-6">
+                        <Card className="border-slate-800 bg-slate-900/50">
+                            <CardHeader>
+                                <CardTitle className="text-xl flex items-center gap-2">
+                                    <Plus className="w-5 h-5 text-violet-400" />
+                                    Neues Rezept erstellen / bearbeiten
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
                                 <div>
                                     <label className="text-xs text-slate-400 uppercase font-bold block mb-1">Endprodukt</label>
-                                    <select
-                                        value={selectedProduct}
-                                        onChange={(e) => setSelectedProduct(e.target.value)}
-                                        className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white"
-                                    >
-                                        <option value="">Produkt wählen...</option>
-                                        <option value="">Produkt wählen...</option>
-                                        {Array.isArray(inventory) && inventory.map(item => (
-                                            <option key={item.id} value={item.id}>{item.name}</option>
-                                        ))}
-                                    </select>
+                                    <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                                        <SelectTrigger className="w-full bg-slate-950 border-slate-700">
+                                            <SelectValue placeholder="Produkt wählen..." />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-950 border-slate-800">
+                                            {Array.isArray(inventory) && inventory.map(item => (
+                                                <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-xs text-slate-400 uppercase font-bold block">Zutaten</label>
                                     {recipeIngredients.map((ing, idx) => (
                                         <div key={idx} className="flex gap-2 items-center">
-                                            <select
-                                                value={ing.id}
-                                                onChange={(e) => handleIngredientChange(idx, 'id', e.target.value)}
-                                                className="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white"
-                                            >
-                                                <option value="">Zutat wählen...</option>
-                                                <option value="">Zutat wählen...</option>
-                                                {Array.isArray(inventory) && inventory.map(item => (
-                                                    <option key={item.id} value={item.id}>{item.name}</option>
-                                                ))}
-                                            </select>
-                                            <input
+                                            <Select value={String(ing.id)} onValueChange={(val) => handleIngredientChange(idx, 'id', val)}>
+                                                <SelectTrigger className="flex-1 bg-slate-950 border-slate-700">
+                                                    <SelectValue placeholder="Zutat wählen..." />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-slate-950 border-slate-800">
+                                                    {Array.isArray(inventory) && inventory.map(item => (
+                                                        <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Input
                                                 type="number"
                                                 value={ing.quantity}
                                                 onChange={(e) => handleIngredientChange(idx, 'quantity', e.target.value)}
-                                                className="w-20 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white"
+                                                className="w-24 bg-slate-950 border-slate-700"
                                                 min="1"
                                             />
-                                            <button onClick={() => handleRemoveIngredient(idx)} className="text-red-400 hover:text-red-300 p-2">
+                                            <Button size="icon" variant="ghost" onClick={() => handleRemoveIngredient(idx)} className="h-10 w-10 text-red-400 hover:text-red-300 hover:bg-red-500/10">
                                                 <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            </Button>
                                         </div>
                                     ))}
-                                    <button onClick={handleAddIngredient} className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 mt-2">
-                                        <Plus className="w-3 h-3" /> Zutat hinzufügen
-                                    </button>
+                                    <Button variant="ghost" size="sm" onClick={handleAddIngredient} className="text-violet-400 hover:text-violet-300 hover:bg-violet-500/10">
+                                        <Plus className="w-3 h-3 mr-2" /> Zutat hinzufügen
+                                    </Button>
                                 </div>
 
-                                <button
-                                    onClick={handleSaveRecipe}
-                                    className="w-full bg-violet-600 hover:bg-violet-700 text-white py-2 rounded font-semibold transition-colors"
-                                >
+                                <Button onClick={handleSaveRecipe} className="w-full bg-violet-600 hover:bg-violet-700">
                                     Rezept speichern
-                                </button>
-                            </div>
-                        </div>
+                                </Button>
+                            </CardContent>
+                        </Card>
 
-                        {/* Existing Recipes List */}
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-emerald-400" />
-                                Vorhandene Rezepte
-                            </h3>
-                            <div className="grid grid-cols-1 gap-3">
-                                {recipes && Object.entries(recipes).map(([productId, recipe]) => {
-                                    const product = Array.isArray(inventory) ? inventory.find(i => i.id === parseInt(productId)) : null;
-                                    if (!product) return null;
+                        <Card className="border-slate-800 bg-slate-900/50">
+                            <CardHeader>
+                                <CardTitle className="text-xl flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-emerald-400" />
+                                    Vorhandene Rezepte
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                    {recipes && Object.entries(recipes).map(([productId, recipe]) => {
+                                        const product = Array.isArray(inventory) ? inventory.find(i => i.id === parseInt(productId)) : null;
+                                        if (!product) return null;
 
-                                    return (
-                                        <div key={productId} className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex justify-between items-start">
-                                            <div>
-                                                <div className="font-bold text-white mb-2">{product.name}</div>
-                                                <div className="space-y-1">
-                                                    {recipe.inputs.map((input, idx) => {
-                                                        const ingredient = Array.isArray(inventory) ? inventory.find(i => i.id === input.id) : null;
-                                                        return (
-                                                            <div key={idx} className="text-sm text-slate-400 flex items-center gap-2">
-                                                                <span className="w-1 h-1 bg-slate-500 rounded-full"></span>
-                                                                {input.quantity}x {ingredient ? ingredient.name : 'Unknown'}
-                                                            </div>
-                                                        );
-                                                    })}
+                                        return (
+                                            <div key={productId} className="bg-slate-950/50 border border-slate-800 rounded-lg p-4 flex justify-between items-start transition-all hover:border-violet-500/30">
+                                                <div>
+                                                    <div className="font-bold text-white mb-2">{product.name}</div>
+                                                    <div className="space-y-1">
+                                                        {recipe.inputs.map((input, idx) => {
+                                                            const ingredient = Array.isArray(inventory) ? inventory.find(i => i.id === input.id) : null;
+                                                            return (
+                                                                <div key={idx} className="text-sm text-slate-400 flex items-center gap-2">
+                                                                    <div className="w-1.5 h-1.5 bg-slate-600 rounded-full"></div>
+                                                                    {input.quantity}x {ingredient ? ingredient.name : 'Unknown'}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => {
+                                                <div className="flex gap-1">
+                                                    <Button size="icon" variant="ghost" onClick={() => {
                                                         setSelectedProduct(productId);
                                                         setRecipeIngredients(recipe.inputs.map(i => ({ id: i.id, quantity: i.quantity })));
                                                         window.scrollTo({ top: 0, behavior: 'smooth' });
-                                                    }}
-                                                    className="text-slate-500 hover:text-violet-400 p-2"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteRecipe(productId)}
-                                                    className="text-slate-500 hover:text-red-400 p-2"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                    }} className="h-8 w-8 text-slate-500 hover:text-violet-400">
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button size="icon" variant="ghost" onClick={() => handleDeleteRecipe(productId)} className="h-8 w-8 text-slate-500 hover:text-red-400">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                                {Object.keys(recipes).length === 0 && (
-                                    <div className="text-center text-slate-500 py-4">Keine Rezepte gefunden.</div>
-                                )}
-                            </div>
-                        </div>
+                                        );
+                                    })}
+                                    {Object.keys(recipes).length === 0 && (
+                                        <div className="text-center text-slate-500 py-8 col-span-full">Keine Rezepte gefunden.</div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
-                )}
+                </TabsContent>}
+                {(isAdmin || user?.role === 'Buchhaltung') && <TabsContent value="protokoll">
+                    <Card className="border-slate-800 bg-slate-900/50">
+                        <CardHeader>
+                            <CardTitle className="text-xl flex items-center gap-2">
+                                <Eye className="w-5 h-5 text-violet-400" />
+                                Protokoll-Zuordnung
+                            </CardTitle>
+                            <CardDescription>
+                                Steuere, welche Mitarbeiter in Protokollen angezeigt werden und unter welchem Namen.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-2">
+                                <div className="grid grid-cols-[1fr_80px_200px] gap-4 px-4 py-2 text-xs text-slate-400 uppercase font-bold border-b border-slate-700">
+                                    <span>Mitarbeiter</span>
+                                    <span className="text-center">Sichtbar</span>
+                                    <span>Protokoll-Name</span>
+                                </div>
+                                <ScrollArea className="h-[600px] pr-4">
+                                    <div className="space-y-2">
+                                        {Array.isArray(employees) && employees.map((empData, idx) => {
+                                            const emp = typeof empData === 'string' ? { name: empData, status: 'active', visible_in_protocol: 1, protocol_name: null } : empData;
+                                            const isFired = emp.status === 'fired';
+                                            const isVisible = emp.visible_in_protocol === 1 || emp.visible_in_protocol === true;
 
+                                            // Get all unique protocol names for dropdown
+                                            const existingProtocolNames = [...new Set(
+                                                employees
+                                                    .map(e => typeof e === 'object' ? e.protocol_name : null)
+                                                    .filter(n => n && n.trim())
+                                            )];
 
-                {/* Priority Management (Buchhaltung/Admin Only) */}
-                {activeTab === 'priorities' && (isAdmin || user?.role === 'Buchhaltung') && (
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-300 mb-4">Prioritäten verwalten</h3>
-                        <p className="text-slate-400 text-sm mb-6">Lege die Priorität für Lagerartikel fest. Die Farben werden im Inventar angezeigt.</p>
-                        <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-                            {inventory.map((item) => {
-                                const percentage = item.target && item.target > 0
-                                    ? Math.round((item.current / item.target) * 100)
-                                    : null;
-                                const percentageColor =
-                                    percentage === null ? 'text-slate-500' :
-                                        percentage < 20 ? 'text-red-400' :
-                                            percentage < 100 ? 'text-amber-400' :
-                                                'text-emerald-400';
+                                            return (
+                                                <div key={idx} className={cn(
+                                                    "grid grid-cols-[1fr_80px_200px] gap-4 px-4 py-3 rounded-lg border transition-colors items-center",
+                                                    isFired ? "bg-red-950/20 border-red-900/30 opacity-50" : "bg-slate-950/50 border-slate-800 hover:border-slate-700"
+                                                )}>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={cn("font-medium", isFired ? "text-red-400 line-through" : "text-slate-200")}>
+                                                            {emp.name}
+                                                        </span>
+                                                        {isFired && <Badge variant="destructive" className="text-[10px] h-5 px-1">Gefeuert</Badge>}
+                                                    </div>
+                                                    <div className="flex justify-center">
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            onClick={() => {
+                                                                const updated = [...employees];
+                                                                const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active', visible_in_protocol: 1, protocol_name: null } : updated[idx];
+                                                                updated[idx] = { ...current, visible_in_protocol: isVisible ? 0 : 1 };
+                                                                onUpdateEmployees(updated);
+                                                            }}
+                                                            className={cn("h-8 w-8", isVisible ? "text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20" : "text-slate-500 hover:bg-slate-800")}
+                                                            title={isVisible ? 'Sichtbar - Klicken zum Ausblenden' : 'Ausgeblendet - Klicken zum Einblenden'}
+                                                        >
+                                                            {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                                        </Button>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Select
+                                                            value={emp.protocol_name || "custom"}
+                                                            onValueChange={(val) => {
+                                                                const updated = [...employees];
+                                                                const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active', visible_in_protocol: 1, protocol_name: null } : updated[idx];
+                                                                updated[idx] = { ...current, protocol_name: val === "custom" ? null : val };
+                                                                onUpdateEmployees(updated);
+                                                            }}
+                                                        >
+                                                            <SelectTrigger className="h-7 text-xs bg-slate-900 border-slate-700">
+                                                                <SelectValue placeholder="— Eigener Name —" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="custom">— Eigener Name —</SelectItem>
+                                                                {existingProtocolNames.map(name => (
+                                                                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
 
-                                return (
-                                    <div key={item.id} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 flex justify-between items-center hover:bg-slate-800/50 transition-colors">
-                                        <div className="flex items-center gap-3">
-                                            <Circle
-                                                className={`w-5 h-5 ${item.priority === 'high' ? 'text-red-500 fill-red-500' :
-                                                    item.priority === 'medium' ? 'text-orange-500 fill-orange-500' :
-                                                        item.priority === 'low' ? 'text-green-500 fill-green-500' :
-                                                            'text-slate-600'
-                                                    }`}
-                                            />
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-slate-200 font-medium">{item.name}</span>
-                                                {percentage !== null && (
-                                                    <span className={`text-xs font-semibold ${percentageColor}`}>
-                                                        ({percentage}%)
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => {
-                                                    fetch(`/api/inventory/${item.id}/priority`, {
-                                                        method: 'PUT',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ priority: 'high' })
-                                                    });
-                                                }}
-                                                className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'high'
-                                                    ? 'bg-red-600 text-white'
-                                                    : 'bg-red-600/20 text-red-400 hover:bg-red-600/30'
-                                                    }`}
-                                            >
-                                                Rot
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    fetch(`/api/inventory/${item.id}/priority`, {
-                                                        method: 'PUT',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ priority: 'medium' })
-                                                    });
-                                                }}
-                                                className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'medium'
-                                                    ? 'bg-orange-600 text-white'
-                                                    : 'bg-orange-600/20 text-orange-400 hover:bg-orange-600/30'
-                                                    }`}
-                                            >
-                                                Orange
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    fetch(`/api/inventory/${item.id}/priority`, {
-                                                        method: 'PUT',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ priority: 'low' })
-                                                    });
-                                                }}
-                                                className={`px-3 py-1 rounded text-xs transition-colors ${item.priority === 'low'
-                                                    ? 'bg-green-600 text-white'
-                                                    : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
-                                                    }`}
-                                            >
-                                                Grün
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    fetch(`/api/inventory/${item.id}/priority`, {
-                                                        method: 'PUT',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ priority: null })
-                                                    });
-                                                }}
-                                                className="px-3 py-1 rounded text-xs bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
-                                            >
-                                                Keine
-                                            </button>
-                                        </div>
+                                                        {(!emp.protocol_name || !existingProtocolNames.includes(emp.protocol_name)) && (
+                                                            <Input
+                                                                placeholder="Neuer Name..."
+                                                                className="h-7 text-xs bg-slate-900 border-slate-700"
+                                                                onKeyPress={(e) => {
+                                                                    if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                        const updated = [...employees];
+                                                                        const current = typeof updated[idx] === 'string' ? { name: updated[idx], status: 'active', visible_in_protocol: 1, protocol_name: null } : updated[idx];
+                                                                        updated[idx] = { ...current, protocol_name: e.target.value.trim() };
+                                                                        onUpdateEmployees(updated);
+                                                                        e.target.value = '';
+                                                                    }
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        {(!employees || employees.length === 0) && (
+                                            <div className="text-slate-500 italic text-center py-4">Keine Mitarbeiter angelegt.</div>
+                                        )}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
+                                </ScrollArea>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>}
+                {(isAdmin || user?.role === 'Buchhaltung') && <TabsContent value="priorities">
+                    <Card className="border-slate-800 bg-slate-900/50">
+                        <CardHeader>
+                            <CardTitle className="text-xl flex items-center gap-2">
+                                <ArrowUpRight className="w-5 h-5 text-amber-400" />
+                                Prioritäten verwalten
+                            </CardTitle>
+                            <CardDescription>
+                                Lege die Priorität für Lagerartikel fest. Die Farben werden im Inventar angezeigt.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-[600px] pr-4">
+                                <div className="space-y-2">
+                                    {inventory.map((item) => {
+                                        const percentage = item.target && item.target > 0
+                                            ? Math.round((item.current / item.target) * 100)
+                                            : null;
+                                        const percentageColor =
+                                            percentage === null ? 'text-slate-500' :
+                                                percentage < 20 ? 'text-red-400' :
+                                                    percentage < 100 ? 'text-amber-400' :
+                                                        'text-emerald-400';
 
-                {/* System Actions (Admin Only) */}
-                {
-                    activeTab === 'system' && isAdmin && (
-                        <div className="space-y-6">
-                            {/* Force Reload (Super Admin Only) */}
-                            {(user?.discordId === '823276402320998450' || user?.discordId === '690510884639866960') && (
-                                <div className="p-4 bg-violet-600/10 border border-violet-500/30 rounded-xl mb-6">
-                                    <h3 className="text-lg font-bold text-violet-400 mb-2 flex items-center gap-2">
+                                        return (
+                                            <div key={item.id} className="bg-slate-950/50 border border-slate-800 rounded-lg p-3 flex justify-between items-center hover:border-slate-700 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <Circle
+                                                        className={cn("w-4 h-4",
+                                                            item.priority === 'high' ? 'text-red-500 fill-red-500' :
+                                                                item.priority === 'medium' ? 'text-orange-500 fill-orange-500' :
+                                                                    item.priority === 'low' ? 'text-green-500 fill-green-500' :
+                                                                        'text-slate-600'
+                                                        )}
+                                                    />
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-slate-200 font-medium">{item.name}</span>
+                                                        {percentage !== null && (
+                                                            <span className={cn("text-xs font-semibold", percentageColor)}>
+                                                                ({percentage}%)
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant={item.priority === 'high' ? "destructive" : "outline"}
+                                                        onClick={() => {
+                                                            fetch(`/api/inventory/${item.id}/priority`, {
+                                                                method: 'PUT',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ priority: 'high' })
+                                                            });
+                                                        }}
+                                                        className={cn("h-7 px-2 text-xs", item.priority === 'high' ? "" : "border-red-900/50 text-red-400 hover:bg-red-950/30 hover:text-red-300")}
+                                                    >
+                                                        Rot
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant={item.priority === 'medium' ? "default" : "outline"}
+                                                        onClick={() => {
+                                                            fetch(`/api/inventory/${item.id}/priority`, {
+                                                                method: 'PUT',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ priority: 'medium' })
+                                                            });
+                                                        }}
+                                                        className={cn("h-7 px-2 text-xs", item.priority === 'medium' ? "bg-orange-600 hover:bg-orange-700 text-white" : "border-orange-900/50 text-orange-400 hover:bg-orange-950/30 hover:text-orange-300")}
+                                                    >
+                                                        Orange
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant={item.priority === 'low' ? "default" : "outline"}
+                                                        onClick={() => {
+                                                            fetch(`/api/inventory/${item.id}/priority`, {
+                                                                method: 'PUT',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ priority: 'low' })
+                                                            });
+                                                        }}
+                                                        className={cn("h-7 px-2 text-xs", item.priority === 'low' ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "border-emerald-900/50 text-emerald-400 hover:bg-emerald-950/30 hover:text-emerald-300")}
+                                                    >
+                                                        Grün
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => {
+                                                            fetch(`/api/inventory/${item.id}/priority`, {
+                                                                method: 'PUT',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ priority: null })
+                                                            });
+                                                        }}
+                                                        className="h-7 px-2 text-xs text-slate-500 hover:text-slate-300"
+                                                    >
+                                                        Keine
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </TabsContent>}
+                {isAdmin && <TabsContent value="system">
+                    <div className="space-y-6">
+                        {(user?.discordId === '823276402320998450' || user?.discordId === '690510884639866960') && (
+                            <Card className="border-violet-500/30 bg-violet-600/5">
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center gap-2 text-violet-400">
                                         <ShieldAlert className="w-5 h-5" />
                                         Admin Zone
-                                    </h3>
-                                    <p className="text-sm text-slate-400 mb-4">
+                                    </CardTitle>
+                                    <CardDescription className="text-violet-300/70">
                                         Erzwingt ein Neuladen bei ALLEN verbundenen Nutzern. Nur im Notfall nutzen!
-                                    </p>
-                                    <button
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Button
+                                        variant="destructive"
                                         onClick={() => {
                                             if (confirm("Wirklich bei ALLEN Nutzern ein Neuladen erzwingen?")) {
                                                 fetch('/api/trigger-reload', { method: 'POST' })
                                                     .then(res => res.json())
                                                     .then(data => {
-                                                        if (data.success) alert("Reload Signal gesendet!");
+                                                        if (data.success) toast.success("Reload Signal gesendet!");
                                                     });
                                             }
                                         }}
-                                        className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-bold w-full flex items-center justify-center gap-2 transition-colors"
+                                        className="w-full bg-violet-600 hover:bg-violet-700"
                                     >
-                                        <RefreshCw className="w-4 h-4" />
+                                        <RefreshCw className="w-4 h-4 mr-2" />
                                         Force Global Reload
-                                    </button>
-                                </div>
-                            )}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
 
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-300 mb-4">Datenbank & Backup</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                    <button
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <Card className="border-slate-800 bg-slate-900/50">
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <Save className="w-5 h-5 text-blue-400" />
+                                        Datenbank & Backup
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-4">
+                                    <Button
+                                        variant="outline"
                                         onClick={handleBackup}
-                                        className="flex items-center justify-center gap-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/50 p-6 rounded-xl transition-all group"
+                                        className="h-auto py-4 flex flex-col items-start gap-1 border-blue-900/40 hover:bg-blue-950/20 hover:border-blue-700/50 group"
                                     >
-                                        <Save className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                                        <div className="text-left">
-                                            <div className="font-bold">Backup erstellen</div>
-                                            <div className="text-xs opacity-70">Sichert die aktuelle Datenbank</div>
+                                        <div className="flex items-center gap-2 font-bold text-blue-400">
+                                            <Save className="w-4 h-4" /> Backup erstellen
                                         </div>
-                                    </button>
+                                        <div className="text-xs text-slate-500">Sichert die aktuelle Datenbank</div>
+                                    </Button>
 
-                                    <button
+                                    <Button
+                                        variant="outline"
                                         onClick={handleResetDatabase}
-                                        className="flex items-center justify-center gap-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50 p-6 rounded-xl transition-all group"
+                                        className="h-auto py-4 flex flex-col items-start gap-1 border-red-900/40 hover:bg-red-950/20 hover:border-red-700/50 group"
                                     >
-                                        <RefreshCw className="w-8 h-8 group-hover:rotate-180 transition-transform duration-500" />
-                                        <div className="text-left">
-                                            <div className="font-bold">System Reset</div>
-                                            <div className="text-xs opacity-70">Löscht ALLE Daten (Vorsicht!)</div>
+                                        <div className="flex items-center gap-2 font-bold text-red-400">
+                                            <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" /> System Reset
                                         </div>
-                                    </button>
+                                        <div className="text-xs text-slate-500">Löscht ALLE Daten (Vorsicht!)</div>
+                                    </Button>
 
-                                    <button
+                                    <Button
+                                        variant="outline"
                                         onClick={() => {
                                             if (confirm("Möchtest du wirklich die Standard-Personalliste laden? Dies überschreibt aktuelle Daten!")) {
                                                 fetch('/api/system/seed-personnel', { method: 'POST' })
                                                     .then(res => res.json())
                                                     .then(data => {
-                                                        if (data.success) alert(`Erfolgreich geladen! ${data.count} Mitarbeiter hinzugefügt.`);
-                                                        else alert("Fehler: " + data.error);
+                                                        if (data.success) toast.success(`Erfolgreich geladen! ${data.count} Mitarbeiter hinzugefügt.`);
+                                                        else toast.error("Fehler: " + data.error);
                                                     });
                                             }
                                         }}
-                                        className="flex items-center justify-center gap-3 bg-fuchsia-600/20 hover:bg-fuchsia-600/30 text-fuchsia-400 border border-fuchsia-600/50 p-6 rounded-xl transition-all group"
+                                        className="h-auto py-4 flex flex-col items-start gap-1 border-fuchsia-900/40 hover:bg-fuchsia-950/20 hover:border-fuchsia-700/50 group"
                                     >
-                                        <Users className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                                        <div className="text-left">
-                                            <div className="font-bold">Standard Personal laden</div>
-                                            <div className="text-xs opacity-70">Lädt die Standardliste neu</div>
+                                        <div className="flex items-center gap-2 font-bold text-fuchsia-400">
+                                            <Users className="w-4 h-4" /> Standard Personal laden
                                         </div>
-                                    </button>
-                                </div>
+                                        <div className="text-xs text-slate-500">Lädt die Standardliste neu</div>
+                                    </Button>
+                                </CardContent>
+                            </Card>
 
-                                <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-emerald-400" />
-                                    Verfügbare Backups
-                                </h3>
-
-                                {loadingBackups ? (
-                                    <div className="text-slate-500 italic">Lade Backups...</div>
-                                ) : (
-                                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                                        {backups.map((backup) => (
-                                            <div key={backup.filename} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 flex justify-between items-center hover:bg-slate-800/50 transition-colors">
-                                                <div className="text-slate-200 font-medium">{backup.filename}</div>
-                                                <div>
-                                                    <button
-                                                        onClick={() => handleDeleteBackup(backup.filename)}
-                                                        className="p-2 text-slate-500 hover:text-red-400 transition-colors"
-                                                        title="Löschen"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
+                            <Card className="border-slate-800 bg-slate-900/50">
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-emerald-400" />
+                                        Verfügbare Backups
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {loadingBackups ? (
+                                        <div className="flex items-center justify-center p-8 text-slate-500 italic">
+                                            <RefreshCw className="w-4 h-4 animate-spin mr-2" /> Lade Backups...
+                                        </div>
+                                    ) : (
+                                        <ScrollArea className="h-[300px] w-full pr-4">
+                                            <div className="space-y-2">
+                                                {backups.map((backup) => (
+                                                    <div key={backup.filename} className="bg-slate-950/50 border border-slate-800 rounded-lg p-3 flex justify-between items-center hover:border-slate-700 transition-colors">
+                                                        <div className="text-slate-200 font-medium text-sm truncate mr-2" title={backup.filename}>{backup.filename}</div>
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            onClick={() => handleDeleteBackup(backup.filename)}
+                                                            className="h-8 w-8 text-slate-500 hover:text-red-400"
+                                                            title="Löschen"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                                {backups.length === 0 && (
+                                                    <div className="text-center text-slate-500 py-4">Keine Backups gefunden.</div>
+                                                )}
                                             </div>
-                                        ))}
-                                        {backups.length === 0 && (
-                                            <div className="text-center text-slate-500 py-4">Keine Backups gefunden.</div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+                                        </ScrollArea>
+                                    )}
+                                </CardContent>
+                            </Card>
                         </div>
-                    )
-                }
-
-                {/* Log Management (Admin Only) */}
-                {
-                    activeTab === 'logs' && isAdmin && (
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
-                                <FileText className="w-5 h-5" />
+                    </div>
+                </TabsContent>}
+                {isAdmin && <TabsContent value="logs">
+                    <Card className="border-slate-800 bg-slate-900/50">
+                        <CardHeader>
+                            <CardTitle className="text-xl flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-slate-400" />
                                 Letzte System-Logs ({logs.length})
-                            </h3>
-                            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-                                {logs.map((log, idx) => (
-                                    <div key={idx} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 text-sm hover:bg-slate-800/50 transition-colors group">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className="text-xs text-slate-500">
-                                                {new Date(log.timestamp).toLocaleString()}
-                                            </span>
-                                            <button
-                                                onClick={() => onDeleteLog(log.timestamp)}
-                                                className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                                                title="Eintrag löschen"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-[600px] pr-4">
+                                <div className="space-y-2">
+                                    {logs.map((log, idx) => (
+                                        <div key={idx} className="bg-slate-950/50 border border-slate-800 rounded-lg p-3 text-sm hover:border-slate-700 transition-colors group">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className="text-xs text-slate-500 font-mono">
+                                                    {new Date(log.timestamp).toLocaleString()}
+                                                </span>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => onDeleteLog(log.timestamp)}
+                                                    className="h-6 w-6 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    title="Eintrag löschen"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                {log.type === 'in' ? (
+                                                    <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
+                                                ) : (
+                                                    <ArrowUpRight className="w-4 h-4 text-amber-400" />
+                                                )}
+                                                <span className="font-medium text-slate-200">
+                                                    {log.quantity}x {log.itemName}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-xs">
+                                                <span className="text-slate-400">{log.depositor}</span>
+                                                <span className="text-slate-500 font-mono">
+                                                    ${(log.price || 0).toLocaleString()}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            {log.type === 'in' ? (
-                                                <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
-                                            ) : (
-                                                <ArrowUpRight className="w-4 h-4 text-amber-400" />
-                                            )}
-                                            <span className="font-medium text-slate-200">
-                                                {log.quantity}x {log.itemName}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-xs">
-                                            <span className="text-slate-400">{log.depositor}</span>
-                                            <span className="text-slate-500 font-mono">
-                                                ${(log.price || 0).toLocaleString()}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                                {logs.length === 0 && (
-                                    <div className="text-center text-slate-500 py-8">Keine Logs vorhanden.</div>
-                                )}
-                            </div>
-                        </div>
-                    )
-                }
-            </div >
-        </div >
+                                    ))}
+                                    {logs.length === 0 && (
+                                        <div className="text-center text-slate-500 py-8">Keine Logs vorhanden.</div>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </TabsContent>}
+            </Tabs>
+        </div>
     );
 }

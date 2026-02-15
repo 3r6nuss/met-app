@@ -1,52 +1,61 @@
 @import "tailwindcss";
 
+@plugin "tailwindcss-animate";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
   --radius: 0.625rem;
 }
 
-/* Dark theme by default (matches app design) */
+/* Premium Dark Theme */
 :root {
-  --background: 222 47% 6%;
-  --foreground: 210 40% 88%;
-  --card: 222 47% 8%;
-  --card-foreground: 210 40% 88%;
-  --popover: 222 47% 8%;
-  --popover-foreground: 210 40% 88%;
-  --primary: 263 70% 58%;
+  --background: 224 71% 4%;
+  --foreground: 213 31% 91%;
+
+  --card: 224 71% 4%;
+  --card-foreground: 213 31% 91%;
+
+  --popover: 224 71% 4%;
+  --popover-foreground: 215 20.2% 65.1%;
+
+  --primary: 263.4 70% 50.4%;
   --primary-foreground: 210 40% 98%;
-  --secondary: 217 33% 17%;
-  --secondary-foreground: 210 40% 88%;
-  --muted: 217 33% 17%;
-  --muted-foreground: 215 20% 55%;
-  --accent: 217 33% 17%;
-  --accent-foreground: 210 40% 88%;
-  --destructive: 0 84% 60%;
+
+  --secondary: 222.2 47.4% 11.2%;
+  --secondary-foreground: 210 40% 98%;
+
+  --muted: 223 47% 11%;
+  --muted-foreground: 215.4 16.3% 56.9%;
+
+  --accent: 216 34% 17%;
+  --accent-foreground: 210 40% 98%;
+
+  --destructive: 0 63% 31%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217 33% 20%;
-  --input: 217 33% 20%;
-  --ring: 263 70% 58%;
-  --chart-1: 263 70% 58%;
+
+  --border: 216 34% 17%;
+  --input: 216 34% 17%;
+  --ring: 263.4 70% 50.4%;
+
+  --chart-1: 220 70% 50%;
   --chart-2: 160 60% 45%;
   --chart-3: 30 80% 55%;
-  --chart-4: 197 71% 53%;
+  --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
-  --sidebar-background: 222 47% 7%;
-  --sidebar-foreground: 210 40% 88%;
-  --sidebar-primary: 263 70% 58%;
-  --sidebar-primary-foreground: 210 40% 98%;
-  --sidebar-accent: 217 33% 17%;
-  --sidebar-accent-foreground: 210 40% 88%;
-  --sidebar-border: 217 33% 20%;
-  --sidebar-ring: 263 70% 58%;
+
+  --sidebar-background: 224 71% 4%;
+  --sidebar-foreground: 240 5.3% 26.1%;
+  --sidebar-primary: 240 5.9% 10%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 4.8% 95.9%;
+  --sidebar-accent-foreground: 240 5.9% 10%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
 }
 
 @theme inline {
   --font-sans: 'Outfit', sans-serif;
-  --color-slate-850: #151f32;
-  --color-slate-900: #0f172a;
-  --animate-float: float 6s ease-in-out infinite;
 
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -67,204 +76,53 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  @keyframes float {
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
 
-    0%,
-    100% {
-      transform: translateY(0);
+  @keyframes accordion-down {
+    from {
+      height: 0;
     }
 
-    50% {
-      transform: translateY(-10px);
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+
+    to {
+      height: 0;
     }
   }
 }
 
 @layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
   body {
-    @apply bg-slate-950 text-slate-200 min-h-screen selection:bg-violet-500/30 selection:text-violet-200;
-    background-image: url('/bg.png');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 @layer components {
   .glass-panel {
-    @apply bg-slate-900/60 backdrop-blur-md border border-white/5 shadow-2xl;
-    box-shadow: 0 0 40px -10px rgba(124, 58, 237, 0.1);
+    @apply bg-background/60 backdrop-blur-xl border border-border shadow-2xl;
   }
 
-  .glass-input {
-    @apply bg-slate-950/50 border border-white/5 text-slate-200 placeholder-slate-600 focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all rounded-lg;
+  .glass-card {
+    @apply bg-card/50 backdrop-blur-md border border-border/50 shadow-lg hover:bg-card/70 transition-colors;
   }
-
-  .btn-primary {
-    @apply bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium shadow-lg shadow-violet-900/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] rounded-lg border-t border-white/10;
-  }
-
-  .nav-item {
-    @apply relative overflow-hidden transition-all duration-300;
-  }
-
-  .nav-item::after {
-    content: '';
-    @apply absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-violet-500 to-transparent scale-x-0 transition-transform duration-300;
-  }
-
-  .nav-item:hover::after {
-    @apply scale-x-100;
-  }
-
-  /* Mega Menu Styles */
-  .mega-menu {
-    @apply absolute left-0 mt-2 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 p-4;
-    min-width: 600px;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-10px);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .group:hover .mega-menu {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-  }
-
-  .mega-menu-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-  }
-
-  /* Category Sections */
-  .menu-category {
-    @apply flex flex-col gap-2;
-  }
-
-  .menu-category-header {
-    @apply px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center gap-2;
-  }
-
-  .menu-category-header.violet {
-    @apply text-violet-300 bg-violet-500/10 border border-violet-500/20;
-  }
-
-  .menu-category-header.blue {
-    @apply text-blue-300 bg-blue-500/10 border border-blue-500/20;
-  }
-
-  .menu-category-header.green {
-    @apply text-emerald-300 bg-emerald-500/10 border border-emerald-500/20;
-  }
-
-  .menu-category-header.amber {
-    @apply text-amber-300 bg-amber-500/10 border border-amber-500/20;
-  }
-
-  .menu-category-header.red {
-    @apply text-red-300 bg-red-500/10 border border-red-500/20;
-  }
-
-  /* Menu Items */
-  .menu-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 transition-all duration-200;
-  }
-
-  .menu-item:hover {
-    @apply bg-white/5 text-white;
-    transform: translateX(4px);
-  }
-
-  .menu-item.violet:hover {
-    @apply bg-violet-500/10 text-violet-200;
-    box-shadow: 0 0 20px -5px rgba(139, 92, 246, 0.3);
-  }
-
-  .menu-item.blue:hover {
-    @apply bg-blue-500/10 text-blue-200;
-    box-shadow: 0 0 20px -5px rgba(59, 130, 246, 0.3);
-  }
-
-  .menu-item.green:hover {
-    @apply bg-emerald-500/10 text-emerald-200;
-    box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.3);
-  }
-
-  .menu-item.amber:hover {
-    @apply bg-amber-500/10 text-amber-200;
-    box-shadow: 0 0 20px -5px rgba(245, 158, 11, 0.3);
-  }
-
-  .menu-item.red:hover {
-    @apply bg-red-500/10 text-red-200;
-    box-shadow: 0 0 20px -5px rgba(239, 68, 68, 0.3);
-  }
-
-  .menu-item-icon {
-    @apply w-8 h-8 rounded-lg flex items-center justify-center text-base;
-  }
-
-  .menu-item-icon.violet {
-    @apply bg-violet-500/20 text-violet-300;
-  }
-
-  .menu-item-icon.blue {
-    @apply bg-blue-500/20 text-blue-300;
-  }
-
-  .menu-item-icon.green {
-    @apply bg-emerald-500/20 text-emerald-300;
-  }
-
-  .menu-item-icon.amber {
-    @apply bg-amber-500/20 text-amber-300;
-  }
-
-  .menu-item-icon.red {
-    @apply bg-red-500/20 text-red-300;
-  }
-
-  /* Fade In Animation */
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .animate-fade-in {
-    animation: fadeInUp 0.3s ease-out;
-  }
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
 }

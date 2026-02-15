@@ -2,9 +2,36 @@ import React, { useState, useMemo } from 'react';
 import {
     BookOpen, Calendar, ArrowUpRight, ArrowDownRight, Download,
     Filter, Search, TrendingUp, TrendingDown, DollarSign, FileText,
-    ChevronLeft, ChevronRight, Wallet, Pencil, X, Check, Info
+    ChevronLeft, ChevronRight, Wallet, Pencil, X, Check, Info, CreditCard
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import {
+    Tooltip as ShadcnTooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
@@ -26,7 +53,7 @@ const formatTime = (dateStr) => {
 };
 
 export default function CashBookProtocol({ logs = [], inventory = [], prices = [], onAdjustBalance, user }) {
-    const [activeTab, setActiveTab] = useState('kassenbuch'); // 'kassenbuch' or 'konto'
+    const [activeTab, setActiveTab] = useState('kassenbuch');
     const [dateRange, setDateRange] = useState({
         start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0]
@@ -38,7 +65,7 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
     const [editValue, setEditValue] = useState('');
     const itemsPerPage = 25;
 
-    // ============ KASSENBUCH DATA ============
+    // ... (Data processing logic remains mostly the same, ensuring robust error handling)
     const cashBookData = useMemo(() => {
         const start = new Date(dateRange.start);
         const end = new Date(dateRange.end);
@@ -112,6 +139,7 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
         const totalIncome = entries.filter(e => e.type === 'income').reduce((sum, e) => sum + e.amount, 0);
         const totalExpense = entries.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0);
 
+        // Calculate running balance reversely for display
         const entriesWithBalance = [...entries].reverse().map(entry => {
             if (entry.type === 'income') {
                 runningBalance += entry.amount;
@@ -130,7 +158,6 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
         };
     }, [logs, dateRange, searchTerm, categoryFilter]);
 
-    // ============ GESCHÄFTSKONTO DATA ============
     const { currentBalance, currentInventoryValue, chartData, transactions } = useMemo(() => {
         let balance = 0;
         const dataPoints = [];
@@ -143,15 +170,16 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
             let type = 'other';
 
             if (log.itemName === 'Auszahlung' || log.msg?.includes('Auszahlung')) {
-                change = log.price * log.quantity;
+                change = log.price * log.quantity; // price is negative for payout usually, or handled as expense
+                if (log.itemName === 'Auszahlung') change = -Math.abs(log.price || 0); // Force negative
                 type = 'payout';
-            } else if (log.category === 'trade' && log.type === 'in') {
+            } else if (log.category === 'trade' && log.type === 'in') { // Buying
                 const p = typeof log.price === 'string' ? parseFloat(log.price.replace(',', '.')) : log.price;
-                change = -(p * log.quantity);
+                change = -(Math.abs(p) * (log.quantity || 1));
                 type = 'purchase';
-            } else if (log.category === 'trade' && log.type === 'out') {
+            } else if (log.category === 'trade' && log.type === 'out') { // Selling
                 const p = typeof log.price === 'string' ? parseFloat(log.price.replace(',', '.')) : log.price;
-                change = p * log.quantity;
+                change = Math.abs(p) * (log.quantity || 1);
                 type = 'sale';
             } else if (log.itemName === 'Korrektur Geschäftskonto' || log.msg?.includes('Korrektur Geschäftskonto')) {
                 const p = typeof log.price === 'string' ? parseFloat(log.price.replace(',', '.')) : log.price;
@@ -162,11 +190,9 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
             if (change !== 0) {
                 balance += change;
                 const date = new Date(log.timestamp).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-
                 dataPoints.push({ date, balance });
-
                 relevantTransactions.unshift({
-                    id: log.id,
+                    id: log.id || Math.random(),
                     date: new Date(log.timestamp).toLocaleString('de-DE'),
                     type,
                     amount: Math.abs(change),
@@ -179,7 +205,7 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
 
         const invValue = inventory.reduce((sum, item) => {
             const priceItem = prices.find(p => p.name === item.name);
-            return sum + (item.current * (priceItem?.vk || 0));
+            return sum + (item.current * (priceItem?.vk || 0)); // market value
         }, 0);
 
         const finalData = dataPoints.map(p => ({
@@ -195,7 +221,6 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
         };
     }, [logs, inventory, prices]);
 
-    // ============ HANDLERS ============
     const totalPages = Math.ceil(cashBookData.entries.length / itemsPerPage);
     const paginatedEntries = cashBookData.entries.slice(
         (currentPage - 1) * itemsPerPage,
@@ -203,6 +228,7 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
     );
 
     const downloadCSV = () => {
+        // ... (CSV logic kept same)
         const headers = ['Beleg-Nr', 'Datum', 'Uhrzeit', 'Beschreibung', 'Kategorie', 'Person', 'Menge', 'Einnahme', 'Ausgabe', 'Saldo'];
         const rows = cashBookData.entries.map(e => [
             e.belegNr,
@@ -216,7 +242,6 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
             e.type === 'expense' ? e.amount.toFixed(2) : '',
             e.balance.toFixed(2)
         ]);
-
         const csv = [headers, ...rows].map(row => row.join(';')).join('\n');
         const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -234,14 +259,8 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
     const handleSaveEdit = () => {
         const newBal = parseFloat(editValue.toString().replace(',', '.'));
         if (isNaN(newBal)) return;
-
-        const safeCurrentBalance = isNaN(currentBalance) ? 0 : currentBalance;
-        const diff = newBal - safeCurrentBalance;
-        if (diff === 0) {
-            setIsEditing(false);
-            return;
-        }
-
+        const diff = newBal - (isNaN(currentBalance) ? 0 : currentBalance);
+        if (diff === 0) { setIsEditing(false); return; }
         if (onAdjustBalance) {
             onAdjustBalance({
                 amount: diff,
@@ -254,385 +273,380 @@ export default function CashBookProtocol({ logs = [], inventory = [], prices = [
 
     return (
         <div className="space-y-6 pb-20 animate-fade-in">
-            {/* HEADER */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-700/50 shadow-2xl">
-                <div>
-                    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 flex items-center gap-3">
-                        <BookOpen className="w-8 h-8 text-emerald-400" />
-                        Finanzen
-                    </h1>
-                    <p className="text-slate-400 mt-1">Kassenbuch & Geschäftskonto</p>
-                </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
 
-                {/* TABS */}
-                <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
-                    <button
-                        onClick={() => setActiveTab('kassenbuch')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'kassenbuch'
-                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                            }`}
-                    >
-                        <BookOpen className="w-4 h-4" />
-                        Kassenbuch
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('konto')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'konto'
-                                ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
-                            }`}
-                    >
-                        <Wallet className="w-4 h-4" />
-                        Geschäftskonto
-                    </button>
-                </div>
-            </div>
+                {/* HEADLINE + TABS */}
+                <Card className="border-slate-800 bg-slate-900/50">
+                    <CardContent className="p-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+                                <BookOpen className="w-8 h-8 text-emerald-400" />
+                                Finanzen
+                            </h1>
+                            <p className="text-slate-400 mt-1">Kassenbuch & Geschäftskonto Übersicht.</p>
+                        </div>
+                        <TabsList className="bg-slate-950 border border-slate-800">
+                            <TabsTrigger value="kassenbuch" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white min-w-[140px]">
+                                <BookOpen className="w-4 h-4 mr-2" /> Kassenbuch
+                            </TabsTrigger>
+                            <TabsTrigger value="konto" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white min-w-[140px]">
+                                <Wallet className="w-4 h-4 mr-2" /> Geschäftskonto
+                            </TabsTrigger>
+                        </TabsList>
+                    </CardContent>
+                </Card>
 
-            {/* ============ KASSENBUCH TAB ============ */}
-            {activeTab === 'kassenbuch' && (
-                <>
-                    {/* DATE RANGE & EXPORT */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-xl border border-slate-700">
-                            <Calendar className="w-4 h-4 text-emerald-400" />
-                            <input
+                {/* KASSENBUCH CONTENT */}
+                <TabsContent value="kassenbuch" className="space-y-6">
+                    {/* FILTERS & CONTROLS */}
+                    <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                        <div className="flex flex-wrap items-center gap-2 bg-slate-900/50 p-1 rounded-lg border border-slate-800">
+                            <Calendar className="w-4 h-4 text-emerald-400 ml-2" />
+                            <Input
                                 type="date"
                                 value={dateRange.start}
                                 onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                                className="bg-transparent border-none text-slate-200 text-sm focus:ring-0 p-0"
+                                className="bg-transparent border-none text-slate-200 w-32 focus-visible:ring-0 h-8"
                             />
-                            <span className="text-slate-500">–</span>
-                            <input
+                            <span className="text-slate-500">-</span>
+                            <Input
                                 type="date"
                                 value={dateRange.end}
                                 onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                                className="bg-transparent border-none text-slate-200 text-sm focus:ring-0 p-0"
+                                className="bg-transparent border-none text-slate-200 w-32 focus-visible:ring-0 h-8"
                             />
                         </div>
-                        <button
-                            onClick={downloadCSV}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white font-medium transition-colors"
-                        >
-                            <Download className="w-4 h-4" />
-                            CSV Export
-                        </button>
+
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <div className="relative flex-1 md:w-64">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+                                <Input
+                                    placeholder="Suche..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-9 bg-slate-900/50 border-slate-800 text-slate-200 focus-visible:ring-emerald-500"
+                                />
+                            </div>
+                            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                                <SelectTrigger className="w-[180px] bg-slate-900/50 border-slate-800 text-slate-200">
+                                    <SelectValue placeholder="Kategorie" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-950 border-slate-800">
+                                    <SelectItem value="all">Alle Kategorien</SelectItem>
+                                    <SelectItem value="Verkauf">Verkauf</SelectItem>
+                                    <SelectItem value="Ankauf">Ankauf</SelectItem>
+                                    <SelectItem value="Lohn">Lohn</SelectItem>
+                                    <SelectItem value="Sonderbuchung">Sonderbuchung</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button variant="outline" size="icon" onClick={downloadCSV} className="border-slate-800 bg-slate-900/50 hover:bg-emerald-500/10 hover:text-emerald-400">
+                                <Download className="w-4 h-4" />
+                            </Button>
+                        </div>
                     </div>
 
                     {/* KPI CARDS */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 rounded-xl bg-emerald-500/10">
-                                    <ArrowUpRight className="w-5 h-5 text-emerald-400" />
+                        <Card className="bg-slate-900/50 border-slate-800">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Einnahmen</CardTitle>
+                                <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-emerald-400">{formatCurrency(cashBookData.totalIncome)}</div>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-slate-900/50 border-slate-800">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Ausgaben</CardTitle>
+                                <ArrowDownRight className="w-4 h-4 text-red-400" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-red-400">{formatCurrency(cashBookData.totalExpense)}</div>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-slate-900/50 border-slate-800">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Saldo</CardTitle>
+                                <DollarSign className="w-4 h-4 text-violet-400" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className={cn("text-2xl font-bold", cashBookData.netBalance >= 0 ? "text-violet-400" : "text-red-400")}>
+                                    {formatCurrency(cashBookData.netBalance)}
                                 </div>
-                                <span className="text-slate-400 text-sm font-medium">Einnahmen</span>
-                            </div>
-                            <div className="text-2xl font-bold text-emerald-400">{formatCurrency(cashBookData.totalIncome)}</div>
-                        </div>
-
-                        <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 rounded-xl bg-red-500/10">
-                                    <ArrowDownRight className="w-5 h-5 text-red-400" />
-                                </div>
-                                <span className="text-slate-400 text-sm font-medium">Ausgaben</span>
-                            </div>
-                            <div className="text-2xl font-bold text-red-400">{formatCurrency(cashBookData.totalExpense)}</div>
-                        </div>
-
-                        <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 rounded-xl bg-violet-500/10">
-                                    <DollarSign className="w-5 h-5 text-violet-400" />
-                                </div>
-                                <span className="text-slate-400 text-sm font-medium">Saldo</span>
-                            </div>
-                            <div className={`text-2xl font-bold ${cashBookData.netBalance >= 0 ? 'text-violet-400' : 'text-red-400'}`}>
-                                {formatCurrency(cashBookData.netBalance)}
-                            </div>
-                        </div>
-
-                        <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 rounded-xl bg-blue-500/10">
-                                    <FileText className="w-5 h-5 text-blue-400" />
-                                </div>
-                                <span className="text-slate-400 text-sm font-medium">Buchungen</span>
-                            </div>
-                            <div className="text-2xl font-bold text-blue-400">{cashBookData.totalEntries}</div>
-                        </div>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-slate-900/50 border-slate-800">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Einträge</CardTitle>
+                                <FileText className="w-4 h-4 text-blue-400" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-blue-400">{cashBookData.totalEntries}</div>
+                            </CardContent>
+                        </Card>
                     </div>
 
-                    {/* FILTERS */}
-                    <div className="flex flex-wrap gap-4 items-center bg-slate-800/30 p-4 rounded-2xl border border-slate-700/30">
-                        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                            <Search className="w-4 h-4 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Suche nach Beschreibung, Person, Beleg-Nr..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="flex-1 bg-transparent border-none text-slate-200 placeholder-slate-500 focus:ring-0"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Filter className="w-4 h-4 text-slate-400" />
-                            <select
-                                value={categoryFilter}
-                                onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="bg-slate-700 border-none rounded-lg text-slate-200 text-sm px-3 py-2"
-                            >
-                                <option value="all">Alle Kategorien</option>
-                                <option value="Verkauf">Verkauf</option>
-                                <option value="Ankauf">Ankauf</option>
-                                <option value="Lohn">Lohn</option>
-                                <option value="Sonderbuchung">Sonderbuchung</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* CASH BOOK TABLE */}
-                    <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl overflow-hidden shadow-xl">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-800/50">
-                                    <tr className="text-slate-400 text-xs uppercase tracking-wider">
-                                        <th className="px-4 py-4">Beleg-Nr</th>
-                                        <th className="px-4 py-4">Datum</th>
-                                        <th className="px-4 py-4">Beschreibung</th>
-                                        <th className="px-4 py-4">Kategorie</th>
-                                        <th className="px-4 py-4">Person</th>
-                                        <th className="px-4 py-4 text-right">Menge</th>
-                                        <th className="px-4 py-4 text-right">Einnahme</th>
-                                        <th className="px-4 py-4 text-right">Ausgabe</th>
-                                        <th className="px-4 py-4 text-right">Saldo</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-700/30">
+                    {/* TABLE */}
+                    <Card className="border-slate-800 bg-slate-900/50">
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="border-slate-800 hover:bg-transparent">
+                                        <TableHead className="w-[120px]">Beleg-Nr</TableHead>
+                                        <TableHead>Datum</TableHead>
+                                        <TableHead>Beschreibung</TableHead>
+                                        <TableHead>Kategorie</TableHead>
+                                        <TableHead>Person</TableHead>
+                                        <TableHead className="text-right">Menge</TableHead>
+                                        <TableHead className="text-right">Einnahme</TableHead>
+                                        <TableHead className="text-right">Ausgabe</TableHead>
+                                        <TableHead className="text-right">Saldo</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     {paginatedEntries.map((entry) => (
-                                        <tr key={entry.id} className="hover:bg-slate-800/30 transition-colors text-slate-300">
-                                            <td className="px-4 py-3 font-mono text-xs text-slate-500">{entry.belegNr}</td>
-                                            <td className="px-4 py-3">
-                                                <div className="text-sm">{formatDate(entry.timestamp)}</div>
+                                        <TableRow key={entry.id} className="border-slate-800 hover:bg-slate-800/40">
+                                            <TableCell className="font-mono text-xs text-slate-500">{entry.belegNr}</TableCell>
+                                            <TableCell>
+                                                <div className="text-sm text-slate-300">{formatDate(entry.timestamp)}</div>
                                                 <div className="text-xs text-slate-500">{formatTime(entry.timestamp)}</div>
-                                            </td>
-                                            <td className="px-4 py-3 font-medium">{entry.description}</td>
-                                            <td className="px-4 py-3">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${entry.category === 'Verkauf' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                        entry.category === 'Ankauf' ? 'bg-amber-500/10 text-amber-400' :
-                                                            entry.category === 'Lohn' ? 'bg-blue-500/10 text-blue-400' :
-                                                                'bg-slate-500/10 text-slate-400'
-                                                    }`}>
+                                            </TableCell>
+                                            <TableCell className="font-medium text-slate-200">{entry.description}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className={cn("font-medium",
+                                                    entry.category === 'Verkauf' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                        entry.category === 'Ankauf' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                                            entry.category === 'Lohn' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                                'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                                                )}>
                                                     {entry.category}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-slate-400">{entry.depositor}</td>
-                                            <td className="px-4 py-3 text-right font-mono">{entry.quantity}</td>
-                                            <td className="px-4 py-3 text-right font-mono text-emerald-400">
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-slate-400">{entry.depositor}</TableCell>
+                                            <TableCell className="text-right font-mono text-slate-400">{entry.quantity}</TableCell>
+                                            <TableCell className="text-right font-mono text-emerald-400 font-bold">
                                                 {entry.type === 'income' ? formatCurrency(entry.amount) : '–'}
-                                            </td>
-                                            <td className="px-4 py-3 text-right font-mono text-red-400">
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono text-red-400 font-bold">
                                                 {entry.type === 'expense' ? formatCurrency(entry.amount) : '–'}
-                                            </td>
-                                            <td className={`px-4 py-3 text-right font-mono font-bold ${entry.balance >= 0 ? 'text-slate-200' : 'text-red-400'}`}>
+                                            </TableCell>
+                                            <TableCell className={cn("text-right font-mono font-bold", entry.balance >= 0 ? 'text-slate-200' : 'text-red-400')}>
                                                 {formatCurrency(entry.balance)}
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
                                     ))}
                                     {paginatedEntries.length === 0 && (
-                                        <tr>
-                                            <td colSpan={9} className="px-4 py-12 text-center text-slate-500">
-                                                Keine Einträge gefunden
-                                            </td>
-                                        </tr>
+                                        <TableRow>
+                                            <TableCell colSpan={9} className="h-24 text-center text-slate-500">Keine Einträge gefunden.</TableCell>
+                                        </TableRow>
                                     )}
-                                </tbody>
-                            </table>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
+                    {/* PAGINATION */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between px-4">
+                            <div className="text-sm text-slate-400">
+                                Seite {currentPage} von {totalPages}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="h-8 w-8 border-slate-800 bg-slate-900/50"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="h-8 w-8 border-slate-800 bg-slate-900/50"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </Button>
+                            </div>
                         </div>
+                    )}
+                </TabsContent>
 
-                        {/* PAGINATION */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-between px-4 py-3 bg-slate-800/30 border-t border-slate-700/30">
-                                <div className="text-sm text-slate-400">
-                                    Seite {currentPage} von {totalPages} ({cashBookData.totalEntries} Einträge)
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                        disabled={currentPage === 1}
-                                        className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        <ChevronLeft className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                        disabled={currentPage === totalPages}
-                                        className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        <ChevronRight className="w-4 h-4" />
-                                    </button>
-                                </div>
+                {/* GESCHÄFTSKONTO CONTENT */}
+                <TabsContent value="konto" className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Interactive Balance Card */}
+                        <Card className="bg-slate-900/50 border-slate-800 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5">
+                                <DollarSign className="w-32 h-32 text-slate-100" />
                             </div>
-                        )}
-                    </div>
-                </>
-            )}
-
-            {/* ============ GESCHÄFTSKONTO TAB ============ */}
-            {activeTab === 'konto' && (
-                <>
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Kontostand Card */}
-                        <div className="bg-slate-800/50 p-6 rounded-2xl relative overflow-hidden group border border-slate-700/50">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <DollarSign className="w-24 h-24 text-violet-400" />
-                            </div>
-                            <div className="flex justify-between items-start mb-2 relative z-10">
-                                <p className="text-slate-400 font-medium">Aktueller Kontostand</p>
-                                {!isEditing && (
-                                    <button onClick={handleStartEdit} className="text-slate-500 hover:text-violet-400 transition-colors opacity-0 group-hover:opacity-100">
-                                        <Pencil className="w-4 h-4" />
-                                    </button>
+                            <CardHeader className="relative z-10 pb-2">
+                                <div className="flex justify-between items-start">
+                                    <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Aktueller Kontostand</CardTitle>
+                                    {!isEditing && (
+                                        <Button variant="ghost" size="icon" onClick={handleStartEdit} className="h-6 w-6 text-slate-500 hover:text-violet-400 -mt-1 -mr-2">
+                                            <Pencil className="w-3 h-3" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="relative z-10">
+                                {isEditing ? (
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-9 bg-slate-950 border-slate-700"
+                                        />
+                                        <Button size="icon" className="h-9 w-9 bg-emerald-600 hover:bg-emerald-500" onClick={handleSaveEdit}>
+                                            <Check className="w-4 h-4" />
+                                        </Button>
+                                        <Button size="icon" variant="destructive" className="h-9 w-9" onClick={() => setIsEditing(false)}>
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className={cn("text-3xl font-bold", currentBalance >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                                        {formatCurrency(currentBalance)}
+                                    </div>
                                 )}
-                            </div>
+                            </CardContent>
+                        </Card>
 
-                            {isEditing ? (
-                                <div className="flex items-center gap-2 relative z-10">
-                                    <input
-                                        type="number"
-                                        value={editValue}
-                                        onChange={(e) => setEditValue(e.target.value)}
-                                        className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white w-full"
-                                        autoFocus
-                                    />
-                                    <button onClick={handleSaveEdit} className="p-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30">
-                                        <Check className="w-4 h-4" />
-                                    </button>
-                                    <button onClick={() => setIsEditing(false)} className="p-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30">
-                                        <X className="w-4 h-4" />
-                                    </button>
+                        <Card className="bg-slate-900/50 border-slate-800 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5">
+                                <TrendingUp className="w-32 h-32 text-blue-100" />
+                            </div>
+                            <CardHeader className="relative z-10 pb-2">
+                                <div className="flex items-center gap-2">
+                                    <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Lagerwert (VK)</CardTitle>
+                                    <TooltipProvider>
+                                        <ShadcnTooltip>
+                                            <TooltipTrigger>
+                                                <Info className="w-3 h-3 text-slate-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="bg-slate-900 border-slate-800 text-slate-300">
+                                                <p>Summe aller Waren im Lager zu Verkaufspreisen.</p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
+                                    </TooltipProvider>
                                 </div>
-                            ) : (
-                                <h2 className={`text-3xl font-bold relative z-10 ${currentBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                    {formatCurrency(currentBalance)}
-                                </h2>
-                            )}
-                        </div>
+                            </CardHeader>
+                            <CardContent className="relative z-10">
+                                <div className="text-3xl font-bold text-blue-400">{formatCurrency(currentInventoryValue)}</div>
+                            </CardContent>
+                        </Card>
 
-                        {/* Lagerwert VK Card */}
-                        <div className="bg-slate-800/50 p-6 rounded-2xl relative overflow-hidden border border-slate-700/50">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <TrendingUp className="w-24 h-24 text-blue-400" />
+                        <Card className="bg-slate-900/50 border-slate-800 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5">
+                                <Wallet className="w-32 h-32 text-fuchsia-100" />
                             </div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <p className="text-slate-400 font-medium">Lagerwert (VK)</p>
-                                <div className="group/tooltip relative">
-                                    <Info className="w-4 h-4 text-slate-500" />
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 border border-slate-700 rounded text-xs text-slate-300 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50">
-                                        Der Wert aller Waren im Lager basierend auf dem aktuellen Verkaufspreis.
-                                    </div>
+                            <CardHeader className="relative z-10 pb-2">
+                                <div className="flex items-center gap-2">
+                                    <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Gesamtvermögen</CardTitle>
+                                    <TooltipProvider>
+                                        <ShadcnTooltip>
+                                            <TooltipTrigger>
+                                                <Info className="w-3 h-3 text-slate-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="bg-slate-900 border-slate-800 text-slate-300">
+                                                <p>Kontostand + Lagerwert (VK).</p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
+                                    </TooltipProvider>
                                 </div>
-                            </div>
-                            <h2 className="text-3xl font-bold text-blue-400">
-                                {formatCurrency(currentInventoryValue)}
-                            </h2>
-                        </div>
-
-                        {/* Gesamtvermögen Card */}
-                        <div className="bg-slate-800/50 p-6 rounded-2xl relative overflow-hidden border border-slate-700/50">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <Wallet className="w-24 h-24 text-fuchsia-400" />
-                            </div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <p className="text-slate-400 font-medium">Gesamtvermögen</p>
-                                <div className="group/tooltip relative">
-                                    <Info className="w-4 h-4 text-slate-500" />
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 border border-slate-700 rounded text-xs text-slate-300 opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50">
-                                        Summe aus aktuellem Kontostand und dem Lagerwert (VK). Das potenzielle Kapital bei vollständigem Abverkauf.
-                                    </div>
-                                </div>
-                            </div>
-                            <h2 className="text-3xl font-bold text-fuchsia-400">
-                                {formatCurrency(currentBalance + currentInventoryValue)}
-                            </h2>
-                        </div>
+                            </CardHeader>
+                            <CardContent className="relative z-10">
+                                <div className="text-3xl font-bold text-fuchsia-400">{formatCurrency(currentBalance + currentInventoryValue)}</div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     {/* Chart */}
-                    <div className="bg-slate-900/50 border border-slate-700/50 p-6 rounded-3xl">
-                        <h3 className="text-xl font-bold text-white mb-6">Verlauf</h3>
-                        <div className="h-[400px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                                    <XAxis dataKey="date" stroke="#94a3b8" />
-                                    <YAxis stroke="#94a3b8" />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
-                                        itemStyle={{ color: '#f8fafc' }}
-                                        formatter={(value) => formatCurrency(value)}
-                                    />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="balance" name="Kontostand" stroke="#10b981" strokeWidth={2} dot={false} />
-                                    <Line type="monotone" dataKey="total" name="Gesamtvermögen (Potenzial)" stroke="#d946ef" strokeWidth={2} dot={false} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
+                    <Card className="bg-slate-900/50 border-slate-800">
+                        <CardHeader>
+                            <CardTitle className="text-lg font-bold text-white">Verlauf</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="h-[400px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} vertical={false} />
+                                        <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                                        <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
+                                            itemStyle={{ color: '#f8fafc' }}
+                                            formatter={(value) => formatCurrency(value)}
+                                        />
+                                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                        <Line type="monotone" dataKey="balance" name="Kontostand" stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 6 }} />
+                                        <Line type="monotone" dataKey="total" name="Gesamtvermögen" stroke="#d946ef" strokeWidth={2} dot={false} activeDot={{ r: 6 }} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
 
-                    {/* Transactions List */}
-                    <div className="bg-slate-900/50 border border-slate-700/50 p-6 rounded-3xl">
-                        <h3 className="text-xl font-bold text-white mb-6">Buchungshistorie</h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="text-slate-400 border-b border-slate-700">
-                                        <th className="p-3">Datum</th>
-                                        <th className="p-3">Vorgang</th>
-                                        <th className="p-3">Grund</th>
-                                        <th className="p-3 text-right">Betrag</th>
-                                        <th className="p-3 text-right">Saldo</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-slate-300">
-                                    {transactions.slice(0, 50).map((tx) => (
-                                        <tr key={tx.id} className="border-b border-slate-800 hover:bg-slate-800/30 transition-colors">
-                                            <td className="p-3">{tx.date}</td>
-                                            <td className="p-3">
-                                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${tx.type === 'sale' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                        tx.type === 'purchase' ? 'bg-blue-500/10 text-blue-400' :
-                                                            'bg-red-500/10 text-red-400'
-                                                    }`}>
-                                                    {tx.type === 'sale' && <ArrowUpRight className="w-3 h-3" />}
-                                                    {tx.type === 'purchase' && <ArrowDownRight className="w-3 h-3" />}
-                                                    {tx.type === 'payout' && <ArrowDownRight className="w-3 h-3" />}
-                                                    {tx.type === 'sale' ? 'Eingang' : 'Ausgang'}
-                                                </span>
-                                            </td>
-                                            <td className="p-3">{tx.reason}</td>
-                                            <td className={`p-3 text-right font-medium ${tx.isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                {tx.isPositive ? '+' : '-'}{formatCurrency(tx.amount)}
-                                            </td>
-                                            <td className="p-3 text-right text-slate-400">
-                                                {formatCurrency(tx.balanceSnapshot)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {transactions.length === 0 && (
-                                        <tr>
-                                            <td colSpan={5} className="p-8 text-center text-slate-500">
-                                                Keine Buchungen vorhanden
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </>
-            )}
+                    {/* Transaction History */}
+                    <Card className="bg-slate-900/50 border-slate-800">
+                        <CardHeader>
+                            <CardTitle className="text-lg font-bold text-white">Buchungshistorie</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="max-h-[600px] overflow-auto">
+                                <Table>
+                                    <TableHeader className="bg-slate-900 sticky top-0 z-10">
+                                        <TableRow className="border-slate-800 hover:bg-transparent">
+                                            <TableHead>Datum</TableHead>
+                                            <TableHead>Vorgang</TableHead>
+                                            <TableHead>Grund</TableHead>
+                                            <TableHead className="text-right">Betrag</TableHead>
+                                            <TableHead className="text-right">Saldo</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {transactions.slice(0, 50).map((tx) => (
+                                            <TableRow key={tx.id} className="border-slate-800 hover:bg-slate-800/40">
+                                                <TableCell className="text-slate-300">{tx.date}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className={cn(
+                                                        tx.type === 'sale' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                            tx.type === 'purchase' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                                'bg-red-500/10 text-red-400 border-red-500/20'
+                                                    )}>
+                                                        {tx.type === 'sale' && <ArrowUpRight className="w-3 h-3 mr-1" />}
+                                                        {tx.type === 'purchase' && <ArrowDownRight className="w-3 h-3 mr-1" />}
+                                                        {tx.type === 'payout' && <ArrowDownRight className="w-3 h-3 mr-1" />}
+                                                        {tx.type === 'sale' ? 'Eingang' : 'Ausgang'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-slate-400">{tx.reason}</TableCell>
+                                                <TableCell className={cn("text-right font-medium", tx.isPositive ? 'text-emerald-400' : 'text-red-400')}>
+                                                    {tx.isPositive ? '+' : '-'}{formatCurrency(tx.amount)}
+                                                </TableCell>
+                                                <TableCell className="text-right text-slate-500 font-mono">
+                                                    {formatCurrency(tx.balanceSnapshot)}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {transactions.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="h-24 text-center text-slate-500">Keine Buchungen vorhanden</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

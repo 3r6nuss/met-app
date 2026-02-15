@@ -166,7 +166,6 @@ router.post('/transaction', async (req, res) => {
             );
         }
 
-<<<<<<< HEAD
         // === Sammel-Event Auto-Entry ===
         // After successful transaction, check if any 'in' items match active Sammel-Event products
         try {
@@ -200,7 +199,8 @@ router.post('/transaction', async (req, res) => {
         } catch (sammelErr) {
             // Don't fail the entire transaction for sammel-event issues
             console.error('[SammelEvent] Auto-entry error:', sammelErr);
-=======
+        }
+
         // ===== AUTOMATIC DISCORD LOG MATCHING =====
         // After a trade transaction, check if there are pending Discord logs that match
         for (const result of results) {
@@ -255,7 +255,6 @@ router.post('/transaction', async (req, res) => {
                     console.error('[AutoMatch] Error checking for pending Discord logs:', matchError);
                 }
             }
->>>>>>> feature/shadcn-form-redesign
         }
 
         if (req.user) {
