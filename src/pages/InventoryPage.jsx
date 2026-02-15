@@ -1,50 +1,88 @@
-import React, { useState } from 'react';
-import InventoryList from '../components/InventoryList';
-import InventoryTable from '../components/InventoryTable';
+import React, { useState, useEffect } from 'react';
 import VerificationSection from '../components/VerificationSection';
 import OrderList from '../components/OrderList';
-import { ClipboardList, LayoutGrid, Table as TableIcon, Search, Filter } from 'lucide-react';
-import { Input } from "@/components/ui/input";
+import { ClipboardList, LayoutGrid, Save, Loader2, Package } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragOverlay,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { SortableItem } from '../components/SortableItem';
 
 export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget, onReorder, onVerify, user, orders, onUpdateOrderStatus, onDeleteOrder }) {
     const [isEditMode, setIsEditMode] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterCategory, setFilterCategory] = useState('all');
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
-
     const isAuthorized = user?.role === 'Buchhaltung' || user?.role === 'Administrator';
+    const [activeId, setActiveId] = useState(null);
 
-    // Get unique categories
-    const categories = ['all', ...new Set(inventory.map(item => item.category || 'Uncategorized'))];
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
-    // Filter inventory
-    const filteredInventory = inventory.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = filterCategory === 'all' || (item.category || 'Uncategorized') === filterCategory;
-        return matchesSearch && matchesCategory;
-    });
+    const handleDragStart = (event) => {
+        setActiveId(event.active.id);
+    };
+
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+
+        if (active.id !== over.id) {
+            const oldIndex = inventory.findIndex((item) => item.id === active.id);
+            const newIndex = inventory.findIndex((item) => item.id === over.id);
+
+            const newOrder = arrayMove(inventory, oldIndex, newIndex);
+            onReorder(newOrder); // This updates the parent state and triggers a save
+        }
+        setActiveId(null);
+    };
+
+    // Calculate stats
+    const totalItems = inventory.reduce((sum, item) => sum + (item.current || 0), 0);
+    const lowStockItems = inventory.filter(item => item.target > 0 && item.current < item.target * 0.2).length;
 
     return (
         <div className="animate-fade-in pb-24 space-y-8">
             {/* Header & Stats */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400">
-                        Lagerbestand
-                    </h1>
-                    <p className="text-slate-400 mt-1">
-                        Verwaltung und Übersicht der aktuellen Bestände
-                    </p>
+            <div className="glass-panel p-6 rounded-xl border border-slate-700/50">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400">
+                            Lagerbestand
+                        </h1>
+                        <p className="text-slate-400 mt-1">
+                            Verwaltung und Übersicht der aktuellen Bestände
+                        </p>
+                    </div>
+                    <div className="flex gap-4 text-sm">
+                        <div className="bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-800">
+                            <span className="text-slate-400 block text-xs uppercase font-bold">Total Items</span>
+                            <span className="text-xl font-mono text-violet-400">{totalItems}</span>
+                        </div>
+                        <div className="bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-800">
+                            <span className="text-slate-400 block text-xs uppercase font-bold">Kritisch</span>
+                            <span className="text-xl font-mono text-red-400">{lowStockItems}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -68,71 +106,104 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                 </Card>
             )}
 
-            {/* Controls */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-900/50 p-4 rounded-xl border border-slate-800 backdrop-blur-sm">
-                <div className="flex items-center gap-2 w-full md:w-auto flex-1">
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-                        <Input
-                            placeholder="Suchen..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 bg-slate-950/50 border-slate-800 focus:border-violet-500 transition-all font-medium"
-                        />
+            {/* Grid Content with DnD */}
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+            >
+                <SortableContext items={inventory.map(i => i.id)} strategy={rectSortingStrategy}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {inventory.map((item) => {
+                            const percentage = item.target > 0 ? Math.round((item.current / item.target) * 100) : 0;
+                            let statusColor = "bg-emerald-500";
+                            if (percentage < 20) statusColor = "bg-red-500";
+                            else if (percentage < 50) statusColor = "bg-amber-500";
+
+                            // Priority Ring Color
+                            const priorityColor = item.priority === 'high' ? 'ring-red-500/50' :
+                                item.priority === 'medium' ? 'ring-orange-500/50' :
+                                    item.priority === 'low' ? 'ring-green-500/50' : 'ring-transparent';
+
+                            return (
+                                <SortableItem key={item.id} id={item.id} className={`h-full`}>
+                                    <Card className={`h-full border-slate-800 bg-slate-900/80 hover:bg-slate-900/90 transition-all hover:shadow-lg group ring-1 ${priorityColor}`}>
+                                        <CardHeader className="pb-2 relative">
+                                            <div className="flex justify-between items-start">
+                                                <CardTitle className="text-lg font-bold text-slate-100 truncate pr-6" title={item.name}>
+                                                    {item.name}
+                                                </CardTitle>
+                                                {item.priority && (
+                                                    <div className={`w-2 h-2 rounded-full absolute top-6 right-6 ${item.priority === 'high' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                                                            item.priority === 'medium' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
+                                                                'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
+                                                        }`}></div>
+                                                )}
+                                            </div>
+                                            <div className="text-xs text-slate-500 font-mono">ID: {item.id}</div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            <div className="flex justify-between items-end">
+                                                <div>
+                                                    <span className="text-3xl font-bold text-white font-mono">{item.current}</span>
+                                                    <span className="text-sm text-slate-500 ml-1">/ {item.target}</span>
+                                                </div>
+                                                <Badge variant="outline" className={`${statusColor} bg-opacity-10 text-slate-200 border-0`}>
+                                                    {percentage}%
+                                                </Badge>
+                                            </div>
+
+                                            {/* Progress Bar */}
+                                            <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden">
+                                                <div
+                                                    className={`h-full ${statusColor} transition-all duration-500`}
+                                                    style={{ width: `${Math.min(percentage, 100)}%` }}
+                                                />
+                                            </div>
+
+                                            {isEditMode && isAuthorized && (
+                                                <div className="grid grid-cols-2 gap-2 pt-2">
+                                                    <div>
+                                                        <label className="text-[10px] uppercase text-slate-500 font-bold">Bestand</label>
+                                                        <input
+                                                            type="number"
+                                                            className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-center focus:border-violet-500 outline-none"
+                                                            value={item.current}
+                                                            onChange={(e) => onUpdateStock(item.id, parseInt(e.target.value) || 0)}
+                                                            onMouseDown={(e) => e.stopPropagation()} // Prevent drag start on input interaction
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] uppercase text-slate-500 font-bold">Ziel</label>
+                                                        <input
+                                                            type="number"
+                                                            className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-center focus:border-violet-500 outline-none"
+                                                            value={item.target}
+                                                            onChange={(e) => onUpdateTarget(item.id, parseInt(e.target.value) || 0)}
+                                                            onMouseDown={(e) => e.stopPropagation()}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </SortableItem>
+                            );
+                        })}
                     </div>
-
-                    {/* Category Filter */}
-                    <Select value={filterCategory} onValueChange={setFilterCategory}>
-                        <SelectTrigger className="w-[180px] bg-slate-950/50 border-slate-800">
-                            <Filter className="w-4 h-4 mr-2 text-slate-500" />
-                            <SelectValue placeholder="Kategorie" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Alle Kategorien</SelectItem>
-                            {categories.filter(c => c !== 'all').map(cat => (
-                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="flex items-center gap-2 bg-slate-950/50 p-1 rounded-lg border border-slate-800">
-                    <Button
-                        variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('grid')}
-                        className={viewMode === 'grid' ? 'bg-violet-600 text-white hover:bg-violet-700' : 'text-slate-400 hover:text-white'}
-                    >
-                        <LayoutGrid className="w-4 h-4 mr-2" /> Raster
-                    </Button>
-                    <Button
-                        variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('table')}
-                        className={viewMode === 'table' ? 'bg-violet-600 text-white hover:bg-violet-700' : 'text-slate-400 hover:text-white'}
-                    >
-                        <TableIcon className="w-4 h-4 mr-2" /> Tabelle
-                    </Button>
-                </div>
-            </div>
-
-            {/* Content */}
-            {viewMode === 'grid' ? (
-                <InventoryList
-                    inventory={filteredInventory}
-                    isEditMode={isEditMode && isAuthorized}
-                    onUpdateStock={onUpdateStock}
-                    onUpdateTarget={onUpdateTarget}
-                    onReorder={onReorder}
-                />
-            ) : (
-                <InventoryTable
-                    inventory={filteredInventory}
-                    isEditMode={isEditMode && isAuthorized}
-                    onUpdateStock={onUpdateStock}
-                    onUpdateTarget={onUpdateTarget}
-                />
-            )}
+                </SortableContext>
+                <DragOverlay>
+                    {activeId ? (
+                        <div className="opacity-80 scale-105 cursor-grabbing">
+                            {/* Simplified overlay - just a card lookalike */}
+                            <Card className="w-64 h-32 bg-slate-800 border-violet-500 shadow-xl flex items-center justify-center">
+                                <span className="font-bold text-white">Verschiebe Item...</span>
+                            </Card>
+                        </div>
+                    ) : null}
+                </DragOverlay>
+            </DndContext>
 
             <VerificationSection
                 onVerify={(name) => {
