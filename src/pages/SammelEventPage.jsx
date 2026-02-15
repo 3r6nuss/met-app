@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trophy, Plus, Trash2, Settings, Users, Package, TrendingUp, ChevronDown } from 'lucide-react';
+import { Trophy, Trash2, Settings, Users, Package, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import { api } from '../services/api';
@@ -10,14 +10,6 @@ export default function SammelEventPage({ employees = [] }) {
     const [entries, setEntries] = useState([]);
     const [stats, setStats] = useState({ teams: [], employees: [] });
     const [loading, setLoading] = useState(true);
-
-    // Entry form
-    const [selectedEmployee, setSelectedEmployee] = useState('');
-    const [selectedProduct, setSelectedProduct] = useState('');
-    const [quantity, setQuantity] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-
-    const activeEmployees = employees.filter(e => e.status !== 'fired');
 
     const loadData = useCallback(async () => {
         try {
@@ -39,29 +31,6 @@ export default function SammelEventPage({ employees = [] }) {
     }, []);
 
     useEffect(() => { loadData(); }, [loadData]);
-
-    // Assigned employees (those with a team)
-    const assignedEmployees = teams.flatMap(t => t.members?.map(m => m.employee_name) || []);
-
-    const handleSubmitEntry = async (e) => {
-        e.preventDefault();
-        if (!selectedEmployee || !selectedProduct || !quantity) return;
-
-        setSubmitting(true);
-        try {
-            await api.createSammelEntry({
-                employee_name: selectedEmployee,
-                product_name: selectedProduct,
-                quantity: parseInt(quantity)
-            });
-            setQuantity('');
-            loadData();
-        } catch (err) {
-            alert(err.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
 
     const handleDeleteEntry = async (id) => {
         if (!confirm('Eintrag löschen?')) return;
@@ -235,89 +204,18 @@ export default function SammelEventPage({ employees = [] }) {
                     )}
                 </div>
 
-                {/* Entry Form */}
-                <div className="glass-panel p-6 rounded-2xl">
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <Plus className="w-5 h-5 text-violet-400" />
-                        Neuer Eintrag
-                    </h2>
-
-                    <form onSubmit={handleSubmitEntry} className="space-y-4">
-                        {/* Employee */}
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Mitarbeiter</label>
-                            <div className="relative">
-                                <select
-                                    value={selectedEmployee}
-                                    onChange={e => setSelectedEmployee(e.target.value)}
-                                    className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white appearance-none focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30"
-                                >
-                                    <option value="">Auswählen...</option>
-                                    {assignedEmployees.map(name => {
-                                        const team = getEmployeeTeam(name);
-                                        return (
-                                            <option key={name} value={name}>
-                                                {name} ({team?.name || '?'})
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                            </div>
-                            {selectedEmployee && (
-                                <div className="mt-1.5 flex items-center gap-1.5">
-                                    {(() => {
-                                        const team = getEmployeeTeam(selectedEmployee);
-                                        return team ? (
-                                            <>
-                                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: team.color }} />
-                                                <span className="text-xs" style={{ color: team.color }}>{team.name}</span>
-                                            </>
-                                        ) : null;
-                                    })()}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Product */}
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Produkt</label>
-                            <div className="relative">
-                                <select
-                                    value={selectedProduct}
-                                    onChange={e => setSelectedProduct(e.target.value)}
-                                    className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white appearance-none focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30"
-                                >
-                                    <option value="">Auswählen...</option>
-                                    {config.map(c => (
-                                        <option key={c.product_name} value={c.product_name}>{c.product_name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                            </div>
-                        </div>
-
-                        {/* Quantity */}
-                        <div>
-                            <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wider">Menge</label>
-                            <input
-                                type="number"
-                                min="1"
-                                value={quantity}
-                                onChange={e => setQuantity(e.target.value)}
-                                placeholder="0"
-                                className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30"
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={!selectedEmployee || !selectedProduct || !quantity || submitting}
-                            className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 text-white rounded-xl font-semibold transition-all"
-                        >
-                            {submitting ? 'Speichere...' : 'Eintrag buchen'}
-                        </button>
-                    </form>
+                {/* Info Card (Replaces Entry Form) */}
+                <div className="glass-panel p-6 rounded-2xl flex flex-col justify-center text-center">
+                    <div className="w-12 h-12 bg-violet-600/20 text-violet-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <TrendingUp className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Automatische Erfassung via "Einlagern"</h3>
+                    <p className="text-sm text-slate-400">
+                        Einträge werden automatisch erstellt, wenn Mitarbeiter Wettbewerbs-Produkte über die normale <strong>Einlagern</strong>-Funktion buchen.
+                    </p>
+                    <p className="text-xs text-slate-500 mt-4 pt-4 border-t border-slate-700/50">
+                        Rückgaben (Preis = 0) werden nicht gezählt.
+                    </p>
                 </div>
             </div>
 

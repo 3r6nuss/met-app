@@ -169,7 +169,7 @@ router.post('/transaction', async (req, res) => {
                 for (let i = 0; i < transactions.length; i++) {
                     const tx = transactions[i];
                     const result = results[i];
-                    if (tx.type === 'in' && result?.itemName && productNames.includes(result.itemName) && tx.depositor && tx.depositor !== 'Unbekannt') {
+                    if (tx.type === 'in' && result?.itemName && productNames.includes(result.itemName) && tx.depositor && tx.depositor !== 'Unbekannt' && tx.price > 0) {
                         // Check if depositor is in a team
                         const member = await db.get('SELECT team_id FROM sammel_team_members WHERE employee_name = ?', tx.depositor);
                         if (member) {
