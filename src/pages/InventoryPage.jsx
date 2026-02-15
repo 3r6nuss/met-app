@@ -147,11 +147,12 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                                                     item.priority === 'low' ? 'border-green-500/50' : 'border-slate-800';
 
                                             return (
+                                            return (
                                                 <SortableItem key={item.id} id={item.id} className="h-full">
                                                     <div className={`
-                                                        relative flex items-center justify-between p-3 rounded-lg 
+                                                        relative flex items-center justify-between p-2 rounded-lg 
                                                         bg-[#1a1b26] border ${priorityColor} hover:border-slate-600 
-                                                        transition-all shadow-sm group overflow-hidden h-16
+                                                        transition-all shadow-sm group overflow-hidden h-14
                                                    `}>
                                                         {/* Colored Status Bar */}
                                                         <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColor}`} />
@@ -167,14 +168,14 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                                                                 <div className="flex gap-2">
                                                                     <input
                                                                         type="number"
-                                                                        className="w-16 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-sm text-right focus:border-violet-500 outline-none font-mono text-white"
+                                                                        className="w-16 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-xs text-right focus:border-violet-500 outline-none font-mono text-white"
                                                                         value={item.current}
                                                                         onChange={(e) => onUpdateStock(item.id, parseInt(e.target.value) || 0)}
                                                                         onMouseDown={(e) => e.stopPropagation()}
                                                                     />
                                                                     <input
                                                                         type="number"
-                                                                        className="w-12 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-sm text-right focus:border-violet-500 outline-none font-mono text-slate-500"
+                                                                        className="w-12 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-xs text-right focus:border-violet-500 outline-none font-mono text-slate-500"
                                                                         value={item.target}
                                                                         onChange={(e) => onUpdateTarget(item.id, parseInt(e.target.value) || 0)}
                                                                         onMouseDown={(e) => e.stopPropagation()}
@@ -183,10 +184,10 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                                                             ) : (
                                                                 <>
                                                                     <div className="flex flex-col items-end w-16">
-                                                                        <span className="font-mono font-bold text-white text-lg leading-none tracking-tight">{item.current}</span>
+                                                                        <span className="font-mono font-bold text-white text-base leading-none tracking-tight">{item.current}</span>
                                                                     </div>
                                                                     <div className="flex flex-col items-end w-12 hidden sm:flex">
-                                                                        <span className="font-mono text-slate-400 text-sm leading-none">{item.target}</span>
+                                                                        <span className="font-mono text-slate-400 text-xs leading-none">{item.target}</span>
                                                                     </div>
                                                                 </>
                                                             )}
@@ -205,7 +206,7 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                     {activeId ? (
                         <div className="opacity-80 scale-105 cursor-grabbing">
                             {/* Simplified overlay - just a card lookalike */}
-                            <Card className="w-64 h-16 bg-slate-800 border-violet-500 shadow-xl flex items-center justify-center">
+                            <Card className="w-64 h-14 bg-slate-800 border-violet-500 shadow-xl flex items-center justify-center">
                                 <span className="font-bold text-white text-sm">Verschiebe Item...</span>
                             </Card>
                         </div>

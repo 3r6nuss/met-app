@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Edit2, Save, Loader2, Info } from 'lucide-react';
 import { useDeveloperConsole } from '../context/DeveloperConsoleContext';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
     DndContext,
     closestCenter,
@@ -136,86 +135,102 @@ export default function PricesPage() {
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <SortableContext items={prices.map(p => p.id)} strategy={rectSortingStrategy}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {prices.map(item => (
-                            <SortableItem key={item.id} id={item.id} className="h-full">
-                                <Card className="h-full bg-slate-900/80 border-slate-800 hover:border-slate-600 transition-colors group">
-                                    <CardHeader className="pb-3">
-                                        <CardTitle className="text-lg font-bold text-slate-100 flex justify-between">
-                                            {item.name}
-                                            {isEditing && <span className="text-xs font-normal text-slate-500 cursor-move opacity-50 group-hover:opacity-100">::</span>}
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="text-[10px] uppercase text-amber-500/70 font-bold block mb-1">Einkauf (EK)</label>
-                                                {isEditing ? (
-                                                    <Input
-                                                        value={item.ek}
-                                                        onChange={(e) => handlePriceChange(item.id, 'ek', e.target.value)}
-                                                        className="h-8 bg-slate-950 border-slate-700 font-mono text-right"
-                                                    />
-                                                ) : (
-                                                    <div className="font-mono text-lg text-amber-400">{item.ek ? `$${item.ek}` : '-'}</div>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] uppercase text-emerald-500/70 font-bold block mb-1">Verkauf (VK)</label>
-                                                {isEditing ? (
-                                                    <Input
-                                                        value={item.vk}
-                                                        onChange={(e) => handlePriceChange(item.id, 'vk', e.target.value)}
-                                                        className="h-8 bg-slate-950 border-slate-700 font-mono text-right"
-                                                    />
-                                                ) : (
-                                                    <div className="font-mono text-lg text-emerald-400">{item.vk ? `$${item.vk}` : '-'}</div>
-                                                )}
-                                            </div>
-                                        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Render 3 Columns with specific counts: 10, 6, Remainder */}
+                    {[
+                        { id: 'col1', items: prices.slice(0, 10) },
+                        { id: 'col2', items: prices.slice(10, 16) },
+                        { id: 'col3', items: prices.slice(16) }
+                    ].map((col, colIndex) => {
+                        const colItems = col.items;
+                        if (colItems.length === 0 && colIndex > 0) return null;
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="text-[10px] uppercase text-blue-500/70 font-bold block mb-1">Lohn</label>
-                                                {isEditing ? (
-                                                    <Input
-                                                        value={item.lohn}
-                                                        onChange={(e) => handlePriceChange(item.id, 'lohn', e.target.value)}
-                                                        className="h-8 bg-slate-950 border-slate-700 font-mono text-right"
-                                                    />
-                                                ) : (
-                                                    <div className="font-mono text-sm text-blue-400">{item.lohn ? `$${item.lohn}` : '-'}</div>
-                                                )}
-                                            </div>
-                                        </div>
+                        return (
+                            <div key={col.id} className="space-y-4">
+                                {/* Column Header */}
+                                <div className="flex justify-between items-center px-4 py-2 bg-slate-900/50 rounded-lg border border-slate-800 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <span>Artikel</span>
+                                    <div className="flex gap-4">
+                                        <span className="w-16 text-right text-amber-500/80">Einkauf</span>
+                                        <span className="w-16 text-right text-emerald-500/80 hidden sm:block">Verkauf</span>
+                                    </div>
+                                </div>
 
-                                        {(item.note || isEditing) && (
-                                            <div className="pt-2 border-t border-slate-800">
-                                                <label className="text-[10px] uppercase text-slate-500 font-bold block mb-1">Info / Notiz</label>
-                                                {isEditing ? (
-                                                    <Input
-                                                        value={item.note || ''}
-                                                        onChange={(e) => handlePriceChange(item.id, 'note', e.target.value)}
-                                                        className="h-8 bg-slate-950 border-slate-700 text-xs"
-                                                        placeholder="Notiz..."
-                                                    />
-                                                ) : (
-                                                    <div className="text-xs text-slate-400 italic">{item.note || 'Keine Notiz'}</div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            </SortableItem>
-                        ))}
-                    </div>
-                </SortableContext>
+                                <SortableContext items={colItems.map(p => p.id)} strategy={rectSortingStrategy}>
+                                    <div className="space-y-2">
+                                        {colItems.map((item) => {
+                                            const statusColor = item.vk > item.ek ? "bg-emerald-500" : "bg-amber-500";
+                                            // Optional: highlight items with notes
+                                            const borderColor = item.note ? "border-blue-500/30" : "border-slate-800";
+
+                                            return (
+                                                <SortableItem key={item.id} id={item.id} className="h-full">
+                                                    <div className={`
+                                                        relative flex items-center justify-between p-2 rounded-lg 
+                                                        bg-[#1a1b26] border ${borderColor} hover:border-slate-600 
+                                                        transition-all shadow-sm group overflow-hidden h-14
+                                                   `}>
+                                                        {/* Colored Status Bar */}
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColor}`} />
+
+                                                        <div className="pl-3 flex-1 min-w-0">
+                                                            <div className="font-bold text-slate-200 truncate pr-2 text-sm" title={item.name}>
+                                                                {item.name}
+                                                            </div>
+                                                            {/* Show small indicator if Lohn exists */}
+                                                            {item.lohn > 0 && (
+                                                                <div className="text-[9px] text-blue-400 font-mono">
+                                                                    +${item.lohn} Lohn
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex items-center gap-4 text-right">
+                                                            {isEditing ? (
+                                                                <div className="flex gap-2">
+                                                                    <Input
+                                                                        type="number"
+                                                                        className="w-16 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-xs text-right text-amber-500 focus:border-amber-500 outline-none font-mono"
+                                                                        value={item.ek}
+                                                                        onChange={(e) => handlePriceChange(item.id, 'ek', e.target.value)}
+                                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                                        placeholder="EK"
+                                                                    />
+                                                                    <Input
+                                                                        type="number"
+                                                                        className="w-16 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-xs text-right text-emerald-500 focus:border-emerald-500 outline-none font-mono"
+                                                                        value={item.vk}
+                                                                        onChange={(e) => handlePriceChange(item.id, 'vk', e.target.value)}
+                                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                                        placeholder="VK"
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="flex flex-col items-end w-16">
+                                                                        <span className="font-mono font-bold text-amber-500 text-base leading-none tracking-tight">${item.ek}</span>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-end w-16 hidden sm:flex">
+                                                                        <span className="font-mono font-bold text-emerald-500 text-base leading-none tracking-tight">${item.vk}</span>
+                                                                    </div>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </SortableItem>
+                                            );
+                                        })}
+                                    </div>
+                                </SortableContext>
+                            </div>
+                        );
+                    })}
+                </div>
                 <DragOverlay>
                     {activeId ? (
                         <div className="opacity-80 scale-105 cursor-grabbing">
-                            <Card className="w-64 h-32 bg-slate-800 border-emerald-500 shadow-xl flex items-center justify-center">
-                                <span className="font-bold text-white">Verschiebe Preis...</span>
+                            <Card className="w-64 h-14 bg-slate-800 border-emerald-500 shadow-xl flex items-center justify-center">
+                                <span className="font-bold text-white text-sm">Verschiebe Preis...</span>
                             </Card>
                         </div>
                     ) : null}
