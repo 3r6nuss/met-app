@@ -114,7 +114,7 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                 onDragEnd={handleDragEnd}
             >
                 <SortableContext items={inventory.map(i => i.id)} strategy={rectSortingStrategy}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {inventory.map((item) => {
                             const percentage = item.target > 0 ? Math.round((item.current / item.target) * 100) : 0;
                             let statusColor = "bg-emerald-500";
