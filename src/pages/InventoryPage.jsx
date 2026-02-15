@@ -141,16 +141,13 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                                             if (percentage < 20) statusColor = "bg-red-500";
                                             else if (percentage < 50) statusColor = "bg-amber-500";
 
-                                            // Priority Ring
-                                            const priorityColor = item.priority === 'high' ? 'border-red-500/50' :
-                                                item.priority === 'medium' ? 'border-orange-500/50' :
-                                                    item.priority === 'low' ? 'border-green-500/50' : 'border-slate-800';
+
 
                                             return (
                                                 <SortableItem key={item.id} id={item.id} className="h-full">
                                                     <div className={`
                                                         relative flex items-center justify-between p-2 rounded-lg 
-                                                        bg-[#1a1b26] border ${priorityColor} hover:border-slate-600 
+                                                        bg-[#1a1b26] border border-slate-800 hover:border-slate-600 
                                                         transition-all shadow-sm group overflow-hidden h-14
                                                    `}>
                                                         {/* Colored Status Bar */}
