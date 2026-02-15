@@ -106,85 +106,110 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                 </Card>
             )}
 
-            {/* Grid Content with DnD */}
+            {/* Grid Content with DnD - 3 Column Layout */}
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
             >
-                <SortableContext items={inventory.map(i => i.id)} strategy={rectSortingStrategy}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {inventory.map((item) => {
-                            const percentage = item.target > 0 ? Math.round((item.current / item.target) * 100) : 0;
-                            let statusColor = "bg-emerald-500";
-                            if (percentage < 20) statusColor = "bg-red-500";
-                            else if (percentage < 50) statusColor = "bg-amber-500";
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Render 3 Columns */}
+                    {[0, 1, 2].map(colIndex => {
+                        // Distribute items into 3 columns based on current order
+                        const colSize = Math.ceil(inventory.length / 3);
+                        // Ensure we don't go out of bounds
+                        const start = colIndex * colSize;
+                        const end = Math.min((colIndex + 1) * colSize, inventory.length);
+                        const colItems = inventory.slice(start, end);
 
-                            // Priority Ring Color (if needed, but user wants clean list)
-                            const priorityColor = item.priority === 'high' ? 'border-red-500/50' :
-                                item.priority === 'medium' ? 'border-orange-500/50' :
-                                    item.priority === 'low' ? 'border-green-500/50' : 'border-slate-800';
+                        if (colItems.length === 0 && colIndex > 0) return null;
 
-                            return (
-                                <SortableItem key={item.id} id={item.id} className="h-full">
-                                    <div className={`
-                                        relative flex items-center justify-between p-3 rounded-lg 
-                                        bg-slate-900/90 border ${priorityColor} hover:border-slate-600 
-                                        transition-all shadow-sm group overflow-hidden
-                                   `}>
-                                        {/* Colored Status Bar on the Left */}
-                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColor}`} />
-
-                                        <div className="pl-3 flex-1 min-w-0">
-                                            <div className="font-bold text-slate-200 truncate pr-2" title={item.name}>
-                                                {item.name}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-4 text-right">
-                                            {isEditMode && isAuthorized ? (
-                                                <div className="flex gap-2">
-                                                    <input
-                                                        type="number"
-                                                        className="w-16 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-sm text-right focus:border-violet-500 outline-none font-mono"
-                                                        value={item.current}
-                                                        onChange={(e) => onUpdateStock(item.id, parseInt(e.target.value) || 0)}
-                                                        onMouseDown={(e) => e.stopPropagation()}
-                                                    />
-                                                    <input
-                                                        type="number"
-                                                        className="w-14 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-sm text-right focus:border-violet-500 outline-none font-mono text-slate-500"
-                                                        value={item.target}
-                                                        onChange={(e) => onUpdateTarget(item.id, parseInt(e.target.value) || 0)}
-                                                        onMouseDown={(e) => e.stopPropagation()}
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="font-mono font-bold text-white text-lg leading-none">{item.current}</span>
-                                                        <span className="text-[10px] text-slate-500 uppercase">Bestand</span>
-                                                    </div>
-                                                    <div className="flex flex-col items-end w-12 hidden sm:flex">
-                                                        <span className="font-mono text-slate-400 text-sm leading-none">{item.target}</span>
-                                                        <span className="text-[10px] text-slate-600 uppercase">Soll</span>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
+                        return (
+                            <div key={colIndex} className="space-y-4">
+                                {/* Column Header */}
+                                <div className="flex justify-between items-center px-4 py-2 bg-slate-900/50 rounded-lg border border-slate-800 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    <span>Artikel</span>
+                                    <div className="flex gap-4">
+                                        <span className="w-16 text-right">Bestand</span>
+                                        <span className="w-12 text-right hidden sm:block">Soll</span>
                                     </div>
-                                </SortableItem>
-                            );
-                        })}
-                    </div>
-                </SortableContext>
+                                </div>
+
+                                <SortableContext items={colItems.map(i => i.id)} strategy={rectSortingStrategy}>
+                                    <div className="space-y-2">
+                                        {colItems.map((item) => {
+                                            const percentage = item.target > 0 ? Math.round((item.current / item.target) * 100) : 0;
+                                            let statusColor = "bg-emerald-500";
+                                            if (percentage < 20) statusColor = "bg-red-500";
+                                            else if (percentage < 50) statusColor = "bg-amber-500";
+
+                                            // Priority Ring
+                                            const priorityColor = item.priority === 'high' ? 'border-red-500/50' :
+                                                item.priority === 'medium' ? 'border-orange-500/50' :
+                                                    item.priority === 'low' ? 'border-green-500/50' : 'border-slate-800';
+
+                                            return (
+                                                <SortableItem key={item.id} id={item.id} className="h-full">
+                                                    <div className={`
+                                                        relative flex items-center justify-between p-3 rounded-lg 
+                                                        bg-[#1a1b26] border ${priorityColor} hover:border-slate-600 
+                                                        transition-all shadow-sm group overflow-hidden h-16
+                                                   `}>
+                                                        {/* Colored Status Bar */}
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColor}`} />
+
+                                                        <div className="pl-3 flex-1 min-w-0">
+                                                            <div className="font-bold text-slate-200 truncate pr-2 text-sm" title={item.name}>
+                                                                {item.name}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-4 text-right">
+                                                            {isEditMode && isAuthorized ? (
+                                                                <div className="flex gap-2">
+                                                                    <input
+                                                                        type="number"
+                                                                        className="w-16 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-sm text-right focus:border-violet-500 outline-none font-mono text-white"
+                                                                        value={item.current}
+                                                                        onChange={(e) => onUpdateStock(item.id, parseInt(e.target.value) || 0)}
+                                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                                    />
+                                                                    <input
+                                                                        type="number"
+                                                                        className="w-12 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-sm text-right focus:border-violet-500 outline-none font-mono text-slate-500"
+                                                                        value={item.target}
+                                                                        onChange={(e) => onUpdateTarget(item.id, parseInt(e.target.value) || 0)}
+                                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="flex flex-col items-end w-16">
+                                                                        <span className="font-mono font-bold text-white text-lg leading-none tracking-tight">{item.current}</span>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-end w-12 hidden sm:flex">
+                                                                        <span className="font-mono text-slate-400 text-sm leading-none">{item.target}</span>
+                                                                    </div>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </SortableItem>
+                                            );
+                                        })}
+                                    </div>
+                                </SortableContext>
+                            </div>
+                        );
+                    })}
+                </div>
                 <DragOverlay>
                     {activeId ? (
                         <div className="opacity-80 scale-105 cursor-grabbing">
                             {/* Simplified overlay - just a card lookalike */}
-                            <Card className="w-64 h-32 bg-slate-800 border-violet-500 shadow-xl flex items-center justify-center">
-                                <span className="font-bold text-white">Verschiebe Item...</span>
+                            <Card className="w-64 h-16 bg-slate-800 border-violet-500 shadow-xl flex items-center justify-center">
+                                <span className="font-bold text-white text-sm">Verschiebe Item...</span>
                             </Card>
                         </div>
                     ) : null}
