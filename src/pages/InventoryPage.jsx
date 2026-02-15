@@ -114,80 +114,66 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                 onDragEnd={handleDragEnd}
             >
                 <SortableContext items={inventory.map(i => i.id)} strategy={rectSortingStrategy}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {inventory.map((item) => {
                             const percentage = item.target > 0 ? Math.round((item.current / item.target) * 100) : 0;
                             let statusColor = "bg-emerald-500";
                             if (percentage < 20) statusColor = "bg-red-500";
                             else if (percentage < 50) statusColor = "bg-amber-500";
 
-                            // Priority Ring Color
-                            const priorityColor = item.priority === 'high' ? 'ring-red-500/50' :
-                                item.priority === 'medium' ? 'ring-orange-500/50' :
-                                    item.priority === 'low' ? 'ring-green-500/50' : 'ring-transparent';
+                            // Priority Ring Color (if needed, but user wants clean list)
+                            const priorityColor = item.priority === 'high' ? 'border-red-500/50' :
+                                item.priority === 'medium' ? 'border-orange-500/50' :
+                                    item.priority === 'low' ? 'border-green-500/50' : 'border-slate-800';
 
                             return (
-                                <SortableItem key={item.id} id={item.id} className={`h-full`}>
-                                    <Card className={`h-full border-slate-800 bg-slate-900/80 hover:bg-slate-900/90 transition-all hover:shadow-lg group ring-1 ${priorityColor}`}>
-                                        <CardHeader className="pb-2 relative">
-                                            <div className="flex justify-between items-start">
-                                                <CardTitle className="text-lg font-bold text-slate-100 truncate pr-6" title={item.name}>
-                                                    {item.name}
-                                                </CardTitle>
-                                                {item.priority && (
-                                                    <div className={`w-2 h-2 rounded-full absolute top-6 right-6 ${item.priority === 'high' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
-                                                            item.priority === 'medium' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]' :
-                                                                'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'
-                                                        }`}></div>
-                                                )}
-                                            </div>
-                                            <div className="text-xs text-slate-500 font-mono">ID: {item.id}</div>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <div className="flex justify-between items-end">
-                                                <div>
-                                                    <span className="text-3xl font-bold text-white font-mono">{item.current}</span>
-                                                    <span className="text-sm text-slate-500 ml-1">/ {item.target}</span>
-                                                </div>
-                                                <Badge variant="outline" className={`${statusColor} bg-opacity-10 text-slate-200 border-0`}>
-                                                    {percentage}%
-                                                </Badge>
-                                            </div>
+                                <SortableItem key={item.id} id={item.id} className="h-full">
+                                    <div className={`
+                                        relative flex items-center justify-between p-3 rounded-lg 
+                                        bg-slate-900/90 border ${priorityColor} hover:border-slate-600 
+                                        transition-all shadow-sm group overflow-hidden
+                                   `}>
+                                        {/* Colored Status Bar on the Left */}
+                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColor}`} />
 
-                                            {/* Progress Bar */}
-                                            <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden">
-                                                <div
-                                                    className={`h-full ${statusColor} transition-all duration-500`}
-                                                    style={{ width: `${Math.min(percentage, 100)}%` }}
-                                                />
+                                        <div className="pl-3 flex-1 min-w-0">
+                                            <div className="font-bold text-slate-200 truncate pr-2" title={item.name}>
+                                                {item.name}
                                             </div>
+                                        </div>
 
-                                            {isEditMode && isAuthorized && (
-                                                <div className="grid grid-cols-2 gap-2 pt-2">
-                                                    <div>
-                                                        <label className="text-[10px] uppercase text-slate-500 font-bold">Bestand</label>
-                                                        <input
-                                                            type="number"
-                                                            className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-center focus:border-violet-500 outline-none"
-                                                            value={item.current}
-                                                            onChange={(e) => onUpdateStock(item.id, parseInt(e.target.value) || 0)}
-                                                            onMouseDown={(e) => e.stopPropagation()} // Prevent drag start on input interaction
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[10px] uppercase text-slate-500 font-bold">Ziel</label>
-                                                        <input
-                                                            type="number"
-                                                            className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-center focus:border-violet-500 outline-none"
-                                                            value={item.target}
-                                                            onChange={(e) => onUpdateTarget(item.id, parseInt(e.target.value) || 0)}
-                                                            onMouseDown={(e) => e.stopPropagation()}
-                                                        />
-                                                    </div>
+                                        <div className="flex items-center gap-4 text-right">
+                                            {isEditMode && isAuthorized ? (
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="number"
+                                                        className="w-16 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-sm text-right focus:border-violet-500 outline-none font-mono"
+                                                        value={item.current}
+                                                        onChange={(e) => onUpdateStock(item.id, parseInt(e.target.value) || 0)}
+                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        className="w-14 bg-slate-950 border border-slate-700 rounded px-1 py-0.5 text-sm text-right focus:border-violet-500 outline-none font-mono text-slate-500"
+                                                        value={item.target}
+                                                        onChange={(e) => onUpdateTarget(item.id, parseInt(e.target.value) || 0)}
+                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                    />
                                                 </div>
+                                            ) : (
+                                                <>
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="font-mono font-bold text-white text-lg leading-none">{item.current}</span>
+                                                        <span className="text-[10px] text-slate-500 uppercase">Bestand</span>
+                                                    </div>
+                                                    <div className="flex flex-col items-end w-12 hidden sm:flex">
+                                                        <span className="font-mono text-slate-400 text-sm leading-none">{item.target}</span>
+                                                        <span className="text-[10px] text-slate-600 uppercase">Soll</span>
+                                                    </div>
+                                                </>
                                             )}
-                                        </CardContent>
-                                    </Card>
+                                        </div>
+                                    </div>
                                 </SortableItem>
                             );
                         })}
