@@ -147,7 +147,6 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                                                     item.priority === 'low' ? 'border-green-500/50' : 'border-slate-800';
 
                                             return (
-                                            return (
                                                 <SortableItem key={item.id} id={item.id} className="h-full">
                                                     <div className={`
                                                         relative flex items-center justify-between p-2 rounded-lg 
