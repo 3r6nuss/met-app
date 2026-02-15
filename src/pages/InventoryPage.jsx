@@ -78,10 +78,7 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                             <span className="text-slate-400 block text-xs uppercase font-bold">Total Items</span>
                             <span className="text-xl font-mono text-violet-400">{totalItems}</span>
                         </div>
-                        <div className="bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-800">
-                            <span className="text-slate-400 block text-xs uppercase font-bold">Kritisch</span>
-                            <span className="text-xl font-mono text-red-400">{lowStockItems}</span>
-                        </div>
+
                     </div>
                 </div>
             </div>
