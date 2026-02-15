@@ -114,19 +114,16 @@ export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget
                 onDragEnd={handleDragEnd}
             >
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Render 3 Columns */}
-                    {[0, 1, 2].map(colIndex => {
-                        // Distribute items into 3 columns based on current order
-                        const colSize = Math.ceil(inventory.length / 3);
-                        // Ensure we don't go out of bounds
-                        const start = colIndex * colSize;
-                        const end = Math.min((colIndex + 1) * colSize, inventory.length);
-                        const colItems = inventory.slice(start, end);
-
-                        if (colItems.length === 0 && colIndex > 0) return null;
+                    {/* Render 3 Columns with specific counts: 10, 6, Remainder */}
+                    {[
+                        { id: 'col1', items: inventory.slice(0, 10) },
+                        { id: 'col2', items: inventory.slice(10, 16) },
+                        { id: 'col3', items: inventory.slice(16) }
+                    ].map((col, colIndex) => {
+                        const colItems = col.items;
 
                         return (
-                            <div key={colIndex} className="space-y-4">
+                            <div key={col.id} className="space-y-4">
                                 {/* Column Header */}
                                 <div className="flex justify-between items-center px-4 py-2 bg-slate-900/50 rounded-lg border border-slate-800 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     <span>Artikel</span>
