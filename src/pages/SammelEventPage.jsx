@@ -106,9 +106,9 @@ export default function SammelEventPage({ employees = [] }) {
                     return (
                         <div
                             key={team.team_id}
-                            className={`relative overflow-hidden rounded-2xl p-5 border transition-all ${isLeader
-                                ? 'bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/30 ring-1 ring-amber-500/20'
-                                : 'glass-panel border-slate-700/40'
+                            className={`relative overflow-hidden rounded-2xl p-5 border transition-all glass-panel ${isLeader
+                                ? 'bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/30 ring-1 ring-amber-500/20 shadow-[0_0_30px_-5px_rgba(245,158,11,0.15)]'
+                                : 'border-slate-700/40'
                                 }`}
                         >
                             {isLeader && (
