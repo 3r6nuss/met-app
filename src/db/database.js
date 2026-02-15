@@ -46,7 +46,8 @@ export async function getDb() {
             price REAL,
             msg TEXT,
             time TEXT,
-            status TEXT DEFAULT 'pending'
+            status TEXT DEFAULT 'pending',
+            transaction_id TEXT
         );
 
         CREATE TABLE IF NOT EXISTS employees (
@@ -224,6 +225,18 @@ export async function getDb() {
         }
     } catch (error) {
         console.error("Migration error (employees):", error);
+    }
+
+    // Migration: Add transaction_id column to logs if it doesn't exist
+    try {
+        const logsInfo = await dbInstance.all("PRAGMA table_info(logs)");
+        const hasTransactionId = logsInfo.some(col => col.name === 'transaction_id');
+        if (!hasTransactionId) {
+            await dbInstance.run("ALTER TABLE logs ADD COLUMN transaction_id TEXT");
+            console.log("Migrated database: Added transaction_id column to logs table.");
+        }
+    } catch (error) {
+        console.error("Migration error (logs transaction_id):", error);
     }
 
     return dbInstance;

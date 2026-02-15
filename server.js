@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import { WebSocketServer } from 'ws';
 import http from 'http';
 import { getDb } from './src/db/database.js';
-import { initBroadcaster } from './src/services/broadcaster.js';
+import { initBroadcaster, broadcastDiscordLog } from './src/services/broadcaster.js';
 
 // Import Routes
 import authRoutes, { setupPassport } from './src/routes/authRoutes.js';
@@ -65,8 +65,9 @@ const broadcastUpdate = (message = { type: 'UPDATE' }) => {
     });
 };
 
-// Make broadcastUpdate available to routes
+// Make broadcast functions available to routes
 app.set('broadcastUpdate', broadcastUpdate);
+app.set('broadcastDiscordLog', broadcastDiscordLog);
 
 // Version Endpoint
 app.get('/api/version', (req, res) => {
