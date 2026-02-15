@@ -146,8 +146,9 @@ export default function PricesPage() {
                         if (colItems.length === 0 && colIndex > 0) return null;
 
                         return (
-                            {/* Column Header */ }
-                            < div className = "flex justify-between items-center px-4 py-2 bg-slate-900/50 rounded-lg border border-slate-800 text-xs font-bold text-slate-500 uppercase tracking-wider" >
+                            <div key={col.id} className="space-y-4">
+                                {/* Column Header */}
+                                <div className="flex justify-between items-center px-4 py-2 bg-slate-900/50 rounded-lg border border-slate-800 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                     <span>Artikel</span>
                                     <div className="flex gap-2 text-[10px] sm:text-xs">
                                         <span className="w-14 text-right text-amber-500/80">Einkauf</span>
@@ -156,91 +157,92 @@ export default function PricesPage() {
                                     </div>
                                 </div>
 
-                <SortableContext items={colItems.map(p => p.id)} strategy={rectSortingStrategy}>
-                    <div className="space-y-2">
-                        {colItems.map((item) => {
-                            const statusColor = item.vk > item.ek ? "bg-emerald-500" : "bg-amber-500";
-                            // Optional: highlight items with notes
-                            const borderColor = item.note ? "border-blue-500/30" : "border-slate-800";
+                                <SortableContext items={colItems.map(p => p.id)} strategy={rectSortingStrategy}>
+                                    <div className="space-y-2">
+                                        {colItems.map((item) => {
+                                            const statusColor = item.vk > item.ek ? "bg-emerald-500" : "bg-amber-500";
+                                            // Optional: highlight items with notes
+                                            const borderColor = item.note ? "border-blue-500/30" : "border-slate-800";
 
-                            return (
-                                <SortableItem key={item.id} id={item.id} className="h-full">
-                                    <div className={`
+                                            return (
+                                                <SortableItem key={item.id} id={item.id} className="h-full">
+                                                    <div className={`
                                                         relative flex items-center justify-between p-2 rounded-lg 
                                                         bg-[#1a1b26] border ${borderColor} hover:border-slate-600 
                                                         transition-all shadow-sm group overflow-hidden h-14
                                                    `}>
-                                        {/* Colored Status Bar */}
-                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColor}`} />
+                                                        {/* Colored Status Bar */}
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusColor}`} />
 
-                                        <div className="pl-3 flex-1 min-w-0">
-                                            <div className="font-bold text-slate-200 truncate pr-2 text-sm" title={item.name}>
-                                                {item.name}
-                                            </div>
-                                        </div>
+                                                        <div className="pl-3 flex-1 min-w-0">
+                                                            <div className="font-bold text-slate-200 truncate pr-2 text-sm" title={item.name}>
+                                                                {item.name}
+                                                            </div>
+                                                        </div>
 
-                                        <div className="flex items-center gap-2 text-right">
-                                            {isEditing ? (
-                                                <div className="flex gap-1">
-                                                    <Input
-                                                        type="number"
-                                                        className="w-14 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-xs text-right text-amber-500 focus:border-amber-500 outline-none font-mono"
-                                                        value={item.ek}
-                                                        onChange={(e) => handlePriceChange(item.id, 'ek', e.target.value)}
-                                                        onMouseDown={(e) => e.stopPropagation()}
-                                                        placeholder="EK"
-                                                    />
-                                                    <Input
-                                                        type="number"
-                                                        className="w-14 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-xs text-right text-emerald-500 focus:border-emerald-500 outline-none font-mono"
-                                                        value={item.vk}
-                                                        onChange={(e) => handlePriceChange(item.id, 'vk', e.target.value)}
-                                                        onMouseDown={(e) => e.stopPropagation()}
-                                                        placeholder="VK"
-                                                    />
-                                                    <Input
-                                                        type="number"
-                                                        className="w-14 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-xs text-right text-blue-500 focus:border-blue-500 outline-none font-mono hidden sm:block"
-                                                        value={item.lohn}
-                                                        onChange={(e) => handlePriceChange(item.id, 'lohn', e.target.value)}
-                                                        onMouseDown={(e) => e.stopPropagation()}
-                                                        placeholder="Lohn"
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="flex flex-col items-end w-14">
-                                                        <span className="font-mono font-bold text-amber-500 text-sm leading-none tracking-tight">${item.ek}</span>
+                                                        <div className="flex items-center gap-2 text-right">
+                                                            {isEditing ? (
+                                                                <div className="flex gap-1">
+                                                                    <Input
+                                                                        type="number"
+                                                                        className="w-14 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-xs text-right text-amber-500 focus:border-amber-500 outline-none font-mono"
+                                                                        value={item.ek}
+                                                                        onChange={(e) => handlePriceChange(item.id, 'ek', e.target.value)}
+                                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                                        placeholder="EK"
+                                                                    />
+                                                                    <Input
+                                                                        type="number"
+                                                                        className="w-14 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-xs text-right text-emerald-500 focus:border-emerald-500 outline-none font-mono"
+                                                                        value={item.vk}
+                                                                        onChange={(e) => handlePriceChange(item.id, 'vk', e.target.value)}
+                                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                                        placeholder="VK"
+                                                                    />
+                                                                    <Input
+                                                                        type="number"
+                                                                        className="w-14 bg-slate-950/50 border border-slate-700 rounded px-1 py-1 text-xs text-right text-blue-500 focus:border-blue-500 outline-none font-mono hidden sm:block"
+                                                                        value={item.lohn}
+                                                                        onChange={(e) => handlePriceChange(item.id, 'lohn', e.target.value)}
+                                                                        onMouseDown={(e) => e.stopPropagation()}
+                                                                        placeholder="Lohn"
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="flex flex-col items-end w-14">
+                                                                        <span className="font-mono font-bold text-amber-500 text-sm leading-none tracking-tight">${item.ek}</span>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-end w-14">
+                                                                        <span className="font-mono font-bold text-emerald-500 text-sm leading-none tracking-tight">${item.vk}</span>
+                                                                    </div>
+                                                                    <div className="flex flex-col items-end w-14 hidden sm:flex">
+                                                                        <span className="font-mono font-bold text-blue-500 text-sm leading-none tracking-tight">${item.lohn || 0}</span>
+                                                                    </div>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <div className="flex flex-col items-end w-14">
-                                                        <span className="font-mono font-bold text-emerald-500 text-sm leading-none tracking-tight">${item.vk}</span>
-                                                    </div>
-                                                    <div className="flex flex-col items-end w-14 hidden sm:flex">
-                                                        <span className="font-mono font-bold text-blue-500 text-sm leading-none tracking-tight">${item.lohn || 0}</span>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
+                                                </SortableItem>
+                                            );
+                                        })}
                                     </div>
-                                </SortableItem>
-                            );
-                        })}
-                    </div>
-                </SortableContext>
+                                </SortableContext>
+                            </div>
+
+                        );
+                    })}
+                </div>
+                <DragOverlay>
+                    {activeId ? (
+                        <div className="opacity-80 scale-105 cursor-grabbing">
+                            <Card className="w-64 h-14 bg-slate-800 border-emerald-500 shadow-xl flex items-center justify-center">
+                                <span className="font-bold text-white text-sm">Verschiebe Preis...</span>
+                            </Card>
+                        </div>
+                    ) : null}
+                </DragOverlay>
+            </DndContext>
         </div>
-    );
-})}
-                </div >
-    <DragOverlay>
-        {activeId ? (
-            <div className="opacity-80 scale-105 cursor-grabbing">
-                <Card className="w-64 h-14 bg-slate-800 border-emerald-500 shadow-xl flex items-center justify-center">
-                    <span className="font-bold text-white text-sm">Verschiebe Preis...</span>
-                </Card>
-            </div>
-        ) : null}
-    </DragOverlay>
-            </DndContext >
-        </div >
     );
 }
