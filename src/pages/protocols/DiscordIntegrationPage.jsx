@@ -15,8 +15,7 @@ import {
     MessageSquare,
     DollarSign,
     Users,
-    TrendingUp,
-    Link2
+    TrendingUp
 } from 'lucide-react';
 
 export default function DiscordIntegrationPage() {
@@ -29,12 +28,6 @@ export default function DiscordIntegrationPage() {
     const [expandedLog, setExpandedLog] = useState(null);
     const [selectedLog, setSelectedLog] = useState(null);
     const [resolveNote, setResolveNote] = useState('');
-
-    // Manual matching state
-    const [matchingLog, setMatchingLog] = useState(null);
-    const [recentTransactions, setRecentTransactions] = useState([]);
-    const [selectedTransaction, setSelectedTransaction] = useState(null);
-    const [matchLoading, setMatchLoading] = useState(false);
 
     const fetchData = useCallback(async () => {
         try {
@@ -123,45 +116,6 @@ export default function DiscordIntegrationPage() {
         }
     };
 
-    // Open manual match modal and fetch recent transactions
-    const openManualMatch = async (log) => {
-        setMatchingLog(log);
-        setSelectedTransaction(null);
-        try {
-            // Fetch all recent transactions (not filtered by employee for admin view)
-            const res = await fetch('/api/discord/all-recent-transactions', { credentials: 'include' });
-            if (res.ok) {
-                const data = await res.json();
-                setRecentTransactions(data.transactions || []);
-            }
-        } catch (error) {
-            console.error('Error fetching transactions:', error);
-        }
-    };
-
-    // Confirm manual match
-    const handleManualMatch = async () => {
-        if (!matchingLog || !selectedTransaction) return;
-        setMatchLoading(true);
-        try {
-            const res = await fetch(`/api/discord/confirm/${matchingLog.id}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ transactionTimestamp: selectedTransaction.timestamp })
-            });
-            if (res.ok) {
-                setMatchingLog(null);
-                setSelectedTransaction(null);
-                fetchData();
-            }
-        } catch (error) {
-            console.error('Error confirming match:', error);
-        } finally {
-            setMatchLoading(false);
-        }
-    };
-
     const formatAmount = (amount) => {
         if (!amount) return '–';
         return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'USD' }).format(amount);
@@ -221,8 +175,8 @@ export default function DiscordIntegrationPage() {
                         <button
                             onClick={handleBotToggle}
                             className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${botStatus.isRunning
-                                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                                    : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                                 }`}
                         >
                             {botStatus.isRunning ? <PowerOff size={18} /> : <Power size={18} />}
@@ -303,8 +257,8 @@ export default function DiscordIntegrationPage() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`px-4 py-3 flex items-center gap-2 border-b-2 transition-colors ${activeTab === tab.id
-                                ? 'border-indigo-500 text-indigo-400'
-                                : 'border-transparent text-gray-400 hover:text-gray-200'
+                                    ? 'border-indigo-500 text-indigo-400'
+                                    : 'border-transparent text-gray-400 hover:text-gray-200'
                                 }`}
                         >
                             <tab.icon size={18} />
@@ -405,8 +359,8 @@ export default function DiscordIntegrationPage() {
                                             <tr key={log.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                                                 <td className="p-4">
                                                     <span className={`px-2 py-1 text-xs font-medium rounded ${log.parsed_type === 'abhebung'
-                                                        ? 'bg-red-500/20 text-red-400'
-                                                        : 'bg-green-500/20 text-green-400'
+                                                            ? 'bg-red-500/20 text-red-400'
+                                                            : 'bg-green-500/20 text-green-400'
                                                         }`}>
                                                         {log.parsed_type === 'abhebung' ? 'Abhebung' : 'Rechnung'}
                                                     </span>
@@ -524,15 +478,6 @@ export default function DiscordIntegrationPage() {
                                                         <RefreshCw size={16} />
                                                         Neu abgleichen
                                                     </button>
-                                                    {log.match_status === 'pending' && (
-                                                        <button
-                                                            onClick={() => openManualMatch(log)}
-                                                            className="px-3 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg flex items-center gap-2 transition-colors"
-                                                        >
-                                                            <Link2 size={16} />
-                                                            Manuell Verknüpfen
-                                                        </button>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>

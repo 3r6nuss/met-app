@@ -2,23 +2,9 @@ import React, { useState, useMemo } from 'react';
 import {
     Users, Calendar, DollarSign, TrendingUp, Download,
     ChevronDown, ChevronUp, Check, Clock, AlertCircle,
-    Wallet, FileText, ArrowRight, FileDown, Search, Filter
+    Wallet, FileText, ArrowRight, FileDown
 } from 'lucide-react';
 import { generatePayslip } from '../../components/PDFExport';
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
@@ -174,118 +160,115 @@ export default function PayrollProtocol({ logs = [], employees = [], prices = []
     return (
         <div className="space-y-6 pb-20 animate-fade-in">
             {/* HEADER */}
-            <Card className="border-slate-800 bg-slate-900/50">
-                <CardContent className="p-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-                            <Users className="w-8 h-8 text-blue-400" />
-                            Lohn-Abrechnung
-                        </h1>
-                        <p className="text-slate-400 mt-1">Mitarbeiter-Lohnübersicht und Auszahlungsstatus.</p>
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-700/50 shadow-2xl">
+                <div>
+                    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 flex items-center gap-3">
+                        <Users className="w-8 h-8 text-blue-400" />
+                        Lohn-Abrechnung
+                    </h1>
+                    <p className="text-slate-400 mt-1">Mitarbeiter-Lohnübersicht und Auszahlungsstatus</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-800 rounded-xl border border-slate-700">
+                        <Calendar className="w-4 h-4 text-blue-400" />
+                        <input
+                            type="date"
+                            value={dateRange.start}
+                            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                            className="bg-transparent border-none text-slate-200 text-sm focus:ring-0 p-0"
+                        />
+                        <span className="text-slate-500">–</span>
+                        <input
+                            type="date"
+                            value={dateRange.end}
+                            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                            className="bg-transparent border-none text-slate-200 text-sm focus:ring-0 p-0"
+                        />
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2 p-1 bg-slate-950 border border-slate-800 rounded-lg">
-                            <Calendar className="w-4 h-4 text-blue-400 ml-2" />
-                            <Input
-                                type="date"
-                                value={dateRange.start}
-                                onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                                className="bg-transparent border-none text-slate-200 w-32 focus-visible:ring-0 h-8"
-                            />
-                            <span className="text-slate-500">-</span>
-                            <Input
-                                type="date"
-                                value={dateRange.end}
-                                onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                                className="bg-transparent border-none text-slate-200 w-32 focus-visible:ring-0 h-8"
-                            />
-                        </div>
-                        <Button
-                            onClick={downloadCSV}
-                            className="bg-blue-600 hover:bg-blue-500 text-white"
-                        >
-                            <Download className="w-4 h-4 mr-2" />
-                            Export
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* KPI CARDS */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="bg-slate-900/50 border-slate-800">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Mitarbeiter</CardTitle>
-                        <Users className="w-4 h-4 text-blue-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-blue-400">{payrollData.totals.employeeCount}</div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-slate-900/50 border-slate-800">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Bruttolöhne</CardTitle>
-                        <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-emerald-400">{formatCurrency(payrollData.totals.totalEarned)}</div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-slate-900/50 border-slate-800">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Ausgezahlt</CardTitle>
-                        <Wallet className="w-4 h-4 text-violet-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-violet-400">{formatCurrency(payrollData.totals.totalPaid)}</div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-slate-900/50 border-slate-800">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Offen</CardTitle>
-                        <Clock className="w-4 h-4 text-amber-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className={cn("text-2xl font-bold", payrollData.totals.totalBalance > 0 ? 'text-amber-400' : 'text-emerald-400')}>
-                            {formatCurrency(payrollData.totals.totalBalance)}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* FILTER */}
-            <div className="flex justify-end">
-                <div className="flex gap-2 p-1 bg-slate-900/50 rounded-lg border border-slate-800">
-                    {['all', 'open', 'paid'].map(filter => (
-                        <Button
-                            key={filter}
-                            variant={statusFilter === filter ? "secondary" : "ghost"}
-                            size="sm"
-                            onClick={() => setStatusFilter(filter)}
-                            className={cn(
-                                "text-xs font-medium transition-all",
-                                statusFilter === filter ? "bg-blue-600 text-white hover:bg-blue-500" : "text-slate-400 hover:text-slate-200"
-                            )}
-                        >
-                            {filter === 'all' ? 'Alle' : filter === 'open' ? 'Offene Beträge' : 'Ausgezahlt'}
-                        </Button>
-                    ))}
+                    <button
+                        onClick={downloadCSV}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-medium transition-colors"
+                    >
+                        <Download className="w-4 h-4" />
+                        Export
+                    </button>
                 </div>
             </div>
 
+            {/* KPI CARDS */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-xl bg-blue-500/10">
+                            <Users className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <span className="text-slate-400 text-sm font-medium">Mitarbeiter</span>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-400">{payrollData.totals.employeeCount}</div>
+                </div>
+
+                <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-xl bg-emerald-500/10">
+                            <TrendingUp className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <span className="text-slate-400 text-sm font-medium">Bruttolöhne</span>
+                    </div>
+                    <div className="text-2xl font-bold text-emerald-400">{formatCurrency(payrollData.totals.totalEarned)}</div>
+                </div>
+
+                <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-xl bg-violet-500/10">
+                            <Wallet className="w-5 h-5 text-violet-400" />
+                        </div>
+                        <span className="text-slate-400 text-sm font-medium">Ausgezahlt</span>
+                    </div>
+                    <div className="text-2xl font-bold text-violet-400">{formatCurrency(payrollData.totals.totalPaid)}</div>
+                </div>
+
+                <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 rounded-xl bg-amber-500/10">
+                            <Clock className="w-5 h-5 text-amber-400" />
+                        </div>
+                        <span className="text-slate-400 text-sm font-medium">Offen</span>
+                    </div>
+                    <div className={`text-2xl font-bold ${payrollData.totals.totalBalance > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        {formatCurrency(payrollData.totals.totalBalance)}
+                    </div>
+                </div>
+            </div>
+
+            {/* FILTERS */}
+            <div className="flex gap-2">
+                {['all', 'open', 'paid'].map(filter => (
+                    <button
+                        key={filter}
+                        onClick={() => setStatusFilter(filter)}
+                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${statusFilter === filter
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'
+                            }`}
+                    >
+                        {filter === 'all' ? 'Alle' : filter === 'open' ? 'Offene Beträge' : 'Ausgezahlt'}
+                    </button>
+                ))}
+            </div>
+
             {/* EMPLOYEE LIST */}
-            <div className="grid gap-4">
+            <div className="space-y-3">
                 {filteredEmployees.map(emp => (
-                    <Card key={emp.name} className="bg-slate-900/50 border-slate-800 overflow-hidden transition-all hover:border-slate-700">
+                    <div key={emp.name} className="bg-slate-900/50 border border-slate-700/50 rounded-2xl overflow-hidden">
+                        {/* Employee Row */}
                         <div
                             onClick={() => setExpandedEmployee(expandedEmployee === emp.name ? null : emp.name)}
-                            className="p-4 cursor-pointer flex flex-col md:flex-row gap-4 items-center justify-between"
+                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-800/30 transition-colors"
                         >
-                            <div className="flex items-center gap-4 w-full md:w-auto">
-                                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg",
-                                    emp.balance > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
-                                )}>
+                            <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${emp.balance > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
+                                    }`}>
                                     {emp.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
@@ -294,22 +277,22 @@ export default function PayrollProtocol({ logs = [], employees = [], prices = []
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                            <div className="flex items-center gap-6">
                                 <div className="text-right">
-                                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Brutto</div>
+                                    <div className="text-xs text-slate-500">Brutto</div>
                                     <div className="font-mono font-bold text-emerald-400">{formatCurrency(emp.totalEarned)}</div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Gezahlt</div>
+                                    <div className="text-xs text-slate-500">Gezahlt</div>
                                     <div className="font-mono font-bold text-violet-400">{formatCurrency(emp.totalPaid)}</div>
                                 </div>
                                 <div className="text-right min-w-[100px]">
-                                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Offen</div>
-                                    <div className={cn("font-mono font-bold", emp.balance > 0 ? 'text-amber-400' : 'text-emerald-400')}>
+                                    <div className="text-xs text-slate-500">Offen</div>
+                                    <div className={`font-mono font-bold ${emp.balance > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
                                         {formatCurrency(emp.balance)}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 pl-2">
+                                <div className="flex items-center gap-2">
                                     {emp.balance <= 0 ? (
                                         <Check className="w-5 h-5 text-emerald-400" />
                                     ) : (
@@ -324,12 +307,11 @@ export default function PayrollProtocol({ logs = [], employees = [], prices = []
                             </div>
                         </div>
 
+                        {/* Expanded Details */}
                         {expandedEmployee === emp.name && (
-                            <div className="border-t border-slate-800 bg-slate-950/30 p-6 animate-in slide-in-from-top-2 duration-200">
+                            <div className="border-t border-slate-700/50 p-4 bg-slate-800/20 animate-fade-in">
                                 <div className="flex justify-end mb-4">
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
+                                    <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             generatePayslip(
@@ -340,71 +322,66 @@ export default function PayrollProtocol({ logs = [], employees = [], prices = []
                                                 { earned: emp.totalEarned, paid: emp.totalPaid, balance: emp.balance }
                                             );
                                         }}
-                                        className="gap-2"
+                                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-white font-medium text-sm transition-colors"
                                     >
                                         <FileDown className="w-4 h-4" />
                                         Lohnzettel PDF
-                                    </Button>
+                                    </button>
                                 </div>
-                                <div className="grid md:grid-cols-2 gap-8">
+                                <div className="grid md:grid-cols-2 gap-6">
                                     {/* Productions */}
                                     <div>
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                             <FileText className="w-4 h-4" />
                                             Produktionen ({emp.productions.length})
                                         </h4>
-                                        <ScrollArea className="h-[250px] pr-4">
-                                            <div className="space-y-2">
-                                                {emp.productions.slice(0, 50).map((prod, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between py-2 px-3 bg-slate-900 rounded-lg border border-slate-800 text-sm">
-                                                        <div>
-                                                            <div className="text-slate-300 font-medium">{prod.item}</div>
-                                                            <div className="text-xs text-slate-500">{formatDate(prod.timestamp)}</div>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <div className="text-slate-400 text-xs">{prod.quantity}x á {formatCurrency(prod.unitPrice)}</div>
-                                                            <div className="text-emerald-400 font-mono font-medium">{formatCurrency(prod.value)}</div>
-                                                        </div>
+                                        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                                            {emp.productions.slice(0, 20).map((prod, idx) => (
+                                                <div key={idx} className="flex items-center justify-between py-2 px-3 bg-slate-800/50 rounded-lg text-sm">
+                                                    <div>
+                                                        <div className="text-slate-200">{prod.item}</div>
+                                                        <div className="text-xs text-slate-500">{formatDate(prod.timestamp)}</div>
                                                     </div>
-                                                ))}
-                                                {emp.productions.length === 0 && (
-                                                    <div className="text-slate-500 text-sm py-8 text-center bg-slate-900/50 rounded-lg border border-slate-800 border-dashed">Keine Produktionen</div>
-                                                )}
-                                            </div>
-                                        </ScrollArea>
+                                                    <div className="text-right">
+                                                        <div className="text-slate-300">{prod.quantity}x á {formatCurrency(prod.unitPrice)}</div>
+                                                        <div className="text-emerald-400 font-mono">{formatCurrency(prod.value)}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {emp.productions.length === 0 && (
+                                                <div className="text-slate-500 text-sm py-4 text-center">Keine Produktionen</div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Payouts */}
                                     <div>
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                             <Wallet className="w-4 h-4" />
                                             Auszahlungen ({emp.payouts.length})
                                         </h4>
-                                        <ScrollArea className="h-[250px] pr-4">
-                                            <div className="space-y-2">
-                                                {emp.payouts.map((payout, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between py-2 px-3 bg-slate-900 rounded-lg border border-slate-800 text-sm">
-                                                        <div className="text-slate-400">{formatDate(payout.timestamp)}</div>
-                                                        <div className="text-violet-400 font-mono font-bold">{formatCurrency(payout.amount)}</div>
-                                                    </div>
-                                                ))}
-                                                {emp.payouts.length === 0 && (
-                                                    <div className="text-slate-500 text-sm py-8 text-center bg-slate-900/50 rounded-lg border border-slate-800 border-dashed">Keine Auszahlungen</div>
-                                                )}
-                                            </div>
-                                        </ScrollArea>
+                                        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                                            {emp.payouts.map((payout, idx) => (
+                                                <div key={idx} className="flex items-center justify-between py-2 px-3 bg-slate-800/50 rounded-lg text-sm">
+                                                    <div className="text-slate-400">{formatDate(payout.timestamp)}</div>
+                                                    <div className="text-violet-400 font-mono font-bold">{formatCurrency(payout.amount)}</div>
+                                                </div>
+                                            ))}
+                                            {emp.payouts.length === 0 && (
+                                                <div className="text-slate-500 text-sm py-4 text-center">Keine Auszahlungen</div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         )}
-                    </Card>
+                    </div>
                 ))}
 
                 {filteredEmployees.length === 0 && (
-                    <Card className="bg-slate-900/50 border-slate-800 border-dashed p-12 flex flex-col items-center justify-center text-slate-500">
-                        <Users className="w-12 h-12 mb-4 opacity-50" />
-                        <p>Keine Mitarbeiter für diesen Zeitraum gefunden</p>
-                    </Card>
+                    <div className="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-12 text-center text-slate-500">
+                        Keine Mitarbeiter gefunden
+                    </div>
                 )}
             </div>
         </div>

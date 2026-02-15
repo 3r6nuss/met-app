@@ -13,8 +13,7 @@ export default function ActionPage({
     title,
     label,
     showPrice = true,
-    user,
-    lastTransactionId
+    user // Receive user prop
 }) {
     return (
         <div className="animate-fade-in">
@@ -25,24 +24,22 @@ export default function ActionPage({
                     prices={prices}
                     employeeInventory={employeeInventory}
                     onConsumeIngredients={onConsumeIngredients}
-                    onCheckIn={(id, qty, dep, price, date, warningIgnored, skipInventory, transactionId) => onAction(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory, transactionId)}
+                    onCheckIn={(id, qty, dep, price, date, warningIgnored, skipInventory) => onAction(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory)}
                     title={title}
                     depositorLabel={label}
                     showPrice={showPrice}
-                    user={user}
-                    lastTransactionId={lastTransactionId}
+                    user={user} // Pass user prop
                 />
             ) : (
                 <CheckOutForm
                     inventory={inventory}
                     employees={employees}
                     prices={prices}
-                    onCheckOut={(id, qty, dep, price, date, skipInventory, transactionId) => onAction(id, qty, dep, price, date, 'out', 'internal', false, skipInventory, transactionId)}
+                    onCheckOut={(id, qty, dep, price, date, skipInventory) => onAction(id, qty, dep, price, date, 'out', 'internal', false, skipInventory)}
                     title={title}
                     depositorLabel={label}
                     showPrice={showPrice}
-                    user={user}
-                    lastTransactionId={lastTransactionId}
+                    user={user} // Pass user prop
                 />
             )}
         </div>

@@ -1,26 +1,18 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
     LayoutDashboard, DollarSign, TrendingUp, TrendingDown, Users,
     Wallet, Package, AlertTriangle, Clock, ArrowRight, Calendar,
-    BookOpen, FileText, Shield, BarChart3, PieChart, CreditCard, Activity
+    BookOpen, FileText, Shield, BarChart3, PieChart, CheckCircle,
+    CreditCard, Activity
 } from 'lucide-react';
-import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
 
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
+};
+
+const formatCompact = (num) => {
+    return Intl.NumberFormat('de-DE', { notation: 'compact', maximumFractionDigits: 1 }).format(num);
 };
 
 export default function AccountingDashboard({ logs = [], employees = [], inventory = [], prices = [], user }) {
@@ -43,6 +35,7 @@ export default function AccountingDashboard({ logs = [], employees = [], invento
         todayStart.setHours(0, 0, 0, 0);
 
         const weekStart = new Date(startOfWeek);
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
         let todayRevenue = 0;
         let todayExpenses = 0;
@@ -66,11 +59,13 @@ export default function AccountingDashboard({ logs = [], employees = [], invento
                     employeePayouts[log.depositor] = 0;
                 }
 
+                // Production earnings
                 if (log.type === 'in' && log.category === 'internal' && log.itemName !== 'Auszahlung') {
                     const unitPrice = priceMap[log.itemId]?.sell || log.price || 0;
                     employeeEarnings[log.depositor] += (log.quantity || 1) * unitPrice;
                 }
 
+                // Payouts
                 if (log.itemName === 'Auszahlung' || (log.price < 0 && log.category === 'internal')) {
                     employeePayouts[log.depositor] += Math.abs(log.price || 0);
                 }
@@ -98,7 +93,7 @@ export default function AccountingDashboard({ logs = [], employees = [], invento
                 }
             }
 
-            // Recent transactions
+            // Recent transactions (last 10)
             if (log.category === 'trade' || log.itemName === 'Auszahlung') {
                 recentTransactions.push({
                     timestamp: log.timestamp,
@@ -112,6 +107,7 @@ export default function AccountingDashboard({ logs = [], employees = [], invento
             }
         });
 
+        // Calculate outstanding wages
         Object.keys(employeeEarnings).forEach(emp => {
             const balance = employeeEarnings[emp] - employeePayouts[emp];
             if (balance > 0) {
@@ -119,16 +115,19 @@ export default function AccountingDashboard({ logs = [], employees = [], invento
             }
         });
 
+        // Calculate inventory value
         let inventoryValue = 0;
         inventory.forEach(item => {
             const price = priceMap[item.id]?.sell || 0;
             inventoryValue += (item.current || 0) * price;
         });
 
+        // Sort and limit recent transactions
         recentTransactions = recentTransactions
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
             .slice(0, 8);
 
+        // Warnings
         const warnings = [];
         if (outstandingWages > 5000) {
             warnings.push({ type: 'warning', message: `Offene Löhne: ${formatCurrency(outstandingWages)}`, link: '/protokolle/lohn' });
@@ -149,216 +148,216 @@ export default function AccountingDashboard({ logs = [], employees = [], invento
         };
     }, [logs, inventory, prices, priceMap, startOfWeek, today]);
 
+    // Quick action links
     const quickLinks = [
-        { icon: BookOpen, label: 'Kassenbuch', path: '/protokolle/kassenbuch', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-        { icon: Users, label: 'Lohnabrechnung', path: '/protokolle/lohn', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-        { icon: Shield, label: 'Finanz-Audit', path: '/protokolle/audit', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-        { icon: BarChart3, label: 'GuV', path: '/protokolle/guv', color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
-        { icon: PieChart, label: 'Analytics', path: '/protokolle/analytics', color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20' },
-        { icon: FileText, label: 'Wochenprotokoll', path: '/protokolle/weekly', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' }
+        { icon: BookOpen, label: 'Kassenbuch', path: '/protokolle/kassenbuch', color: 'emerald' },
+        { icon: Users, label: 'Lohnabrechnung', path: '/protokolle/lohn', color: 'blue' },
+        { icon: Shield, label: 'Finanz-Audit', path: '/protokolle/audit', color: 'amber' },
+        { icon: BarChart3, label: 'GuV', path: '/protokolle/guv', color: 'violet' },
+        { icon: PieChart, label: 'Analytics', path: '/protokolle/analytics', color: 'fuchsia' },
+        { icon: FileText, label: 'Wochenprotokoll', path: '/protokolle/weekly', color: 'cyan' }
     ];
 
     return (
         <div className="space-y-6 pb-20 animate-fade-in">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-                        <LayoutDashboard className="w-8 h-8 text-violet-400" />
-                        Buchhaltungs-Cockpit
-                    </h1>
-                    <p className="text-slate-400 mt-1">Echtzeit-Übersicht aller finanziellen Aktivitäten.</p>
+            {/* HEADER */}
+            <div className="bg-gradient-to-r from-slate-900/80 to-violet-900/30 backdrop-blur-xl p-6 rounded-3xl border border-violet-500/20 shadow-2xl">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 flex items-center gap-3">
+                            <LayoutDashboard className="w-8 h-8 text-violet-400" />
+                            Buchhaltungs-Cockpit
+                        </h1>
+                        <p className="text-slate-400 mt-1">Echtzeit-Übersicht aller finanziellen Aktivitäten</p>
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-xl border border-slate-700">
+                        <Calendar className="w-4 h-4 text-violet-400" />
+                        <span className="text-slate-300 text-sm">
+                            {today.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                        </span>
+                    </div>
                 </div>
-                <Badge variant="outline" className="px-4 py-2 text-sm bg-slate-900/50 border-slate-700 text-slate-300 gap-2">
-                    <Calendar className="w-4 h-4 text-violet-400" />
-                    {today.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                </Badge>
             </div>
 
-            {/* Warnings */}
+            {/* WARNINGS */}
             {kpis.warnings.length > 0 && (
-                <div className="grid gap-2">
+                <div className="space-y-2">
                     {kpis.warnings.map((warning, idx) => (
-                        <Link key={idx} to={warning.link}>
-                            <Card className={cn("border-l-4 transition-all hover:translate-x-1", warning.type === 'warning' ? "border-l-amber-500 bg-amber-500/5 border-amber-500/20" : "border-l-blue-500 bg-blue-500/5 border-blue-500/20")}>
-                                <CardContent className="p-4 flex items-center gap-3">
-                                    <AlertTriangle className={cn("w-5 h-5", warning.type === 'warning' ? "text-amber-500" : "text-blue-500")} />
-                                    <span className={cn("flex-1 font-medium", warning.type === 'warning' ? "text-amber-400" : "text-blue-400")}>{warning.message}</span>
-                                    <ArrowRight className="w-4 h-4 text-slate-500" />
-                                </CardContent>
-                            </Card>
+                        <Link key={idx} to={warning.link} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:scale-[1.01] ${warning.type === 'warning' ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' :
+                                'bg-blue-500/10 border border-blue-500/20 text-blue-400'
+                            }`}>
+                            <AlertTriangle className="w-5 h-5" />
+                            <span className="flex-1">{warning.message}</span>
+                            <ArrowRight className="w-4 h-4" />
                         </Link>
                     ))}
                 </div>
             )}
 
-            {/* Main KPIs */}
+            {/* MAIN KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-slate-900/50 border-slate-800">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Tagesumsatz</CardTitle>
-                        <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-emerald-400">{formatCurrency(kpis.today.revenue)}</div>
-                        <p className="text-xs text-slate-500 mt-1">Heute</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-slate-900/50 border-slate-800">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Ausgaben</CardTitle>
-                        <TrendingDown className="w-4 h-4 text-red-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-400">{formatCurrency(kpis.today.expenses)}</div>
-                        <p className="text-xs text-slate-500 mt-1">Heute</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-slate-900/50 border-slate-800">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Offene Löhne</CardTitle>
-                        <Clock className="w-4 h-4 text-amber-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-amber-400">{formatCurrency(kpis.outstandingWages)}</div>
-                        <p className="text-xs text-slate-500 mt-1">Zu zahlen</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-slate-900/50 border-slate-800">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Lagerwert</CardTitle>
-                        <Package className="w-4 h-4 text-violet-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-violet-400">{formatCurrency(kpis.inventoryValue)}</div>
-                        <p className="text-xs text-slate-500 mt-1">Gesamtwert</p>
-                    </CardContent>
-                </Card>
+                {/* Today's Revenue */}
+                <div className="bg-gradient-to-br from-emerald-900/40 to-emerald-800/10 p-5 rounded-2xl border border-emerald-500/20 group hover:border-emerald-500/40 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 rounded-xl bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
+                            <TrendingUp className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <span className="text-xs text-emerald-300/50 uppercase tracking-wider">Heute</span>
+                    </div>
+                    <div className="text-2xl font-bold text-emerald-400">{formatCurrency(kpis.today.revenue)}</div>
+                    <div className="text-xs text-emerald-300/50 mt-1">Tagesumsatz</div>
+                </div>
+
+                {/* Today's Expenses */}
+                <div className="bg-gradient-to-br from-red-900/40 to-red-800/10 p-5 rounded-2xl border border-red-500/20 group hover:border-red-500/40 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 rounded-xl bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
+                            <TrendingDown className="w-5 h-5 text-red-400" />
+                        </div>
+                        <span className="text-xs text-red-300/50 uppercase tracking-wider">Heute</span>
+                    </div>
+                    <div className="text-2xl font-bold text-red-400">{formatCurrency(kpis.today.expenses)}</div>
+                    <div className="text-xs text-red-300/50 mt-1">Ausgaben</div>
+                </div>
+
+                {/* Outstanding Wages */}
+                <div className="bg-gradient-to-br from-amber-900/40 to-amber-800/10 p-5 rounded-2xl border border-amber-500/20 group hover:border-amber-500/40 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 rounded-xl bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                            <Clock className="w-5 h-5 text-amber-400" />
+                        </div>
+                        <span className="text-xs text-amber-300/50 uppercase tracking-wider">Offen</span>
+                    </div>
+                    <div className="text-2xl font-bold text-amber-400">{formatCurrency(kpis.outstandingWages)}</div>
+                    <div className="text-xs text-amber-300/50 mt-1">Offene Löhne</div>
+                </div>
+
+                {/* Inventory Value */}
+                <div className="bg-gradient-to-br from-violet-900/40 to-violet-800/10 p-5 rounded-2xl border border-violet-500/20 group hover:border-violet-500/40 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 rounded-xl bg-violet-500/10 group-hover:bg-violet-500/20 transition-colors">
+                            <Package className="w-5 h-5 text-violet-400" />
+                        </div>
+                        <span className="text-xs text-violet-300/50 uppercase tracking-wider">Lager</span>
+                    </div>
+                    <div className="text-2xl font-bold text-violet-400">{formatCurrency(kpis.inventoryValue)}</div>
+                    <div className="text-xs text-violet-300/50 mt-1">Warenwert</div>
+                </div>
             </div>
 
-            {/* Week Summary */}
-            <Card className="border-slate-800 bg-slate-900/40">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-slate-200">
-                        <Calendar className="w-5 h-5 text-cyan-400" />
-                        Wochenübersicht
-                    </CardTitle>
-                    <CardDescription>Finanzielle Performance der laufenden Woche</CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            {/* WEEK SUMMARY */}
+            <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6">
+                <h3 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-cyan-400" />
+                    Wochenübersicht
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-4 p-4 bg-slate-800/50 rounded-xl">
+                        <div className="p-3 rounded-xl bg-emerald-500/10">
                             <DollarSign className="w-6 h-6 text-emerald-400" />
                         </div>
                         <div>
-                            <p className="text-sm text-slate-400 font-medium">Umsatz</p>
-                            <p className="text-xl font-bold text-emerald-400">{formatCurrency(kpis.week.revenue)}</p>
+                            <div className="text-sm text-slate-400">Wochenumsatz</div>
+                            <div className="text-xl font-bold text-emerald-400">{formatCurrency(kpis.week.revenue)}</div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-full bg-red-500/10 border border-red-500/20">
+                    <div className="flex items-center gap-4 p-4 bg-slate-800/50 rounded-xl">
+                        <div className="p-3 rounded-xl bg-red-500/10">
                             <CreditCard className="w-6 h-6 text-red-400" />
                         </div>
                         <div>
-                            <p className="text-sm text-slate-400 font-medium">Ausgaben</p>
-                            <p className="text-xl font-bold text-red-400">{formatCurrency(kpis.week.expenses)}</p>
+                            <div className="text-sm text-slate-400">Wochenausgaben</div>
+                            <div className="text-xl font-bold text-red-400">{formatCurrency(kpis.week.expenses)}</div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className={cn("p-3 rounded-full border", kpis.week.profit >= 0 ? "bg-violet-500/10 border-violet-500/20" : "bg-red-500/10 border-red-500/20")}>
-                            <Activity className={cn("w-6 h-6", kpis.week.profit >= 0 ? "text-violet-400" : "text-red-400")} />
+                    <div className="flex items-center gap-4 p-4 bg-slate-800/50 rounded-xl">
+                        <div className={`p-3 rounded-xl ${kpis.week.profit >= 0 ? 'bg-violet-500/10' : 'bg-red-500/10'}`}>
+                            <Activity className={`w-6 h-6 ${kpis.week.profit >= 0 ? 'text-violet-400' : 'text-red-400'}`} />
                         </div>
                         <div>
-                            <p className="text-sm text-slate-400 font-medium">Gewinn</p>
-                            <p className={cn("text-xl font-bold", kpis.week.profit >= 0 ? "text-violet-400" : "text-red-400")}>
+                            <div className="text-sm text-slate-400">Wochengewinn</div>
+                            <div className={`text-xl font-bold ${kpis.week.profit >= 0 ? 'text-violet-400' : 'text-red-400'}`}>
                                 {formatCurrency(kpis.week.profit)}
-                            </p>
+                            </div>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent Transactions */}
-                <Card className="border-slate-800 bg-slate-900/40 h-full">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div className="space-y-1">
-                            <CardTitle className="flex items-center gap-2 text-slate-200">
-                                <Activity className="w-5 h-5 text-fuchsia-400" />
-                                Letzte Transaktionen
-                            </CardTitle>
-                            <CardDescription>Die neuesten finanziellen Bewegungen</CardDescription>
-                        </div>
-                        <Button variant="ghost" size="sm" asChild className="text-violet-400 hover:text-violet-300 hover:bg-violet-500/10">
-                            <Link to="/protokolle/kassenbuch" className="flex items-center gap-1">
-                                Alle <ArrowRight className="w-4 h-4 ml-1" />
-                            </Link>
-                        </Button>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <Table>
-                            <TableBody>
-                                {kpis.recentTransactions.map((tx, idx) => (
-                                    <TableRow key={idx} className="border-slate-800 hover:bg-slate-800/40">
-                                        <TableCell className="w-[50px] p-3 pl-6">
-                                            <div className={cn("p-2 rounded-lg w-fit",
-                                                tx.type === 'sale' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                    tx.type === 'purchase' ? 'bg-amber-500/10 text-amber-400' :
-                                                        tx.type === 'payout' ? 'bg-blue-500/10 text-blue-400' :
-                                                            'bg-slate-500/10 text-slate-400'
-                                            )}>
-                                                {tx.type === 'sale' && <TrendingUp className="w-4 h-4" />}
-                                                {tx.type === 'purchase' && <TrendingDown className="w-4 h-4" />}
-                                                {tx.type === 'payout' && <Wallet className="w-4 h-4" />}
-                                                {tx.type === 'other' && <Activity className="w-4 h-4" />}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="p-3">
-                                            <div className="font-medium text-slate-200">{tx.description}</div>
-                                            <div className="text-xs text-slate-500">
-                                                {new Date(tx.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                                                {tx.depositor && ` • ${tx.depositor}`}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right p-3 pr-6 font-mono font-bold">
-                                            <span className={tx.type === 'sale' ? 'text-emerald-400' : 'text-red-400'}>
-                                                {tx.type === 'sale' ? '+' : '-'}{formatCurrency(tx.amount)}
-                                            </span>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {kpis.recentTransactions.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={3} className="text-center py-6 text-slate-500">Keine Transaktionen</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-
-                {/* Quick Links */}
-                <Card className="border-slate-800 bg-slate-900/40 h-full">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-slate-200">
-                            <FileText className="w-5 h-5 text-cyan-400" />
-                            Schnellzugriff
-                        </CardTitle>
-                        <CardDescription>Häufig genutzte Protokolle</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4">
-                        {quickLinks.map((link) => (
-                            <Link key={link.path} to={link.path}>
-                                <div className={cn("flex flex-col items-center justify-center p-4 rounded-xl border transition-all hover:bg-slate-800/80 hover:scale-[1.02] cursor-pointer h-full gap-3 bg-slate-900/50", link.border)}>
-                                    <div className={cn("p-3 rounded-full", link.bg)}>
-                                        <link.icon className={cn("w-6 h-6", link.color)} />
-                                    </div>
-                                    <span className="text-sm font-medium text-slate-300">{link.label}</span>
+                {/* RECENT TRANSACTIONS */}
+                <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-fuchsia-400" />
+                            Letzte Transaktionen
+                        </h3>
+                        <Link to="/protokolle/kassenbuch" className="text-xs text-slate-400 hover:text-violet-400 flex items-center gap-1">
+                            Alle anzeigen <ArrowRight className="w-3 h-3" />
+                        </Link>
+                    </div>
+                    <div className="space-y-2">
+                        {kpis.recentTransactions.map((tx, idx) => (
+                            <div key={idx} className="flex items-center gap-4 p-3 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-colors">
+                                <div className={`p-2 rounded-lg ${tx.type === 'sale' ? 'bg-emerald-500/10' :
+                                        tx.type === 'purchase' ? 'bg-amber-500/10' :
+                                            tx.type === 'payout' ? 'bg-blue-500/10' :
+                                                'bg-slate-500/10'
+                                    }`}>
+                                    {tx.type === 'sale' && <TrendingUp className="w-4 h-4 text-emerald-400" />}
+                                    {tx.type === 'purchase' && <TrendingDown className="w-4 h-4 text-amber-400" />}
+                                    {tx.type === 'payout' && <Wallet className="w-4 h-4 text-blue-400" />}
                                 </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm text-slate-200 truncate">{tx.description}</div>
+                                    <div className="text-xs text-slate-500">
+                                        {new Date(tx.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                                        {tx.depositor && ` • ${tx.depositor}`}
+                                    </div>
+                                </div>
+                                <div className={`font-mono font-bold text-sm ${tx.type === 'sale' ? 'text-emerald-400' : 'text-red-400'
+                                    }`}>
+                                    {tx.type === 'sale' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                </div>
+                            </div>
+                        ))}
+                        {kpis.recentTransactions.length === 0 && (
+                            <div className="text-center py-8 text-slate-500">Keine Transaktionen heute</div>
+                        )}
+                    </div>
+                </div>
+
+                {/* QUICK LINKS */}
+                <div className="bg-slate-900/50 border border-slate-700/50 rounded-3xl p-6">
+                    <h3 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-cyan-400" />
+                        Schnellzugriff Protokolle
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                        {quickLinks.map((link) => (
+                            <Link
+                                key={link.path}
+                                to={link.path}
+                                className={`flex items-center gap-3 p-4 rounded-2xl border transition-all hover:scale-[1.02] ${link.color === 'emerald' ? 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40' :
+                                        link.color === 'blue' ? 'bg-blue-500/5 border-blue-500/20 hover:border-blue-500/40' :
+                                            link.color === 'amber' ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40' :
+                                                link.color === 'violet' ? 'bg-violet-500/5 border-violet-500/20 hover:border-violet-500/40' :
+                                                    link.color === 'fuchsia' ? 'bg-fuchsia-500/5 border-fuchsia-500/20 hover:border-fuchsia-500/40' :
+                                                        'bg-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40'
+                                    }`}
+                            >
+                                <link.icon className={`w-5 h-5 ${link.color === 'emerald' ? 'text-emerald-400' :
+                                        link.color === 'blue' ? 'text-blue-400' :
+                                            link.color === 'amber' ? 'text-amber-400' :
+                                                link.color === 'violet' ? 'text-violet-400' :
+                                                    link.color === 'fuchsia' ? 'text-fuchsia-400' :
+                                                        'text-cyan-400'
+                                    }`} />
+                                <span className="text-slate-300 font-medium">{link.label}</span>
                             </Link>
                         ))}
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
         </div>
     );

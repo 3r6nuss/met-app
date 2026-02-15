@@ -1,28 +1,11 @@
-import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-    LayoutDashboard, ArrowRightLeft, FileText, MoreHorizontal,
-    Settings, ShieldCheck, LogOut, Menu, User, Terminal
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, ArrowRightLeft, FileText, LogOut, Settings, ShieldCheck, MoreHorizontal } from 'lucide-react';
+import { cn } from '../lib/utils';
 import OutstandingBalance from './OutstandingBalance';
-import { useDeveloperConsole } from '@/context/DeveloperConsoleContext';
-
-import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { useDeveloperConsole } from '../context/DeveloperConsoleContext';
 
 export default function Navbar({ user }) {
-    const location = useLocation();
     const isAdmin = user?.role === 'Administrator';
     const isBuchhaltung = user?.role === 'Buchhaltung' || isAdmin;
     const isLager = (user?.isLagerist === 1 || user?.isLagerist === true) || user?.role === 'Lager' || isBuchhaltung;
@@ -30,159 +13,110 @@ export default function Navbar({ user }) {
     const isSuperAdmin = ['823276402320998450', '690510884639866960'].includes(user?.discordId);
     const isPending = user?.role?.includes('Pending');
 
-    const links = [
-        { to: '/', label: 'Lager', icon: LayoutDashboard, show: true },
-        { to: '/buchung', label: 'Buchung', icon: ArrowRightLeft, show: (isLager || isHaendler) && !isPending },
-        { to: '/protokolle', label: 'Protokolle', icon: FileText, show: !isPending },
-        { to: '/sonstiges', label: 'Sonstiges', icon: MoreHorizontal, show: !isPending },
-        { to: '/system', label: 'System', icon: Settings, show: isBuchhaltung },
-        { to: '/preise', label: 'Preise', icon: null, emoji: '💲', show: isAdmin },
-        { to: '/aktivitaetslog', label: 'Admin', icon: ShieldCheck, show: isSuperAdmin, className: 'text-red-400 hover:text-red-400 hover:bg-red-400/10' },
-    ].filter(link => link.show);
+    const navLinkClass = ({ isActive }) => cn(
+        "flex-1 flex items-center justify-center gap-2 px-4 py-3 font-medium transition-all rounded-xl",
+        isActive
+            ? "bg-white/10 text-white shadow-inner"
+            : "text-slate-400 hover:text-white hover:bg-white/5"
+    );
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60 mb-8">
-            <div className="container flex h-16 items-center px-4">
+        <nav className="glass-panel rounded-2xl p-2 mb-8 flex items-center sticky top-4 z-50">
+            <div className="flex-1 flex">
+                {/* Lager */}
+                <NavLink to="/" className={navLinkClass}>
+                    <LayoutDashboard className="w-5 h-5" />
+                    <span className="hidden sm:inline">Lager</span>
+                </NavLink>
 
-                {/* Mobile Menu */}
-                <Sheet>
-                    <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="md:hidden mr-2">
-                            <Menu className="h-5 w-5" />
-                            <span className="sr-only">Toggle menu</span>
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[240px] bg-slate-950 border-r-slate-800">
-                        <SheetHeader className="mb-6 text-left">
-                            <SheetTitle className="text-slate-100 flex items-center gap-2">
-                                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
-                                    <span className="font-bold text-white">M</span>
-                                </div>
-                                MET Syncrolog
-                            </SheetTitle>
-                        </SheetHeader>
-                        <nav className="flex flex-col gap-2">
-                            {links.map((link) => (
-                                <NavLink
-                                    key={link.to}
-                                    to={link.to}
-                                    className={({ isActive }) => cn(
-                                        "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                                        isActive
-                                            ? "bg-slate-800 text-white"
-                                            : "text-slate-400 hover:text-white hover:bg-slate-800/50",
-                                        link.className
-                                    )}
-                                >
-                                    {link.icon && <link.icon className="h-4 w-4" />}
-                                    {link.emoji && <span className="text-base">{link.emoji}</span>}
-                                    {link.label}
-                                </NavLink>
-                            ))}
-                        </nav>
-                    </SheetContent>
-                </Sheet>
+                {/* Buchung Hub */}
+                {(isLager || isHaendler) && !isPending && (
+                    <NavLink to="/buchung" className={navLinkClass}>
+                        <ArrowRightLeft className="w-5 h-5" />
+                        <span className="hidden sm:inline">Buchung</span>
+                    </NavLink>
+                )}
 
-                {/* Logo / Brand (Desktop) */}
-                <div className="hidden md:flex items-center gap-2 mr-6">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-500/20 flex items-center justify-center text-white font-bold">
-                        M
-                    </div>
-                </div>
+                {/* Protokolle Hub */}
+                {!isPending && (
+                    <NavLink to="/protokolle" className={navLinkClass}>
+                        <FileText className="w-5 h-5" />
+                        <span className="hidden sm:inline">Protokolle</span>
+                    </NavLink>
+                )}
 
-                {/* Desktop Navigation */}
-                <nav className="hidden md:flex items-center gap-1">
-                    {links.map((link) => (
-                        <NavLink key={link.to} to={link.to}>
-                            {({ isActive }) => (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn(
-                                        "gap-2 h-9 px-4 transition-all duration-200",
-                                        isActive
-                                            ? "bg-slate-800 text-white shadow-sm"
-                                            : "text-slate-400 hover:text-white hover:bg-slate-800/50",
-                                        link.className
-                                    )}
-                                >
-                                    {link.icon && <link.icon className="h-4 w-4" />}
-                                    {link.emoji && <span className="text-base leading-none">{link.emoji}</span>}
-                                    {link.label}
-                                </Button>
-                            )}
-                        </NavLink>
-                    ))}
-                </nav>
+                {/* Sonstiges Hub */}
+                {!isPending && (
+                    <NavLink to="/sonstiges" className={navLinkClass}>
+                        <MoreHorizontal className="w-5 h-5" />
+                        <span className="hidden sm:inline">Sonstiges</span>
+                    </NavLink>
+                )}
 
-                {/* Right Side: User & Actions */}
-                <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
-                    {isSuperAdmin && <ConsoleToggle />}
+                {/* Verwaltung/System */}
+                {isBuchhaltung && (
+                    <NavLink to="/system" className={navLinkClass}>
+                        <Settings className="w-5 h-5" />
+                        <span className="hidden sm:inline">System</span>
+                    </NavLink>
+                )}
 
-                    {user && (
-                        <>
-                            <div className="hidden sm:block">
-                                <OutstandingBalance user={user} />
-                            </div>
+                {/* Preise (Admin only) */}
+                {isAdmin && (
+                    <NavLink to="/preise" className={navLinkClass}>
+                        <span className="text-lg">💲</span>
+                        <span className="hidden sm:inline">Preise</span>
+                    </NavLink>
+                )}
 
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                                        <Avatar className="h-9 w-9 border border-slate-700">
-                                            <AvatarImage
-                                                src={`https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png`}
-                                                alt={user.username}
-                                            />
-                                            <AvatarFallback className="bg-slate-800 text-slate-400">
-                                                {user.username.slice(0, 2).toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-56 bg-slate-950 border-slate-800" align="end" forceMount>
-                                    <DropdownMenuLabel className="font-normal">
-                                        <div className="flex flex-col space-y-1">
-                                            <p className="text-sm font-medium leading-none text-white">{user.username}</p>
-                                            <p className="text-xs leading-none text-slate-400">{user.role}</p>
-                                        </div>
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator className="bg-slate-800" />
-                                    <div className="sm:hidden p-2">
-                                        <OutstandingBalance user={user} />
-                                    </div>
-                                    <DropdownMenuSeparator className="bg-slate-800 sm:hidden" />
-                                    <DropdownMenuItem className="text-red-400 focus:text-red-400 focus:bg-red-950/30 cursor-pointer" asChild>
-                                        <a href="/auth/logout" className="flex items-center w-full">
-                                            <LogOut className="mr-2 h-4 w-4" />
-                                            <span>Abmelden</span>
-                                        </a>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </>
-                    )}
-                </div>
+                {/* Aktivitätslog (SuperAdmin only) */}
+                {isSuperAdmin && (
+                    <NavLink to="/aktivitaetslog" className={navLinkClass}>
+                        <ShieldCheck className="w-5 h-5 text-red-400" />
+                        <span className="hidden sm:inline text-red-400">Admin</span>
+                    </NavLink>
+                )}
             </div>
-        </header>
+
+            {/* User Profile */}
+            {user && (
+                <div className="flex items-center gap-3 ml-4 pl-4 border-l border-slate-700">
+                    {isSuperAdmin && <ConsoleToggle />}
+                    <OutstandingBalance user={user} />
+                    <div className="flex items-center gap-2">
+                        {user.avatar && (
+                            <img
+                                src={`https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png`}
+                                alt={user.username}
+                                className="w-8 h-8 rounded-full border border-slate-600"
+                            />
+                        )}
+                        <span className="text-sm font-medium text-slate-300 hidden xl:block">{user.username}</span>
+                    </div>
+                    <a
+                        href="/auth/logout"
+                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800/50 rounded-lg transition-colors"
+                        title="Abmelden"
+                    >
+                        <LogOut className="w-5 h-5" />
+                    </a>
+                </div>
+            )}
+        </nav>
     );
 }
 
 const ConsoleToggle = () => {
     const { toggleConsole, isVisible } = useDeveloperConsole();
     return (
-        <Button
-            variant="ghost"
-            size="icon"
+        <button
             onClick={toggleConsole}
-            className={cn(
-                "h-9 w-9",
-                isVisible
-                    ? "text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 hover:text-emerald-300"
-                    : "text-slate-500 hover:text-emerald-400"
-            )}
+            className={`p-2 rounded-lg transition-colors mr-2 ${isVisible ? 'text-green-400 bg-green-400/10' : 'text-slate-500 hover:text-green-400 hover:bg-slate-800'}`}
             title="Developer Console"
         >
-            <Terminal className="h-4 w-4" />
-        </Button>
+            <div className="w-5 h-5 font-mono text-xs border-2 border-current rounded flex items-center justify-center font-bold">
+                {'>_'}
+            </div>
+        </button>
     );
 };

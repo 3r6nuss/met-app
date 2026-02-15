@@ -36,25 +36,20 @@ export function broadcast(message) {
  * Only the client matching the employee name should show the popup
  */
 export function broadcastDiscordLog(discordLog) {
-    // Handle both snake_case (from DB) and camelCase (from code)
-    const data = {
-        id: discordLog.id,
-        discordMessageId: discordLog.discord_message_id || discordLog.discordMessageId,
-        parsedType: discordLog.parsed_type || discordLog.parsedType,
-        employeeName: discordLog.employee_name || discordLog.employeeName,
-        customerName: discordLog.customer_name || discordLog.customerName,
-        amount: discordLog.amount,
-        reason: discordLog.reason,
-        logTimestamp: discordLog.log_timestamp || discordLog.logTimestamp,
-        createdAt: discordLog.created_at || discordLog.createdAt
-    };
-
-    // Include suggested transaction if present (for auto-match)
-    if (discordLog.suggestedTransaction) {
-        data.suggestedTransaction = discordLog.suggestedTransaction;
-    }
-
-    broadcast({ type: 'DISCORD_LOG', data });
+    broadcast({
+        type: 'DISCORD_LOG',
+        data: {
+            id: discordLog.id,
+            discordMessageId: discordLog.discord_message_id,
+            parsedType: discordLog.parsed_type,
+            employeeName: discordLog.employee_name,
+            customerName: discordLog.customer_name,
+            amount: discordLog.amount,
+            reason: discordLog.reason,
+            logTimestamp: discordLog.log_timestamp,
+            createdAt: discordLog.created_at
+        }
+    });
 }
 
 export default { initBroadcaster, broadcast, broadcastDiscordLog };
