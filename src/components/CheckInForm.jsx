@@ -274,251 +274,264 @@ export default function CheckInForm({
                 <PackagePlus className="w-5 h-5" />
                 {title}
             </h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-                <div className="space-y-1">
-                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Produkt</label>
-                    <select
-                        value={selectedId}
-                        onChange={(e) => setSelectedId(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 appearance-none cursor-pointer text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
-                        required={cart.length === 0}
-                    >
-                        <option value="">Produkt wählen...</option>
-                        {sortedInventory.map(item => (
-                            <option key={item.id} value={item.id} className="bg-slate-900">
-                                {item.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="space-y-1">
-                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Datum & Zeit</label>
-                    <input
-                        type="datetime-local"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
-                    />
-                </div>
-
-                <div className="space-y-1">
-                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{depositorLabel}</label>
-                    <select
-                        value={showCustomInput ? '__custom__' : depositor}
-                        onChange={handleEmployeeChange}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 appearance-none cursor-pointer text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
-                        required={!showCustomInput}
-                    >
-                        <option value="">Mitarbeiter wählen...</option>
-                        {employees.map((emp, idx) => {
-                            const empName = typeof emp === 'string' ? emp : emp.name;
-                            return (
-                                <option key={idx} value={empName} className="bg-slate-900">
-                                    {empName}
-                                </option>
-                            );
-                        })}
-                        <option value="__custom__" className="bg-slate-900 text-amber-400">
-                            ➕ Andere...
-                        </option>
-                    </select>
-                </div>
-
-                {showCustomInput && (
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* LEFT COLUMN: Inputs & Controls */}
+                <div className="space-y-4">
                     <div className="space-y-1">
-                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Name eingeben</label>
-                        <input
-                            type="text"
-                            value={customName}
-                            onChange={(e) => setCustomName(e.target.value)}
-                            placeholder="Name..."
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
-                            required
-                        />
-                    </div>
-                )}
-
-                <div className={`grid ${showPrice ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
-                    <div className="space-y-1">
-                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Menge</label>
-                        <input
-                            type="number"
-                            value={quantity}
-                            onChange={(e) => setQuantity(e.target.value)}
-                            placeholder="0"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
+                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Produkt</label>
+                        <select
+                            value={selectedId}
+                            onChange={(e) => setSelectedId(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 appearance-none cursor-pointer text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
                             required={cart.length === 0}
-                            min="1"
+                        >
+                            <option value="">Produkt wählen...</option>
+                            {sortedInventory.map(item => (
+                                <option key={item.id} value={item.id} className="bg-slate-900">
+                                    {item.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Datum & Zeit</label>
+                        <input
+                            type="datetime-local"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
                         />
                     </div>
-                    {showPrice && (
+
+                    <div className="space-y-1">
+                        <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{depositorLabel}</label>
+                        <select
+                            value={showCustomInput ? '__custom__' : depositor}
+                            onChange={handleEmployeeChange}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 appearance-none cursor-pointer text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
+                            required={!showCustomInput}
+                        >
+                            <option value="">Mitarbeiter wählen...</option>
+                            {employees.map((emp, idx) => {
+                                const empName = typeof emp === 'string' ? emp : emp.name;
+                                return (
+                                    <option key={idx} value={empName} className="bg-slate-900">
+                                        {empName}
+                                    </option>
+                                );
+                            })}
+                            <option value="__custom__" className="bg-slate-900 text-amber-400">
+                                ➕ Andere...
+                            </option>
+                        </select>
+                    </div>
+
+                    {showCustomInput && (
                         <div className="space-y-1">
-                            <div className="flex justify-between items-end flex-wrap gap-2">
-                                <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                                    {title.includes("Einkauf") ? "Preis (Stk)" : "Lohn (Stk)"}
-                                </label>
-                                {title.includes("Einlagern") && (
-                                    <div className="flex gap-3">
-                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                            <input
-                                                type="checkbox"
-                                                checked={isSelfCollected}
-                                                onChange={(e) => {
-                                                    setIsSelfCollected(e.target.checked);
-                                                    if (e.target.checked) setIsReturn(false);
-                                                }}
-                                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
-                                            />
-                                            <span className="text-xs text-slate-400 group-hover:text-emerald-300 transition-colors">Selbst gesammelt</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                            <input
-                                                type="checkbox"
-                                                checked={isReturn}
-                                                onChange={(e) => {
-                                                    setIsReturn(e.target.checked);
-                                                    if (e.target.checked) setIsSelfCollected(false);
-                                                }}
-                                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500 focus:ring-violet-500 focus:ring-offset-slate-900"
-                                            />
-                                            <span className="text-xs text-slate-400 group-hover:text-violet-300 transition-colors">Rückgabe (0$)</span>
-                                        </label>
-                                    </div>
-                                )}
+                            <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Name eingeben</label>
+                            <input
+                                type="text"
+                                value={customName}
+                                onChange={(e) => setCustomName(e.target.value)}
+                                placeholder="Name..."
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
+                                required
+                            />
+                        </div>
+                    )}
+
+                    <div className={`grid ${showPrice ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+                        <div className="space-y-1">
+                            <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Menge</label>
+                            <input
+                                type="number"
+                                value={quantity}
+                                onChange={(e) => setQuantity(e.target.value)}
+                                placeholder="0"
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
+                                required={cart.length === 0}
+                                min="1"
+                            />
+                        </div>
+                        {showPrice && (
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-end flex-wrap gap-2">
+                                    <label className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+                                        {title.includes("Einkauf") ? "Preis (Stk)" : "Lohn (Stk)"}
+                                    </label>
+                                    {title.includes("Einlagern") && (
+                                        <div className="flex gap-3">
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelfCollected}
+                                                    onChange={(e) => {
+                                                        setIsSelfCollected(e.target.checked);
+                                                        if (e.target.checked) setIsReturn(false);
+                                                    }}
+                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900"
+                                                />
+                                                <span className="text-xs text-slate-400 group-hover:text-emerald-300 transition-colors">Selbst gesammelt</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isReturn}
+                                                    onChange={(e) => {
+                                                        setIsReturn(e.target.checked);
+                                                        if (e.target.checked) setIsSelfCollected(false);
+                                                    }}
+                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500 focus:ring-violet-500 focus:ring-offset-slate-900"
+                                                />
+                                                <span className="text-xs text-slate-400 group-hover:text-violet-300 transition-colors">Rückgabe (0$)</span>
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={price}
+                                        onChange={(e) => setPrice(e.target.value)}
+                                        placeholder="0"
+                                        className={`w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 pl-8 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all ${isReturn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        disabled={isReturn}
+                                    />
+                                    <DollarSign className="w-4 h-4 text-slate-500 absolute left-2.5 top-3" />
+                                </div>
                             </div>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value={price}
-                                    onChange={(e) => setPrice(e.target.value)}
-                                    placeholder="0"
-                                    className={`w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 pl-8 text-slate-200 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all ${isReturn ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    disabled={isReturn}
-                                />
-                                <DollarSign className="w-4 h-4 text-slate-500 absolute left-2.5 top-3" />
+                        )}
+                    </div>
+
+                    {/* Estimated Earnings Display - Keep rendered even if price is 0 to prevent React/Translation DOM errors */}
+                    {showPrice && selectedId && quantity > 0 && price !== '' && (
+                        <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 animate-fade-in">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-slate-400">Geschätzter Verdienst:</span>
+                                <span className="font-bold text-emerald-400">
+                                    ${calculateEarnings()}
+                                </span>
                             </div>
                         </div>
                     )}
-                </div>
 
-                {/* Estimated Earnings Display - Keep rendered even if price is 0 to prevent React/Translation DOM errors */}
-                {showPrice && selectedId && quantity > 0 && price !== '' && (
-                    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 animate-fade-in">
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-slate-400">Geschätzter Verdienst:</span>
-                            <span className="font-bold text-emerald-400">
-                                ${calculateEarnings()}
-                            </span>
-                        </div>
+                    {/* Add to Cart Button */}
+                    <div className="grid grid-cols-1 gap-3 mt-2">
+                        <button
+                            type="button"
+                            onClick={addToCart}
+                            disabled={!selectedId || !quantity}
+                            className="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            <PackagePlus className="w-4 h-4" />
+                            Zur Liste hinzufügen
+                        </button>
                     </div>
-                )}
 
-                {/* Add to Cart Button */}
-                <div className="grid grid-cols-1 gap-3 mt-2">
-                    <button
-                        type="button"
-                        onClick={addToCart}
-                        disabled={!selectedId || !quantity}
-                        className="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                        <PackagePlus className="w-4 h-4" />
-                        Zur Liste hinzufügen
-                    </button>
-                </div>
-
-                {/* Cart List */}
-                {cart.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Aktuelle Liste</h3>
-                        <div className="bg-slate-900/50 rounded-lg border border-slate-700/50 overflow-hidden">
-                            {cart.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center p-3 border-b border-slate-700/50 last:border-0 hover:bg-slate-800/50 transition-colors">
-                                    <div>
-                                        <div className="font-medium text-slate-200">{item.name}</div>
-                                        <div className="text-xs text-slate-400">
-                                            {item.quantity}x • ${item.price} • {item.depositor}
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeFromCart(idx)}
-                                        className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-400/10 transition-colors"
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
-                            ))}
-                            <div className="p-3 bg-slate-800/30 flex justify-between items-center text-sm font-semibold">
-                                <span className="text-slate-400">Gesamt:</span>
-                                <span className="text-emerald-400">${calculateCartTotal()}</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Cart Summary & Transaction ID */}
-                {cart.length > 0 && (
-                    <div className="mt-4 p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                        <div className="flex justify-between items-center mb-3">
-                            <span className="text-sm font-medium text-slate-400">Gesamt</span>
-                            <span className="text-lg font-bold text-emerald-400">${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
-                        </div>
-                        <div className="h-px bg-slate-700/50 my-3" />
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-slate-400">Referenz-ID</span>
-                            <div className="flex items-center gap-2">
-                                <span className="font-mono font-bold text-amber-400 tracking-wider bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">
-                                    {preTransactionId}
+                    {/* Skip Inventory Checkbox - Only for Buchhaltung/Admin */}
+                    {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
+                        <div className="flex items-center gap-2 mt-2 p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
+                            <label className="flex items-center gap-2 cursor-pointer group w-full">
+                                <input
+                                    type="checkbox"
+                                    checked={skipInventory}
+                                    onChange={(e) => setSkipInventory(e.target.checked)}
+                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                                />
+                                <span className="text-sm text-slate-400 group-hover:text-blue-300 transition-colors">
+                                    Nur Protokoll (Kein Lagerbestand)
                                 </span>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(preTransactionId);
-                                        setCopiedId(true);
-                                        setTimeout(() => setCopiedId(false), 2000);
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-white transition-colors"
-                                    title="ID kopieren"
-                                >
-                                    {copiedId ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                                </button>
-                            </div>
+                            </label>
                         </div>
+                    )}
+
+                    <div className="grid grid-cols-1 gap-3 mt-2">
+                        <button
+                            type="submit"
+                            className={`w-full text-white py-3 rounded-lg font-semibold transition-colors duration-200 ${skipInventory
+                                ? 'bg-blue-600 hover:bg-blue-700'
+                                : 'bg-emerald-600 hover:bg-emerald-700'
+                                }`}
+                        >
+                            {cart.length > 0
+                                ? `Alle bestätigen (${cart.length})`
+                                : (skipInventory ? 'Nur Protokollieren' : 'Direkt bestätigen')
+                            }
+                        </button>
                     </div>
-                )}
+                </div>
 
+                {/* RIGHT COLUMN: Cart & Summary */}
+                <div className="space-y-4">
+                    {cart.length > 0 ? (
+                        <>
+                            <div className="space-y-2">
+                                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Aktuelle Liste</h3>
+                                <div className="bg-slate-900/50 rounded-lg border border-slate-700/50 overflow-hidden max-h-[400px] overflow-y-auto">
+                                    {cart.map((item, idx) => (
+                                        <div key={idx} className="flex justify-between items-center p-3 border-b border-slate-700/50 last:border-0 hover:bg-slate-800/50 transition-colors">
+                                            <div>
+                                                <div className="font-medium text-slate-200">{item.name}</div>
+                                                <div className="text-xs text-slate-400">
+                                                    {item.quantity}x • ${item.price} • {item.depositor}
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeFromCart(idx)}
+                                                className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-400/10 transition-colors"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <div className="p-3 bg-slate-800/30 flex justify-between items-center text-sm font-semibold sticky bottom-0 backdrop-blur-md">
+                                        <span className="text-slate-400">Gesamt:</span>
+                                        <span className="text-emerald-400">${calculateCartTotal()}</span>
+                                    </div>
+                                </div>
+                            </div>
 
-                {/* Skip Inventory Checkbox - Only for Buchhaltung/Admin */}
-                {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
-                    <div className="flex items-center gap-2 mt-2 p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
-                        <label className="flex items-center gap-2 cursor-pointer group w-full">
-                            <input
-                                type="checkbox"
-                                checked={skipInventory}
-                                onChange={(e) => setSkipInventory(e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
-                            />
-                            <span className="text-sm text-slate-400 group-hover:text-blue-300 transition-colors">
-                                Nur Protokoll (Kein Lagerbestand)
-                            </span>
-                        </label>
-                    </div>
-                )}
-
-                <div className="grid grid-cols-1 gap-3 mt-2">
-                    <button
-                        type="submit"
-                        className={`w-full text-white py-3 rounded-lg font-semibold transition-colors duration-200 ${skipInventory
-                            ? 'bg-blue-600 hover:bg-blue-700'
-                            : 'bg-emerald-600 hover:bg-emerald-700'
-                            }`}
-                    >
-                        {cart.length > 0
-                            ? `Alle bestätigen (${cart.length})`
-                            : (skipInventory ? 'Nur Protokollieren' : 'Direkt bestätigen')
-                        }
-                    </button>
+                            <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                                <div className="flex justify-between items-center mb-3">
+                                    <span className="text-sm font-medium text-slate-400">Gesamt</span>
+                                    <span className="text-lg font-bold text-emerald-400">${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
+                                </div>
+                                {title.includes("Einkauf") && (
+                                    <>
+                                        <div className="h-px bg-slate-700/50 my-3" />
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-slate-400">Referenz-ID</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono font-bold text-amber-400 tracking-wider bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">
+                                                    {preTransactionId}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(preTransactionId);
+                                                        setCopiedId(true);
+                                                        setTimeout(() => setCopiedId(false), 2000);
+                                                    }}
+                                                    className="p-1 text-slate-400 hover:text-white transition-colors"
+                                                    title="ID kopieren"
+                                                >
+                                                    {copiedId ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center p-8 text-slate-500 border-2 border-dashed border-slate-800 rounded-xl min-h-[300px]">
+                            <PackagePlus className="w-12 h-12 mb-3 opacity-20" />
+                            <p className="text-sm font-medium">Warenkorb leer</p>
+                            <p className="text-xs opacity-60 text-center mt-1">Füge Produkte hinzu, um sie hier zu sehen</p>
+                        </div>
+                    )}
                 </div>
             </form>
 

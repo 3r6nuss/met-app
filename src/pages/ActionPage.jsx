@@ -24,7 +24,7 @@ export default function ActionPage({
                     prices={prices}
                     employeeInventory={employeeInventory}
                     onConsumeIngredients={onConsumeIngredients}
-                    onCheckIn={(id, qty, dep, price, date, warningIgnored, skipInventory) => onAction(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory)}
+                    onCheckIn={(id, qty, dep, price, date, warningIgnored, skipInventory, transactionId) => onAction(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory, transactionId)}
                     title={title}
                     depositorLabel={label}
                     showPrice={showPrice}
@@ -35,7 +35,7 @@ export default function ActionPage({
                     inventory={inventory}
                     employees={employees}
                     prices={prices}
-                    onCheckOut={(id, qty, dep, price, date, skipInventory) => onAction(id, qty, dep, price, date, 'out', 'internal', false, skipInventory)}
+                    onCheckOut={(id, qty, dep, price, date, skipInventory, transactionId) => onAction(id, qty, dep, price, date, 'out', 'internal', false, skipInventory, transactionId)}
                     title={title}
                     depositorLabel={label}
                     showPrice={showPrice}

@@ -379,7 +379,7 @@ function App() {
       });
   };
 
-  const handleCheckOut = (idOrData, quantity, depositor, price = 0, customDate = null, _type = 'out', category = 'internal', _warningIgnored = false, skipInventory = false) => {
+  const handleCheckOut = (idOrData, quantity, depositor, price = 0, customDate = null, _type = 'out', category = 'internal', _warningIgnored = false, skipInventory = false, transactionId = null) => {
     let payload;
     let logDetail = null;
 
@@ -393,7 +393,8 @@ function App() {
         depositor: item.depositor || 'Unbekannt',
         price: item.price,
         timestamp: item.date,
-        skipInventory: item.skipInventory
+        skipInventory: item.skipInventory,
+        transactionId: item.transactionId
       }));
       // Prepare detailed log for batch
       logDetail = {
@@ -423,7 +424,8 @@ function App() {
         depositor: depositor || 'Unbekannt',
         price,
         timestamp: customDate,
-        skipInventory
+        skipInventory,
+        transactionId
       };
 
       logDetail = {
