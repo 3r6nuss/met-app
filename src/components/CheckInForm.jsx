@@ -1,6 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { PackagePlus, DollarSign } from 'lucide-react';
+import { PackagePlus, DollarSign, Copy, Check } from 'lucide-react';
 import { recipes } from '../data/recipes';
+
+// Generate a random 6-character alphanumeric ID
+const generateTransactionId = () => {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+};
 
 export default function CheckInForm({
     inventory,
@@ -25,6 +30,13 @@ export default function CheckInForm({
     const [pendingSubmission, setPendingSubmission] = useState(null);
     const [selectedDate, setSelectedDate] = useState('');
     const [cart, setCart] = useState([]);
+    const [preTransactionId, setPreTransactionId] = useState('');
+    const [copiedId, setCopiedId] = useState(false);
+
+    // Initialize ID on mount
+    useEffect(() => {
+        setPreTransactionId(generateTransactionId());
+    }, []);
 
 
     useEffect(() => {
@@ -181,7 +193,8 @@ export default function CheckInForm({
                 price,
                 submissionData.date,
                 false, // warningIgnored
-                skipInventory // skipInventory
+                skipInventory, // skipInventory
+                submissionData.transactionId // transactionId
             );
         }
 
@@ -217,7 +230,8 @@ export default function CheckInForm({
             quantity,
             depositor: finalDepositor,
             price: finalPrice ? parseFloat(finalPrice.toString().replace(',', '.')) : 0,
-            date: selectedDate ? new Date(selectedDate).toISOString() : null
+            date: selectedDate ? new Date(selectedDate).toISOString() : null,
+            transactionId: preTransactionId // Include the pre-generated ID
         };
 
         // Check for notes (only for Einkauf, not Einlagern)
@@ -443,6 +457,37 @@ export default function CheckInForm({
                     </div>
                 )}
 
+                {/* Cart Summary & Transaction ID */}
+                {cart.length > 0 && (
+                    <div className="mt-4 p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                        <div className="flex justify-between items-center mb-3">
+                            <span className="text-sm font-medium text-slate-400">Gesamt</span>
+                            <span className="text-lg font-bold text-emerald-400">${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
+                        </div>
+                        <div className="h-px bg-slate-700/50 my-3" />
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-slate-400">Referenz-ID</span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold text-amber-400 tracking-wider bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">
+                                    {preTransactionId}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(preTransactionId);
+                                        setCopiedId(true);
+                                        setTimeout(() => setCopiedId(false), 2000);
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-white transition-colors"
+                                    title="ID kopieren"
+                                >
+                                    {copiedId ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
 
                 {/* Skip Inventory Checkbox - Only for Buchhaltung/Admin */}
                 {(user?.role === 'Administrator' || user?.role === 'Buchhaltung') && (
@@ -478,40 +523,42 @@ export default function CheckInForm({
             </form>
 
             {/* Warning Modal */}
-            {showWarningModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-slate-900 border border-red-500/50 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in">
-                        <div className="text-center space-y-4">
-                            <h3 className="text-2xl font-bold text-red-500 uppercase tracking-wider">Achtung</h3>
+            {
+                showWarningModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <div className="bg-slate-900 border border-red-500/50 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in">
+                            <div className="text-center space-y-4">
+                                <h3 className="text-2xl font-bold text-red-500 uppercase tracking-wider">Achtung</h3>
 
-                            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                                <p className="text-red-200 font-medium text-lg">
-                                    {warningMessage}
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                                    <p className="text-red-200 font-medium text-lg">
+                                        {warningMessage}
+                                    </p>
+                                </div>
+
+                                <p className="text-slate-400 text-sm">
+                                    Bist du sicher, dass du fortfahren möchtest?
                                 </p>
-                            </div>
 
-                            <p className="text-slate-400 text-sm">
-                                Bist du sicher, dass du fortfahren möchtest?
-                            </p>
-
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    onClick={() => setShowWarningModal(false)}
-                                    className="flex-1 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors font-medium"
-                                >
-                                    Abbrechen
-                                </button>
-                                <button
-                                    onClick={() => processSubmission(pendingSubmission)}
-                                    className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-bold"
-                                >
-                                    Trotzdem bestätigen
-                                </button>
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        onClick={() => setShowWarningModal(false)}
+                                        className="flex-1 px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors font-medium"
+                                    >
+                                        Abbrechen
+                                    </button>
+                                    <button
+                                        onClick={() => processSubmission(pendingSubmission)}
+                                        className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-bold"
+                                    >
+                                        Trotzdem bestätigen
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </section>
+                )
+            }
+        </section >
     );
 }

@@ -287,7 +287,7 @@ function App() {
     api.saveLog(newLog).catch(err => console.error("Failed to save log:", err));
   };
 
-  const handleCheckIn = (idOrData, quantity, depositor, price = 0, customDate = null, _type = 'in', category = 'internal', warningIgnored = false, skipInventory = false) => {
+  const handleCheckIn = (idOrData, quantity, depositor, price = 0, customDate = null, _type = 'in', category = 'internal', warningIgnored = false, skipInventory = false, transactionId = null) => {
     let payload;
     let logDetail = null;
 
@@ -302,7 +302,8 @@ function App() {
         price: item.price,
         timestamp: item.date,
         warningIgnored: item.warningIgnored,
-        skipInventory: item.skipInventory
+        skipInventory: item.skipInventory,
+        transactionId: item.transactionId
       }));
       // Prepare detailed log for batch
       logDetail = {
@@ -333,7 +334,8 @@ function App() {
         price,
         timestamp: customDate,
         warningIgnored,
-        skipInventory
+        skipInventory,
+        transactionId
       };
 
       logDetail = {
