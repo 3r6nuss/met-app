@@ -42,6 +42,7 @@ export default function CheckOutForm({
     const [cart, setCart] = useState([]);
     const [preTransactionId, setPreTransactionId] = useState('');
     const [copiedId, setCopiedId] = useState(false);
+    const [copiedPrice, setCopiedPrice] = useState(false);
 
     // Initialize ID on mount
     useEffect(() => {
@@ -330,8 +331,20 @@ export default function CheckOutForm({
                         <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 animate-fade-in">
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-slate-400">Geschätzter Betrag:</span>
-                                <span className="font-bold text-amber-400">
+                                <span className="font-bold text-amber-400 flex items-center gap-2">
                                     ${calculateEarnings()}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(calculateEarnings());
+                                            setCopiedPrice(true);
+                                            setTimeout(() => setCopiedPrice(false), 2000);
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-white transition-colors"
+                                        title="Betrag kopieren"
+                                    >
+                                        {copiedPrice ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                                    </button>
                                 </span>
                             </div>
                         </div>

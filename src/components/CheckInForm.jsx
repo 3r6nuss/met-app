@@ -32,6 +32,7 @@ export default function CheckInForm({
     const [cart, setCart] = useState([]);
     const [preTransactionId, setPreTransactionId] = useState('');
     const [copiedId, setCopiedId] = useState(false);
+    const [copiedPrice, setCopiedPrice] = useState(false);
 
     // Initialize ID on mount
     useEffect(() => {
@@ -409,8 +410,20 @@ export default function CheckInForm({
                         <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 animate-fade-in">
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-slate-400">Geschätzter Verdienst:</span>
-                                <span className="font-bold text-emerald-400">
+                                <span className="font-bold text-emerald-400 flex items-center gap-2">
                                     ${calculateEarnings()}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(calculateEarnings());
+                                            setCopiedPrice(true);
+                                            setTimeout(() => setCopiedPrice(false), 2000);
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-white transition-colors"
+                                        title="Betrag kopieren"
+                                    >
+                                        {copiedPrice ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                                    </button>
                                 </span>
                             </div>
                         </div>
@@ -464,6 +477,32 @@ export default function CheckInForm({
 
                 {/* RIGHT COLUMN: Cart & Summary */}
                 <div className="space-y-4">
+                    {/* Transaction ID Display - Always show if matches title condition */}
+                    {title.includes("Einkauf") && (
+                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-slate-400">Referenz-ID</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-mono font-bold text-number text-amber-400 tracking-wider bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">
+                                        {preTransactionId}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(preTransactionId);
+                                            setCopiedId(true);
+                                            setTimeout(() => setCopiedId(false), 2000);
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-white transition-colors"
+                                        title="ID kopieren"
+                                    >
+                                        {copiedId ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {cart.length > 0 ? (
                         <>
                             <div className="space-y-2">
@@ -494,35 +533,10 @@ export default function CheckInForm({
                             </div>
 
                             <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                                <div className="flex justify-between items-center mb-3">
+                                <div className="flex justify-between items-center">
                                     <span className="text-sm font-medium text-slate-400">Gesamt</span>
                                     <span className="text-lg font-bold text-emerald-400">${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
                                 </div>
-                                {title.includes("Einkauf") && (
-                                    <>
-                                        <div className="h-px bg-slate-700/50 my-3" />
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm font-medium text-slate-400">Referenz-ID</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-mono font-bold text-amber-400 tracking-wider bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">
-                                                    {preTransactionId}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(preTransactionId);
-                                                        setCopiedId(true);
-                                                        setTimeout(() => setCopiedId(false), 2000);
-                                                    }}
-                                                    className="p-1 text-slate-400 hover:text-white transition-colors"
-                                                    title="ID kopieren"
-                                                >
-                                                    {copiedId ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
                             </div>
                         </>
                     ) : (
