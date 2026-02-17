@@ -540,7 +540,7 @@ export default function CheckInForm({
                             </div>
                         </>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center p-8 text-slate-500 border-2 border-dashed border-slate-800 rounded-xl min-h-[300px]">
+                        <div className="h-full flex flex-col items-center justify-center p-8 text-slate-500 min-h-[300px]">
                             <PackagePlus className="w-12 h-12 mb-3 opacity-20" />
                             <p className="text-sm font-medium">Warenkorb leer</p>
                             <p className="text-xs opacity-60 text-center mt-1">Füge Produkte hinzu, um sie hier zu sehen</p>
