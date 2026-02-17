@@ -385,6 +385,32 @@ export default function CheckOutForm({
 
                 {/* RIGHT COLUMN: Cart & Summary */}
                 <div className="space-y-4">
+                    {/* Transaction ID Display - Always show if matches title condition */}
+                    {title.includes("Verkauf") && (
+                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-slate-400">Referenz-ID</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-mono font-bold text-amber-400 tracking-wider bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">
+                                        {preTransactionId}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(preTransactionId);
+                                            setCopiedId(true);
+                                            setTimeout(() => setCopiedId(false), 2000);
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-white transition-colors"
+                                        title="ID kopieren"
+                                    >
+                                        {copiedId ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {cart.length > 0 ? (
                         <>
                             <div className="space-y-2">
@@ -415,35 +441,10 @@ export default function CheckOutForm({
                             </div>
 
                             <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                                <div className="flex justify-between items-center mb-3">
+                                <div className="flex justify-between items-center">
                                     <span className="text-sm font-medium text-slate-400">Gesamt</span>
                                     <span className="text-lg font-bold text-amber-400">${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
                                 </div>
-                                {title.includes("Verkauf") && (
-                                    <>
-                                        <div className="h-px bg-slate-700/50 my-3" />
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm font-medium text-slate-400">Referenz-ID</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-mono font-bold text-amber-400 tracking-wider bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">
-                                                    {preTransactionId}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(preTransactionId);
-                                                        setCopiedId(true);
-                                                        setTimeout(() => setCopiedId(false), 2000);
-                                                    }}
-                                                    className="p-1 text-slate-400 hover:text-white transition-colors"
-                                                    title="ID kopieren"
-                                                >
-                                                    {copiedId ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
                             </div>
                         </>
                     ) : (
