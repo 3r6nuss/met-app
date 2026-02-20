@@ -140,7 +140,7 @@ class DiscordBotService {
             return;
         }
 
-        // Check if already processed
+        // Check if already processed (by message ID)
         const db = await getDb();
         const existing = await db.get(
             'SELECT id FROM discord_logs WHERE discord_message_id = ?',
@@ -149,6 +149,12 @@ class DiscordBotService {
 
         if (existing) {
             console.log(`[DiscordBot] Message ${message.id} already processed`);
+            return;
+        }
+
+        // Skip if this looks like our own bot reply
+        if (fullContent.includes('**MET Buchung gefunden**') || fullContent.includes('**Warte auf MET Buchung**')) {
+            console.log(`[DiscordBot] Skipping own bot reply`);
             return;
         }
 
@@ -166,6 +172,19 @@ class DiscordBotService {
         if (!referenceId && parsedData.reason) {
             const refMatch = parsedData.reason.match(/\b([A-Z0-9]{4,8})$/i);
             if (refMatch) referenceId = refMatch[1].toUpperCase();
+        }
+
+        // Dedup by reference_id — Bossmenü Logs sends content + embed as 2 separate messages
+        if (referenceId) {
+            const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+            const refDupe = await db.get(
+                'SELECT id FROM discord_logs WHERE reference_id = ? AND created_at >= ?',
+                referenceId, twoMinAgo
+            );
+            if (refDupe) {
+                console.log(`[DiscordBot] Ref-ID ${referenceId} already processed recently (log #${refDupe.id}), skipping`);
+                return;
+            }
         }
 
         // Store in database
@@ -247,10 +266,9 @@ class DiscordBotService {
             console.error('[DiscordBot] Error sending reply:', replyErr);
         }
 
-        // Only broadcast for manual confirmation if NOT auto-matched
-        if (insertedLog && !autoMatched) {
-            broadcastDiscordLog(insertedLog);
-            console.log(`[DiscordBot] Broadcasted log ${insertedLog.id} to clients for confirmation`);
+        // Fully automatic — no manual confirmation popup
+        if (!autoMatched && referenceId) {
+            console.log(`[DiscordBot] Log #${insertedLog?.id} pending — will auto-match when system transaction arrives`);
         }
     }
 
