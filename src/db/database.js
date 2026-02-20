@@ -200,6 +200,35 @@ export async function getDb() {
         console.error("Migration error (audit_logs):", error);
     }
 
+    // Migration: Add transaction_id column to logs if it doesn't exist
+    try {
+        const logsInfo = await dbInstance.all("PRAGMA table_info(logs)");
+        const hasTransactionId = logsInfo.some(col => col.name === 'transaction_id');
+        if (!hasTransactionId) {
+            await dbInstance.run("ALTER TABLE logs ADD COLUMN transaction_id TEXT DEFAULT NULL");
+            console.log("Migrated database: Added transaction_id column to logs table.");
+        }
+    } catch (error) {
+        console.error("Migration error (logs.transaction_id):", error);
+    }
+
+    // Migration: Add reference_id column to discord_logs if it doesn't exist
+    try {
+        const discordLogsInfo = await dbInstance.all("PRAGMA table_info(discord_logs)");
+        const hasReferenceId = discordLogsInfo.some(col => col.name === 'reference_id');
+        if (!hasReferenceId) {
+            await dbInstance.run("ALTER TABLE discord_logs ADD COLUMN reference_id TEXT DEFAULT NULL");
+            console.log("Migrated database: Added reference_id column to discord_logs table.");
+        }
+        const hasBotReplyId = discordLogsInfo.some(col => col.name === 'bot_reply_id');
+        if (!hasBotReplyId) {
+            await dbInstance.run("ALTER TABLE discord_logs ADD COLUMN bot_reply_id TEXT DEFAULT NULL");
+            console.log("Migrated database: Added bot_reply_id column to discord_logs table.");
+        }
+    } catch (error) {
+        console.error("Migration error (discord_logs):", error);
+    }
+
     // Migration: Add status column to employees if it doesn't exist
     try {
         const empInfo = await dbInstance.all("PRAGMA table_info(employees)");

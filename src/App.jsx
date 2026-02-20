@@ -48,6 +48,7 @@ import FuhrparkPage from './pages/FuhrparkPage';
 import SammelEventPage from './pages/SammelEventPage';
 import SammelEventConfigPage from './pages/SammelEventConfigPage';
 import DiscordIntegrationPage from './pages/protocols/DiscordIntegrationPage';
+import TransactionSearchProtocol from './pages/protocols/TransactionSearchProtocol';
 import DiscordConfirmationModal from './components/DiscordConfirmationModal';
 
 import CreateOrderForm from './components/CreateOrderForm';
@@ -953,6 +954,7 @@ function App() {
               <Route path="/protokolle/guv" element={<ProfitLossProtocol logs={transactionLogs} employees={employees} prices={prices} inventory={inventory} />} />
               <Route path="/protokolle/buchhaltung" element={<AccountingDashboard logs={transactionLogs} employees={employees} inventory={inventory} prices={prices} user={user} />} />
               <Route path="/protokolle/profitabilitaet" element={<ProductProfitability logs={transactionLogs} prices={prices} inventory={inventory} />} />
+              <Route path="/protokolle/transaktions-suche" element={<TransactionSearchProtocol />} />
             </>
           )}{isLager && <Route path="/protokolle/storage" element={<StorageProtocol logs={transactionLogs} />} />}
 

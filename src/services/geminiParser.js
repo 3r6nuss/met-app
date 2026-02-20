@@ -29,6 +29,7 @@ Extrahiere diese Felder:
 - customer: Name des Kunden (nur bei Rechnung, sonst null)
 - amount: Betrag in Dollar (nur die Zahl, ohne $ oder Punkte)
 - reason: Grund für die Transaktion
+- reference_id: Falls im Grund eine Referenz-ID steht (z.B. "Ankauf 8HZV36" → "8HZV36"), extrahiere diese. Ein kurzer alphanumerischer Code (4-8 Zeichen) am Ende des Grundes. Wenn keine ID erkennbar, dann null.
 - items: Array mit extrahierten Produkten, jedes mit {name, action: "ankauf"|"verkauf", quantity: number|null}
 - timestamp: Zeitstempel falls in der Nachricht vorhanden (ISO-Format)
 
@@ -69,6 +70,7 @@ export function parseLogWithRegex(rawContent) {
         customer: null,
         amount: null,
         reason: null,
+        reference_id: null,
         items: [],
         timestamp: null,
         parseMethod: 'regex'
@@ -88,6 +90,11 @@ export function parseLogWithRegex(rawContent) {
         const grundMatch = rawContent.match(/Grund:\s*(.+?)(?:\n|$)/i);
         if (grundMatch) {
             result.reason = grundMatch[1].trim();
+            // Try to extract reference ID from reason (e.g. "Ankauf 8HZV36" → "8HZV36")
+            const refIdMatch = result.reason.match(/\b([A-Z0-9]{4,8})$/i);
+            if (refIdMatch) {
+                result.reference_id = refIdMatch[1].toUpperCase();
+            }
             // Try to extract items from reason
             const ankaufMatch = result.reason.match(/ankauf\s+(.+)/i);
             if (ankaufMatch) {
@@ -120,6 +127,11 @@ export function parseLogWithRegex(rawContent) {
         const grundMatch = rawContent.match(/Grund:\s*(.+?)(?:\n|$)/i);
         if (grundMatch) {
             result.reason = grundMatch[1].trim();
+            // Try to extract reference ID from reason
+            const refIdMatch = result.reason.match(/\b([A-Z0-9]{4,8})$/i);
+            if (refIdMatch) {
+                result.reference_id = refIdMatch[1].toUpperCase();
+            }
             // Try to extract items from reason
             const verkaufMatch = result.reason.match(/verkauf\s+(.+)/i);
             if (verkaufMatch) {

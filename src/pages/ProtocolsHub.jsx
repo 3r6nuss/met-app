@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
     FileText, BookOpen, Users, TrendingUp, Calendar,
-    BarChart3, PieChart, Package, Clock, Wallet, ArrowRight, Bot
+    BarChart3, PieChart, Package, Clock, Wallet, ArrowRight, Bot, Search
 } from 'lucide-react';
 
 export default function ProtocolsHub({ user }) {
@@ -26,6 +26,7 @@ export default function ProtocolsHub({ user }) {
                 { to: '/protokolle/kassenbuch', icon: BookOpen, title: 'Kassenbuch', desc: 'Alle Geldbewegungen' },
                 { to: '/protokolle/lohn', icon: Users, title: 'Lohnabrechnung', desc: 'Mitarbeiter-Auszahlungen' },
                 { to: '/protokolle/guv', icon: TrendingUp, title: 'Gewinn & Verlust', desc: 'Finanzübersicht' },
+                { to: '/protokolle/transaktions-suche', icon: Search, title: 'An & Verkauf Referenz-ID', desc: 'Abgleich Discord ↔ System' },
             ]
         },
         // Analyse

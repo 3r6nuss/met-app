@@ -31,7 +31,7 @@ router.post('/transaction', async (req, res) => {
         const results = [];
 
         for (const transaction of transactions) {
-            const { type, itemId, quantity, depositor, price, category, timestamp, skipInventory, itemName: providedItemName, warningIgnored } = transaction;
+            const { type, itemId, quantity, depositor, price, category, timestamp, skipInventory, itemName: providedItemName, warningIgnored, transactionId } = transaction;
             const debugSteps = [];
             debugSteps.push(`Starting transaction processing for item ${itemId || providedItemName} (${type})`);
 
@@ -113,8 +113,8 @@ router.post('/transaction', async (req, res) => {
             while (!logInserted && retries < 5) {
                 try {
                     await db.run(
-                        'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                        currentTimestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time, logEntry.status
+                        'INSERT INTO logs (timestamp, type, category, itemId, itemName, quantity, depositor, price, msg, time, status, transaction_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        currentTimestamp, logEntry.type, logEntry.category, logEntry.itemId, logEntry.itemName, logEntry.quantity, logEntry.depositor, logEntry.price, logEntry.msg, logEntry.time, logEntry.status, transactionId || null
                     );
                     logInserted = true;
                     results.push(logEntry);
@@ -137,6 +137,38 @@ router.post('/transaction', async (req, res) => {
         }
 
         await db.run('COMMIT');
+
+        // === Referenz-ID Match: System → Discord (update bot reply) ===
+        try {
+            const txIdsToCheck = transactions
+                .map(t => t.transactionId)
+                .filter(id => id && id.trim() !== '');
+
+            if (txIdsToCheck.length > 0) {
+                const { updateReplyForTransaction } = await import('../services/discordBot.js');
+                for (const txId of txIdsToCheck) {
+                    // Find matching transaction data for this txId
+                    const txIndex = transactions.findIndex(t => t.transactionId === txId);
+                    const tx = transactions[txIndex];
+                    const result = results[txIndex];
+                    if (!tx || !result) continue;
+
+                    const systemLog = {
+                        timestamp: result.timestamp || new Date().toISOString(),
+                        type: tx.type,
+                        itemName: result.itemName || tx.itemName,
+                        quantity: tx.quantity,
+                        depositor: tx.depositor,
+                        price: tx.price,
+                        category: tx.category
+                    };
+
+                    await updateReplyForTransaction(txId, systemLog);
+                }
+            }
+        } catch (dupErr) {
+            console.error('[RefMatch] Error:', dupErr);
+        }
 
         // Server-Side Logging for DevConsole
         for (const result of results) {

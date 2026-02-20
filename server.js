@@ -20,6 +20,7 @@ import devLogsRoutes from './src/routes/devLogsRoutes.js';
 import fuhrparkRoutes from './src/routes/fuhrparkRoutes.js';
 import discordIntegrationRoutes from './src/routes/discordIntegrationRoutes.js';
 import sammelEventRoutes from './src/routes/sammelEventRoutes.js';
+import referenceRoutes from './src/routes/referenceRoutes.js';
 
 // Import Middleware
 import { logger } from './src/middleware/logger.js';
@@ -161,6 +162,7 @@ app.use('/api/dev-logs', devLogsRoutes);
 app.use('/api', fuhrparkRoutes);
 app.use('/api/discord', discordIntegrationRoutes);
 app.use('/api/sammel-event', sammelEventRoutes);
+app.use('/api/references', referenceRoutes);
 
 app.get('/api/user', (req, res) => {
     if (req.isAuthenticated()) {
