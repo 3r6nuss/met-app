@@ -336,7 +336,7 @@ export default function CheckOutForm({
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            navigator.clipboard.writeText(calculateEarnings());
+                                            navigator.clipboard.writeText(calculateEarnings().toString().replace(/[.,]/g, ''));
                                             setCopiedPrice(true);
                                             setTimeout(() => setCopiedPrice(false), 2000);
                                         }}
