@@ -855,7 +855,7 @@ function App() {
                 prices={prices}
                 employeeInventory={employeeInventory}
                 onConsumeIngredients={handleConsumeIngredients}
-                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckIn(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory)}
+                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckIn(id, qty, dep, price, date, 'in', 'internal', warningIgnored, skipInventory, transactionId)}
                 type="in"
                 title="Einlagern"
                 label="Mitarbeiter"
@@ -872,7 +872,7 @@ function App() {
                 inventory={inventory}
                 employees={employees.filter(e => e.status !== 'fired')} // Only active employees
                 prices={prices}
-                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckOut(id, qty, dep, price, date, 'out', 'internal', warningIgnored, skipInventory)}
+                onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckOut(id, qty, dep, price, date, 'out', 'internal', warningIgnored, skipInventory, transactionId)}
                 type="out"
                 title="Auslagern"
                 label="Mitarbeiter"
@@ -909,7 +909,7 @@ function App() {
                   inventory={inventory}
                   employees={employees}
                   prices={prices}
-                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckIn(id, qty, dep, price, date, 'in', 'trade', warningIgnored, skipInventory)}
+                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckIn(id, qty, dep, price, date, 'in', 'trade', warningIgnored, skipInventory, transactionId)}
                   type="in"
                   title="Einkauf (Ankauf)"
                   label="Verkäufer"
@@ -921,7 +921,7 @@ function App() {
                   inventory={inventory}
                   employees={employees}
                   prices={prices}
-                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory) => handleCheckOut(id, qty, dep, price, date, 'out', 'trade', warningIgnored, skipInventory)}
+                  onAction={(id, qty, dep, price, date, type, category, warningIgnored, skipInventory, transactionId) => handleCheckOut(id, qty, dep, price, date, 'out', 'trade', warningIgnored, skipInventory, transactionId)}
                   type="out"
                   title="Verkauf (Abverkauf)"
                   label="Käufer"
