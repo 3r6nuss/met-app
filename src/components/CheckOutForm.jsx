@@ -452,7 +452,22 @@ export default function CheckOutForm({
                             <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm font-medium text-slate-400">Gesamt</span>
-                                    <span className="text-lg font-bold text-amber-400">${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</span>
+                                    <span className="text-lg font-bold text-amber-400 flex items-center gap-2">
+                                        ${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const total = Math.round(cart.reduce((sum, item) => sum + (item.price * item.quantity), 0));
+                                                navigator.clipboard.writeText(total.toString());
+                                                setCopiedPrice(true);
+                                                setTimeout(() => setCopiedPrice(false), 2000);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-white transition-colors"
+                                            title="Betrag kopieren"
+                                        >
+                                            {copiedPrice ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                                        </button>
+                                    </span>
                                 </div>
                             </div>
                         </>
