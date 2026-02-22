@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { PackageMinus, DollarSign, Copy, Check } from 'lucide-react';
-
-// Generate a random 6-character alphanumeric ID
-const generateTransactionId = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-};
+import { generateTransactionId } from '../utils/transactionId';
 
 export default function CheckOutForm({
     inventory,

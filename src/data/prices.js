@@ -2,17 +2,14 @@
  * Consolidated Price Data
  * 
  * This is the single source of truth for price information.
- * Other files (prices.js, priceList.js) should be deprecated in favor of this.
- * 
- * Note: Live prices are fetched from the API (/api/prices), this file
+ * Live prices are fetched from the API (/api/prices), this file
  * contains fallback/initial data only.
  */
 
 // Re-export from initialPrices as the primary source
 export { initialPrices as priceData } from './initialPrices';
 
-// Legacy exports for backward compatibility
-// TODO: Update imports throughout the codebase to use priceData directly
+// Legacy export for backward compatibility
 export { initialPrices } from './initialPrices';
 
 /**

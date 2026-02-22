@@ -320,5 +320,27 @@ export const api = {
     getSammelStats: async () => {
         const res = await fetch(`${API_URL}/sammel-event/stats`, { credentials: 'include' });
         return handleResponse(res);
+    },
+
+    // Discord Integration
+    getMyRecentTransactions: async () => {
+        const res = await fetch(`${API_URL}/discord/my-recent-transactions`, { credentials: 'include' });
+        return handleResponse(res);
+    },
+    confirmDiscordLog: async (logId, transactionTimestamp) => {
+        const res = await fetch(`${API_URL}/discord/confirm/${logId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ transactionTimestamp })
+        });
+        return handleResponse(res);
+    },
+    dismissDiscordLog: async (logId) => {
+        const res = await fetch(`${API_URL}/discord/dismiss/${logId}`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        return handleResponse(res);
     }
 };

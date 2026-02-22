@@ -1,11 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { PackagePlus, DollarSign, Copy, Check } from 'lucide-react';
 import { recipes } from '../data/recipes';
-
-// Generate a random 6-character alphanumeric ID
-const generateTransactionId = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-};
+import { generateTransactionId } from '../utils/transactionId';
 
 export default function CheckInForm({
     inventory,
