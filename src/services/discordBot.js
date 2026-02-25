@@ -158,6 +158,16 @@ class DiscordBotService {
             return;
         }
 
+        // Final Filter: Only process messages related to trade (Einkauf/Verkauf)
+        const tradeKeywords = ['AK', 'VK', 'ANKAUF', 'VERKAUF', 'AN- UND VERKAUF'];
+        const contentUpper = fullContent.toUpperCase();
+        const isTradeMessage = tradeKeywords.some(kw => contentUpper.includes(kw));
+
+        if (!isTradeMessage) {
+            console.log('[DiscordBot] Skipping unrelated message (not AK/VK/Ankauf/Verkauf)');
+            return;
+        }
+
         // Parse with Gemini AI
         console.log('[DiscordBot] Parsing message with Gemini AI...');
         const parsedData = await parseLogWithAI(fullContent);
