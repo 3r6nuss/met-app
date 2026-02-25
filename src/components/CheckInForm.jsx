@@ -411,7 +411,7 @@ export default function CheckInForm({
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            navigator.clipboard.writeText(`AK ${preTransactionId} ()`);
+                                            navigator.clipboard.writeText(calculateEarnings().toString().replace(/[.,]/g, ''));
                                             setCopiedPrice(true);
                                             setTimeout(() => setCopiedPrice(false), 2000);
                                         }}
@@ -485,7 +485,7 @@ export default function CheckInForm({
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            navigator.clipboard.writeText(preTransactionId);
+                                            navigator.clipboard.writeText(`AK ${preTransactionId} ()`);
                                             setCopiedId(true);
                                             setTimeout(() => setCopiedId(false), 2000);
                                         }}
@@ -537,7 +537,7 @@ export default function CheckInForm({
                                             type="button"
                                             onClick={() => {
                                                 const total = Math.round(cart.reduce((sum, item) => sum + (item.price * item.quantity), 0));
-                                                navigator.clipboard.writeText(`AK ${preTransactionId} ()`);
+                                                navigator.clipboard.writeText(total.toString());
                                                 setCopiedPrice(true);
                                                 setTimeout(() => setCopiedPrice(false), 2000);
                                             }}
