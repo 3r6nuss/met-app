@@ -332,7 +332,7 @@ export default function CheckOutForm({
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            navigator.clipboard.writeText(calculateEarnings().toString().replace(/[.,]/g, ''));
+                                            navigator.clipboard.writeText(`VK: ${calculateEarnings().toString().replace(/[.,]/g, '')} ()`);
                                             setCopiedPrice(true);
                                             setTimeout(() => setCopiedPrice(false), 2000);
                                         }}
@@ -458,7 +458,7 @@ export default function CheckOutForm({
                                             type="button"
                                             onClick={() => {
                                                 const total = Math.round(cart.reduce((sum, item) => sum + (item.price * item.quantity), 0));
-                                                navigator.clipboard.writeText(total.toString());
+                                                navigator.clipboard.writeText(`VK: ${total} ()`);
                                                 setCopiedPrice(true);
                                                 setTimeout(() => setCopiedPrice(false), 2000);
                                             }}
