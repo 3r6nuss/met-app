@@ -227,21 +227,21 @@ class DiscordBotService {
 
         // === Referenz-ID Auto-Match + Reply ===
         let autoMatched = false;
-        let matchingLog = null;
+        let matchingLogs = [];
 
         if (referenceId && insertedLog) {
             try {
                 const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-                matchingLog = await db.get(
+                matchingLogs = await db.all(
                     `SELECT timestamp, type, itemName, quantity, depositor, price, category FROM logs 
-                     WHERE transaction_id = ? AND timestamp >= ? LIMIT 1`,
+                     WHERE transaction_id = ? AND timestamp >= ?`,
                     referenceId, fourteenDaysAgo
                 );
-                if (matchingLog) {
+                if (matchingLogs.length > 0) {
                     await db.run(
                         `UPDATE discord_logs SET matched_log_id = ?, match_status = 'matched', 
                          discrepancy_details = ? WHERE id = ?`,
-                        matchingLog.timestamp,
+                        matchingLogs[0].timestamp,
                         JSON.stringify({
                             method: 'auto_reference_id',
                             referenceId,
@@ -250,7 +250,7 @@ class DiscordBotService {
                         insertedLog.id
                     );
                     autoMatched = true;
-                    console.log(`[DuplicateCheck] ✓ Auto-matched Discord log #${insertedLog.id} → System log ${matchingLog.timestamp} via Ref-ID ${referenceId}`);
+                    console.log(`[DuplicateCheck] ✓ Auto-matched Discord log #${insertedLog.id} → ${matchingLogs.length} system log(s) via Ref-ID ${referenceId}`);
                 }
             } catch (dupErr) {
                 console.error('[DuplicateCheck] Error:', dupErr);
@@ -259,8 +259,8 @@ class DiscordBotService {
 
         // === Send Reply Message in Discord ===
         try {
-            const replyContent = autoMatched && matchingLog
-                ? this.buildMatchedReply(referenceId, matchingLog, parsedData)
+            const replyContent = autoMatched && matchingLogs.length > 0
+                ? this.buildMatchedReply(referenceId, matchingLogs, parsedData)
                 : this.buildPendingReply(referenceId, parsedData);
 
             const replyMsg = await this.sendReplyMessage(message.channelId, message.id, replyContent);
@@ -327,25 +327,31 @@ class DiscordBotService {
     }
 
     /**
-     * Build reply content for a matched transaction
+     * Build reply content for a matched transaction (supports multiple products)
      */
-    buildMatchedReply(referenceId, systemLog, parsedData) {
-        const total = (systemLog.quantity || 0) * (systemLog.price || 0);
-        const typeLabel = systemLog.type === 'in' ? '📥 Einkauf' : '📤 Verkauf';
+    buildMatchedReply(referenceId, systemLogs, parsedData) {
+        // Accept both single log and array for backwards compat
+        const logs = Array.isArray(systemLogs) ? systemLogs : [systemLogs];
+        const grandTotal = logs.reduce((sum, l) => sum + ((l.quantity || 0) * (l.price || 0)), 0);
+        const typeLabel = logs[0].type === 'in' ? '📥 Einkauf' : '📤 Verkauf';
         const discordTotal = parsedData.amount || 0;
-        const diff = Math.abs(total - discordTotal);
+        const diff = Math.abs(grandTotal - discordTotal);
 
         let msg = `✅ **MET Buchung gefunden** — Ref: \`${referenceId}\`\n`;
         msg += `━━━━━━━━━━━━━━━━━━━━\n`;
         msg += `${typeLabel}\n`;
-        msg += `📦 **Produkt:** ${systemLog.itemName}\n`;
-        msg += `🔢 **Menge:** ${systemLog.quantity}x\n`;
-        msg += `💰 **Stückpreis:** $${Number(systemLog.price).toLocaleString('de-DE')}\n`;
-        msg += `💵 **Gesamt:** $${Number(total).toLocaleString('de-DE')}\n`;
-        msg += `👤 **Mitarbeiter:** ${systemLog.depositor}\n`;
+
+        for (const log of logs) {
+            const lineTotal = (log.quantity || 0) * (log.price || 0);
+            msg += `📦 ${log.itemName} — ${log.quantity}x à $${Number(log.price).toLocaleString('de-DE')} = $${Number(lineTotal).toLocaleString('de-DE')}\n`;
+        }
+
+        msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+        msg += `💵 **Gesamt:** $${Number(grandTotal).toLocaleString('de-DE')}\n`;
+        msg += `👤 **Mitarbeiter:** ${logs[0].depositor}\n`;
 
         if (diff > 1) {
-            msg += `\n⚠️ **Differenz:** Discord $${Number(discordTotal).toLocaleString('de-DE')} vs System $${Number(total).toLocaleString('de-DE')} (Δ $${Number(diff).toLocaleString('de-DE')})`;
+            msg += `\n⚠️ **Differenz:** Discord $${Number(discordTotal).toLocaleString('de-DE')} vs System $${Number(grandTotal).toLocaleString('de-DE')} (Δ $${Number(diff).toLocaleString('de-DE')})`;
         }
 
         return msg;
@@ -480,11 +486,19 @@ export async function updateReplyForTransaction(transactionId, systemLog) {
 
         if (!discordLog) return false;
 
+        // Load ALL system logs with the same transaction_id (multi-product cart)
+        const allSystemLogs = await db.all(
+            `SELECT timestamp, type, itemName, quantity, depositor, price, category FROM logs
+             WHERE transaction_id = ? AND timestamp >= ?`,
+            transactionId.toUpperCase(), fourteenDaysAgo
+        );
+        const logsToUse = allSystemLogs.length > 0 ? allSystemLogs : [systemLog];
+
         // Auto-match the discord log
         await db.run(
             `UPDATE discord_logs SET matched_log_id = ?, match_status = 'matched',
              discrepancy_details = ? WHERE id = ?`,
-            systemLog.timestamp,
+            logsToUse[0].timestamp,
             JSON.stringify({
                 method: 'auto_reference_id_from_system',
                 referenceId: transactionId,
@@ -492,7 +506,7 @@ export async function updateReplyForTransaction(transactionId, systemLog) {
             }),
             discordLog.id
         );
-        console.log(`[RefMatch] ✓ System tx ${transactionId} → Discord log #${discordLog.id}`);
+        console.log(`[RefMatch] ✓ System tx ${transactionId} → Discord log #${discordLog.id} (${logsToUse.length} product(s))`);
 
         // Edit the bot's pending reply if it exists
         if (discordLog.bot_reply_id && discordLog.channel_id) {
@@ -502,7 +516,7 @@ export async function updateReplyForTransaction(transactionId, systemLog) {
                 employee: discordLog.employee_name,
                 reason: discordLog.reason
             };
-            const updatedContent = bot.buildMatchedReply(transactionId, systemLog, parsedData);
+            const updatedContent = bot.buildMatchedReply(transactionId, logsToUse, parsedData);
             await bot.editReplyMessage(discordLog.channel_id, discordLog.bot_reply_id, updatedContent);
         }
 

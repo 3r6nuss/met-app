@@ -120,8 +120,8 @@ export default function TransactionSearchProtocol() {
                                 key={f.value}
                                 onClick={() => setStatusFilter(f.value)}
                                 className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${statusFilter === f.value
-                                        ? 'bg-emerald-600 text-white'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-700'
                                     }`}
                             >
                                 {f.label}
@@ -176,7 +176,8 @@ export default function TransactionSearchProtocol() {
                                 </tr>
                             ) : (
                                 filtered.map((ref) => {
-                                    const systemTotal = (ref.system_quantity || 0) * (ref.system_price || 0);
+                                    const products = ref.system_products || [];
+                                    const systemTotal = products.reduce((sum, p) => sum + ((p.quantity || 0) * (p.price || 0)), 0);
                                     const diff = ref.match_status === 'matched'
                                         ? Math.abs(systemTotal - (ref.discord_amount || 0))
                                         : 0;
@@ -210,8 +211,8 @@ export default function TransactionSearchProtocol() {
                                             <td className="p-4 font-medium text-white">{ref.employee_name || '-'}</td>
                                             <td className="p-4">
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${ref.parsed_type === 'abhebung' || ref.system_type === 'in'
-                                                        ? 'bg-emerald-500/20 text-emerald-400'
-                                                        : 'bg-amber-500/20 text-amber-400'
+                                                    ? 'bg-emerald-500/20 text-emerald-400'
+                                                    : 'bg-amber-500/20 text-amber-400'
                                                     }`}>
                                                     {ref.parsed_type === 'abhebung' || ref.system_type === 'in' ? 'Einkauf' : 'Verkauf'}
                                                 </span>
@@ -316,24 +317,37 @@ export default function TransactionSearchProtocol() {
 
                             {/* System Side */}
                             <div className={`rounded-xl p-5 border ${selectedRef.match_status === 'matched'
-                                    ? 'bg-emerald-500/5 border-emerald-500/20'
-                                    : 'bg-slate-800/30 border-slate-700'
+                                ? 'bg-emerald-500/5 border-emerald-500/20'
+                                : 'bg-slate-800/30 border-slate-700'
                                 }`}>
                                 <h3 className="text-sm uppercase text-slate-500 font-bold tracking-wider mb-4 flex items-center gap-2">
                                     <span className={`w-2 h-2 rounded-full ${selectedRef.match_status === 'matched' ? 'bg-emerald-400' : 'bg-slate-500'}`}></span>
                                     System Buchung
                                 </h3>
 
-                                {selectedRef.match_status === 'matched' ? (
+                                {selectedRef.match_status === 'matched' && (selectedRef.system_products?.length > 0) ? (
                                     <div className="space-y-3">
-                                        <DetailRow label="Produkt" value={selectedRef.system_item} highlight />
-                                        <DetailRow label="Menge" value={`${selectedRef.system_quantity}x`} />
-                                        <DetailRow label="Stückpreis" value={formatMoney(selectedRef.system_price)} />
-                                        <DetailRow
-                                            label="Gesamtpreis"
-                                            value={formatMoney((selectedRef.system_quantity || 0) * (selectedRef.system_price || 0))}
-                                            highlight
-                                        />
+                                        {selectedRef.system_products.map((p, i) => {
+                                            const lineTotal = (p.quantity || 0) * (p.price || 0);
+                                            return (
+                                                <div key={i} className="p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
+                                                    <div className="flex justify-between items-baseline mb-1">
+                                                        <span className="text-sm font-medium text-white">{p.itemName}</span>
+                                                        <span className="text-sm text-emerald-400 font-bold">{formatMoney(lineTotal)}</span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-400">
+                                                        {p.quantity}x à {formatMoney(p.price)}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        <div className="border-t border-slate-700 pt-3 mt-3">
+                                            <DetailRow
+                                                label="Gesamtpreis"
+                                                value={formatMoney(selectedRef.system_products.reduce((s, p) => s + ((p.quantity || 0) * (p.price || 0)), 0))}
+                                                highlight
+                                            />
+                                        </div>
                                         <DetailRow label="Mitarbeiter" value={selectedRef.system_depositor} />
                                         <DetailRow label="Kategorie" value={
                                             selectedRef.system_category === 'trade' ? 'Handel' :
@@ -354,7 +368,7 @@ export default function TransactionSearchProtocol() {
 
                         {/* Difference Warning */}
                         {selectedRef.match_status === 'matched' && (() => {
-                            const sysTotal = (selectedRef.system_quantity || 0) * (selectedRef.system_price || 0);
+                            const sysTotal = (selectedRef.system_products || []).reduce((s, p) => s + ((p.quantity || 0) * (p.price || 0)), 0);
                             const diff = Math.abs(sysTotal - (selectedRef.discord_amount || 0));
                             if (diff > 1) {
                                 return (
