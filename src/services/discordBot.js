@@ -7,6 +7,7 @@ import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { parseLogWithAI, validateParsedLog } from './geminiParser.js';
 import { getDb } from '../db/database.js';
 import { broadcastDiscordLog } from './broadcaster.js';
+import { registerCommands, handleAuftragCommand, handleAuftragButton } from './auftragService.js';
 
 class DiscordBotService {
     constructor() {
@@ -50,14 +51,42 @@ class DiscordBotService {
             partials: [Partials.Message, Partials.Channel]
         });
 
-        this.client.once('ready', () => {
+        this.client.once('ready', async () => {
             console.log(`[DiscordBot] Logged in as ${this.client.user.tag}`);
             console.log(`[DiscordBot] Monitoring channels: ${this.channelIds.join(', ')}`);
             this.isRunning = true;
+
+            // Register slash commands for Auftragssystem
+            try {
+                await registerCommands(this.client);
+            } catch (err) {
+                console.error('[DiscordBot] Failed to register slash commands:', err);
+            }
         });
 
         this.client.on('messageCreate', async (message) => {
             await this.handleMessage(message);
+        });
+
+        // Handle slash commands and button interactions (Auftragssystem)
+        this.client.on('interactionCreate', async (interaction) => {
+            try {
+                if (interaction.isChatInputCommand()) {
+                    if (interaction.commandName === 'auftrag') {
+                        await handleAuftragCommand(interaction);
+                    }
+                } else if (interaction.isButton()) {
+                    await handleAuftragButton(interaction);
+                }
+            } catch (error) {
+                console.error('[DiscordBot] Interaction error:', error);
+                const reply = { content: '❌ Ein Fehler ist aufgetreten.', flags: 64 };
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp(reply).catch(() => {});
+                } else {
+                    await interaction.reply(reply).catch(() => {});
+                }
+            }
         });
 
         this.client.on('error', (error) => {

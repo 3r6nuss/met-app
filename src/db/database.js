@@ -156,6 +156,23 @@ export async function getDb() {
             end_date TEXT
         );
         INSERT OR IGNORE INTO sammel_settings (id) VALUES (1);
+
+        -- Auftragssystem (Order Management via Discord Bot)
+        CREATE TABLE IF NOT EXISTS auftraege (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item TEXT NOT NULL,
+            menge TEXT NOT NULL,
+            entlohnung TEXT NOT NULL,
+            status TEXT DEFAULT 'offen',
+            auftraggeber_id TEXT NOT NULL,
+            auftraggeber_name TEXT NOT NULL,
+            bearbeiter_id TEXT,
+            bearbeiter_name TEXT,
+            discord_message_id TEXT,
+            discord_channel_id TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
     `);
 
     // Migration: Add isHaendler column if it doesn't exist
