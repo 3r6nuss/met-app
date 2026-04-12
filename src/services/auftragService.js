@@ -171,7 +171,7 @@ export async function handleAuftragCommand(interaction) {
         // Reply to the user ephemerally
         await interaction.reply({
             content: `✅ Auftrag #${auftrag.id} wurde erstellt und in <#${AUFTRAG_CHANNEL_ID}> gepostet!`,
-            flags: 64 // ephemeral
+            ephemeral: true // ephemeral
         });
     } else {
         // Post in the same channel where the command was used
@@ -206,7 +206,7 @@ export async function handleAuftragButton(interaction) {
     const auftrag = await db.get('SELECT * FROM auftraege WHERE id = ?', auftragId);
 
     if (!auftrag) {
-        await interaction.reply({ content: '❌ Auftrag nicht gefunden.', flags: 64 });
+        await interaction.reply({ content: '❌ Auftrag nicht gefunden.', ephemeral: true });
         return true;
     }
 
@@ -216,7 +216,7 @@ export async function handleAuftragButton(interaction) {
     // ── ANNEHMEN ──
     if (action === 'annehmen') {
         if (auftrag.status !== 'offen') {
-            await interaction.reply({ content: '⚠️ Dieser Auftrag ist nicht mehr offen.', flags: 64 });
+            await interaction.reply({ content: '⚠️ Dieser Auftrag ist nicht mehr offen.', ephemeral: true });
             return true;
         }
 
@@ -238,7 +238,7 @@ export async function handleAuftragButton(interaction) {
     // ── ABBRECHEN / FREIGEBEN ──
     if (action === 'abbrechen') {
         if (auftrag.status !== 'in_bearbeitung') {
-            await interaction.reply({ content: '⚠️ Dieser Auftrag ist nicht in Bearbeitung.', flags: 64 });
+            await interaction.reply({ content: '⚠️ Dieser Auftrag ist nicht in Bearbeitung.', ephemeral: true });
             return true;
         }
 
@@ -248,7 +248,7 @@ export async function handleAuftragButton(interaction) {
             || isAdmin(member);
 
         if (!allowed) {
-            await interaction.reply({ content: '🚫 Das ist nicht dein Auftrag!', flags: 64 });
+            await interaction.reply({ content: '🚫 Das ist nicht dein Auftrag!', ephemeral: true });
             return true;
         }
 
@@ -270,7 +270,7 @@ export async function handleAuftragButton(interaction) {
     // ── ERLEDIGT ──
     if (action === 'erledigt') {
         if (auftrag.status !== 'in_bearbeitung') {
-            await interaction.reply({ content: '⚠️ Dieser Auftrag ist nicht in Bearbeitung.', flags: 64 });
+            await interaction.reply({ content: '⚠️ Dieser Auftrag ist nicht in Bearbeitung.', ephemeral: true });
             return true;
         }
 
@@ -278,7 +278,7 @@ export async function handleAuftragButton(interaction) {
         const allowed = userId === auftrag.bearbeiter_id || isAdmin(member);
 
         if (!allowed) {
-            await interaction.reply({ content: '🚫 Das ist nicht dein Auftrag!', flags: 64 });
+            await interaction.reply({ content: '🚫 Das ist nicht dein Auftrag!', ephemeral: true });
             return true;
         }
 
@@ -299,7 +299,7 @@ export async function handleAuftragButton(interaction) {
 
     // closed button (disabled) — should never fire, but handle gracefully
     if (action === 'closed') {
-        await interaction.reply({ content: 'Dieser Auftrag ist bereits abgeschlossen.', flags: 64 });
+        await interaction.reply({ content: 'Dieser Auftrag ist bereits abgeschlossen.', ephemeral: true });
         return true;
     }
 

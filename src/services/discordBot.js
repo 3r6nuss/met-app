@@ -80,7 +80,7 @@ class DiscordBotService {
                 }
             } catch (error) {
                 console.error('[DiscordBot] Interaction error:', error);
-                const reply = { content: '❌ Ein Fehler ist aufgetreten.', flags: 64 };
+                const reply = { content: '❌ Ein Fehler ist aufgetreten.', ephemeral: true };
                 if (interaction.replied || interaction.deferred) {
                     await interaction.followUp(reply).catch(() => {});
                 } else {
