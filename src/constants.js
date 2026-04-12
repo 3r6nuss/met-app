@@ -27,6 +27,7 @@ export const USER_ROLES = {
     ADMINISTRATOR: 'Administrator',
     BUCHHALTUNG: 'Buchhaltung',
     FUHRPARKMANAGER: 'Fuhrparkmanager',
+    LAGERLEITUNG: 'Lagerleitung',
     LAGER: 'Lager',
     HAENDLER: 'Händler',
     PENDING: 'Pending'

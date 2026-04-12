@@ -3,11 +3,12 @@ import InventoryList from '../components/InventoryList';
 import VerificationSection from '../components/VerificationSection';
 import OrderList from '../components/OrderList';
 import { ClipboardList } from 'lucide-react';
+import { isLagerleitung } from '../utils/permissions';
 
 export default function InventoryPage({ inventory, onUpdateStock, onUpdateTarget, onReorder, onVerify, user, orders, onUpdateOrderStatus, onDeleteOrder }) {
     const [isEditMode, setIsEditMode] = useState(false);
 
-    const isAuthorized = user?.role === 'Buchhaltung' || user?.role === 'Administrator';
+    const isAuthorized = isLagerleitung(user);
 
     return (
         <div className="animate-fade-in pb-24">

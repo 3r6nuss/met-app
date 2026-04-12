@@ -9,10 +9,12 @@ export const isAdmin = (user) => user?.role === 'Administrator';
 
 export const isBuchhaltung = (user) => user?.role === 'Buchhaltung' || isAdmin(user);
 
+export const isLagerleitung = (user) => user?.role === 'Lagerleitung' || isBuchhaltung(user);
+
 export const isLager = (user) =>
     (user?.isLagerist === 1 || user?.isLagerist === true) ||
     user?.role === 'Lager' ||
-    isBuchhaltung(user);
+    isLagerleitung(user);
 
 export const isHaendler = (user) =>
     (user?.isHaendler === 1 || user?.isHaendler === true) ||
