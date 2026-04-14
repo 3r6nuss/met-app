@@ -4,7 +4,7 @@
  */
 
 import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import { parseLogWithAI, validateParsedLog } from './geminiParser.js';
+import { parseLogWithAI, validateParsedLog, extractReferenceId } from './geminiParser.js';
 import { getDb } from '../db/database.js';
 import { broadcastDiscordLog } from './broadcaster.js';
 import { registerCommands, handleAuftragCommand, handleAuftragButton } from './auftragService.js';
@@ -16,6 +16,86 @@ class DiscordBotService {
         this.isRunning = false;
         this.messageQueue = [];
         this.processingQueue = false;
+        // In-memory cache of recently processed content hashes for fast dedup
+        this.recentContentHashes = []; // { hash, timestamp, referenceId }
+    }
+
+    /**
+     * Normalize message content for dedup comparison.
+     * Strips formatting, emojis, whitespace, and lowercases everything.
+     */
+    normalizeContent(text) {
+        return text
+            .replace(/[\r\n]+/g, ' ')          // newlines → space
+            .replace(/\*\*|__|~~|`/g, '')       // markdown formatting
+            .replace(/[^\w\s$.,äöüÄÖÜß]/g, '') // remove emojis/special chars
+            .replace(/\s+/g, ' ')               // collapse whitespace
+            .trim()
+            .toLowerCase();
+    }
+
+    /**
+     * Calculate similarity between two strings (0-1).
+     * Uses a fast character-overlap approach + key data extraction.
+     */
+    contentSimilarity(a, b) {
+        if (!a || !b) return 0;
+        const na = this.normalizeContent(a);
+        const nb = this.normalizeContent(b);
+        if (na === nb) return 1;
+
+        // Jaccard similarity on word sets
+        const wordsA = new Set(na.split(' ').filter(w => w.length > 1));
+        const wordsB = new Set(nb.split(' ').filter(w => w.length > 1));
+        if (wordsA.size === 0 && wordsB.size === 0) return 1;
+
+        let intersection = 0;
+        for (const w of wordsA) {
+            if (wordsB.has(w)) intersection++;
+        }
+        const union = new Set([...wordsA, ...wordsB]).size;
+        return union === 0 ? 0 : intersection / union;
+    }
+
+    /**
+     * Check if this content was already processed recently (within 5 min).
+     * Returns true if a similar message was found.
+     */
+    isDuplicateContent(content) {
+        const now = Date.now();
+        const FIVE_MIN = 5 * 60 * 1000;
+        const SIMILARITY_THRESHOLD = 0.80;
+
+        // Prune old entries
+        this.recentContentHashes = this.recentContentHashes.filter(
+            entry => (now - entry.timestamp) < FIVE_MIN
+        );
+
+        // Check similarity against recent entries
+        for (const entry of this.recentContentHashes) {
+            const sim = this.contentSimilarity(content, entry.content);
+            if (sim >= SIMILARITY_THRESHOLD) {
+                console.log(`[Dedup] Content similarity ${(sim * 100).toFixed(0)}% → duplicate of recent message, skipping`);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Register processed content for dedup tracking
+     */
+    registerProcessedContent(content, referenceId) {
+        this.recentContentHashes.push({
+            content,
+            referenceId,
+            timestamp: Date.now()
+        });
+        // Keep max 50 entries
+        if (this.recentContentHashes.length > 50) {
+            this.recentContentHashes.shift();
+        }
     }
 
     /**
@@ -181,24 +261,38 @@ class DiscordBotService {
             return;
         }
 
-        // Skip if this looks like our own bot reply
-        if (fullContent.includes('**MET Buchung gefunden**') || fullContent.includes('**Warte auf MET Buchung**')) {
-            console.log(`[DiscordBot] Skipping own bot reply`);
+        // Skip own bot replies and MET system messages
+        const botReplyPatterns = [
+            '**MET Buchung gefunden**',
+            '**Warte auf MET Buchung**',
+            '━━━━━━━━━━',
+            'Wird automatisch aktualisiert'
+        ];
+        if (botReplyPatterns.some(pattern => fullContent.includes(pattern))) {
+            console.log(`[DiscordBot] Skipping bot/system reply`);
             return;
         }
 
-        // Final Filter: Only process messages related to trade (Einkauf/Verkauf)
-        const tradeKeywords = ['AK', 'VK', 'ANKAUF', 'VERKAUF', 'AN- UND VERKAUF'];
+        // ── Content Similarity Dedup ──
+        // The Bossmenü sends the same transaction as 2 separate messages
+        // (text content + embed). Catch the duplicate via content similarity.
+        if (this.isDuplicateContent(fullContent)) {
+            return; // Already logged inside isDuplicateContent
+        }
+
+        // Filter: Only process messages related to trade (Einkauf/Verkauf)
+        const tradeKeywords = ['AK', 'VK', 'ANKAUF', 'VERKAUF', 'AN- UND VERKAUF',
+                               'ABGEHOBEN', 'RECHNUNG', 'ABHEBUNG', 'EINGEZAHLT'];
         const contentUpper = fullContent.toUpperCase();
         const isTradeMessage = tradeKeywords.some(kw => contentUpper.includes(kw));
 
         if (!isTradeMessage) {
-            console.log('[DiscordBot] Skipping unrelated message (not AK/VK/Ankauf/Verkauf)');
+            console.log('[DiscordBot] Skipping unrelated message (no trade keywords found)');
             return;
         }
 
-        // Parse with Gemini AI
-        console.log('[DiscordBot] Parsing message with Gemini AI...');
+        // Parse message (regex primary → Gemini AI fallback)
+        console.log('[DiscordBot] Parsing message...');
         const parsedData = await parseLogWithAI(fullContent);
         const validation = validateParsedLog(parsedData);
 
@@ -206,25 +300,28 @@ class DiscordBotService {
             console.log(`[DiscordBot] Invalid log format, missing: ${validation.missing.join(', ')}`);
         }
 
-        // Extract reference_id - from AI result or from reason
+        // Extract reference_id — parser already handles this, but double-check
         let referenceId = parsedData.reference_id || null;
         if (!referenceId && parsedData.reason) {
-            const refMatch = parsedData.reason.match(/\b([A-Z0-9]{4,8})$/i);
-            if (refMatch) referenceId = refMatch[1].toUpperCase();
+            referenceId = extractReferenceId(parsedData.reason);
         }
 
-        // Dedup by reference_id — Bossmenü Logs sends content + embed as 2 separate messages
+        // ── Reference-ID Dedup (DB-level) ──
+        // Catches duplicates even across server restarts
         if (referenceId) {
-            const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+            const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
             const refDupe = await db.get(
                 'SELECT id FROM discord_logs WHERE reference_id = ? AND created_at >= ?',
-                referenceId, twoMinAgo
+                referenceId, fiveMinAgo
             );
             if (refDupe) {
-                console.log(`[DiscordBot] Ref-ID ${referenceId} already processed recently (log #${refDupe.id}), skipping`);
+                console.log(`[Dedup] Ref-ID ${referenceId} already processed recently (log #${refDupe.id}), skipping`);
                 return;
             }
         }
+
+        // Register this content for in-memory dedup tracking
+        this.registerProcessedContent(fullContent, referenceId);
 
         // Store in database
         await db.run(`
