@@ -89,6 +89,9 @@ export function parseLogWithRegex(rawContent) {
         amount: null,
         reason: null,
         reference_id: null,
+        trade_action: null,
+        category_desc: null,
+        ausgestellt_date: null,
         items: [],
         timestamp: null,
         parseMethod: 'regex'
@@ -97,7 +100,7 @@ export function parseLogWithRegex(rawContent) {
     // ── Abhebung (Cash withdrawal for purchases) ──
     // Format: "NAME hat BETRAG$ vom Konto abgehoben. Grund: REASON"
     // Note: The embed often has "Abhebung" as title on a separate line before the actual text
-    const contentWithoutTitle = rawContent.replace(/^(?:Abhebung|Einzahlung|Rechnung)\s*[\r\n]+/i, '').trim();
+    const contentWithoutTitle = rawContent.replace(/^(?:Abhebung|Einzahlung|Rechnung|Rechnung bezahlt)\s*[\r\n]+/i, '').trim();
     const abhebungMatch = contentWithoutTitle.match(
         /^([A-Za-zÀ-ÿ\s]+?)\s+hat\s+([\d.,]+)\$?\s+vom\s+Konto\s+abgehoben/i
     );
@@ -112,13 +115,18 @@ export function parseLogWithRegex(rawContent) {
         if (grundMatch) {
             result.reason = grundMatch[1].trim();
             result.reference_id = extractReferenceId(result.reason);
+            result.trade_action = extractTradeAction(result.reason) || 'ankauf';
 
-            const action = extractTradeAction(result.reason);
+            // Extract item description (everything after the code, in parentheses)
+            const itemDescMatch = result.reason.match(/\(([^)]+)\)/);
+            if (itemDescMatch) {
+                result.category_desc = itemDescMatch[1].trim();
+            }
+
+            const action = result.trade_action;
             if (action) {
-                // Extract item description (everything after the code, in parentheses)
-                const itemDescMatch = result.reason.match(/\(([^)]+)\)/);
                 result.items.push({
-                    name: itemDescMatch ? itemDescMatch[1].trim() : result.reason,
+                    name: result.category_desc || result.reason,
                     action,
                     quantity: null
                 });
@@ -149,16 +157,24 @@ export function parseLogWithRegex(rawContent) {
         const betragMatch = rawContent.match(/Betrag:\s*([\d.,]+)\$?/i);
         if (betragMatch) result.amount = parseGermanNumber(betragMatch[1]);
 
+        const ausgestelltMatch = rawContent.match(/Ausgestellt:\s*(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}:\d{2})/i);
+        if (ausgestelltMatch) result.ausgestellt_date = ausgestelltMatch[1];
+
         const grundMatch = rawContent.match(/Grund:\s*(.+?)(?:\n|$)/i);
         if (grundMatch) {
             result.reason = grundMatch[1].trim();
             result.reference_id = extractReferenceId(result.reason);
+            result.trade_action = extractTradeAction(result.reason) || 'verkauf';
 
-            const action = extractTradeAction(result.reason);
+            const itemDescMatch = result.reason.match(/\(([^)]+)\)/);
+            if (itemDescMatch) {
+                result.category_desc = itemDescMatch[1].trim();
+            }
+
+            const action = result.trade_action;
             if (action) {
-                const itemDescMatch = result.reason.match(/\(([^)]+)\)/);
                 result.items.push({
-                    name: itemDescMatch ? itemDescMatch[1].trim() : result.reason,
+                    name: result.category_desc || result.reason,
                     action,
                     quantity: null
                 });
@@ -230,6 +246,9 @@ Extrahiere diese Felder:
 - amount: Betrag als Zahl (480.000 → 480000, ohne $ oder Trennzeichen)
 - reason: Der vollständige Grund-Text
 - reference_id: Der alphanumerische Code (4-8 Zeichen) im Grund, z.B. "AK 3OI1P3 (Farm produkte)" → "3OI1P3". Wenn kein Code erkennbar, null.
+- trade_action: "ankauf" oder "verkauf" (basierend auf AK/VK oder Grund)
+- category_desc: Beschreibung in Klammern falls vorhanden (z.B. "Farmprodukte")
+- ausgestellt_date: Datum aus "Ausgestellt:" (nur bei Rechnung)
 - items: Array mit {name, action: "ankauf"|"verkauf", quantity: null}
 - timestamp: Falls vorhanden, im ISO-Format
 
@@ -283,11 +302,15 @@ export async function parseLogWithAI(rawContent) {
         amount: null,
         reason: null,
         reference_id: null,
+        trade_action: null,
+        category_desc: null,
+        ausgestellt_date: null,
         items: [],
         timestamp: null,
         parseMethod: 'failed'
     };
 }
+
 
 /**
  * Validate parsed log data

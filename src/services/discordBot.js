@@ -459,13 +459,18 @@ class DiscordBotService {
         // Accept both single log and array for backwards compat
         const logs = Array.isArray(systemLogs) ? systemLogs : [systemLogs];
         const grandTotal = logs.reduce((sum, l) => sum + ((l.quantity || 0) * (l.price || 0)), 0);
-        const typeLabel = logs[0].type === 'in' ? '📥 Einkauf' : '📤 Verkauf';
+        
+        // Use parsed trade_action/category if available, fallback to basic labels
+        const actionLabel = parsedData.trade_action === 'ankauf' ? 'Ankauf' : (parsedData.trade_action === 'verkauf' ? 'Verkauf' : (logs[0].type === 'in' ? 'Einkauf' : 'Verkauf'));
+        const typeEmoji = logs[0].type === 'in' ? '📥' : '📤';
+        const categorySuffix = parsedData.category_desc ? ` — ${parsedData.category_desc}` : '';
+        
         const discordTotal = parsedData.amount || 0;
         const diff = Math.abs(grandTotal - discordTotal);
 
         let msg = `✅ **MET Buchung gefunden** — Ref: \`${referenceId}\`\n`;
         msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-        msg += `${typeLabel}\n`;
+        msg += `${typeEmoji} **${actionLabel}${categorySuffix}**\n`;
 
         for (const log of logs) {
             const lineTotal = (log.quantity || 0) * (log.price || 0);
@@ -474,7 +479,13 @@ class DiscordBotService {
 
         msg += `━━━━━━━━━━━━━━━━━━━━\n`;
         msg += `💵 **Gesamt:** $${Number(grandTotal).toLocaleString('de-DE')}\n`;
-        msg += `👤 **Mitarbeiter:** ${logs[0].depositor}\n`;
+        
+        if (parsedData.trade_action === 'verkauf' || parsedData.type === 'rechnung') {
+            msg += `👤 **Verkäufer:** ${parsedData.employee || logs[0].depositor}\n`;
+            if (parsedData.customer) msg += `🧑 **Kunde:** ${parsedData.customer}\n`;
+        } else {
+            msg += `👤 **Mitarbeiter:** ${parsedData.employee || logs[0].depositor}\n`;
+        }
 
         if (diff > 1) {
             msg += `\n⚠️ **Differenz:** Discord $${Number(discordTotal).toLocaleString('de-DE')} vs System $${Number(grandTotal).toLocaleString('de-DE')} (Δ $${Number(diff).toLocaleString('de-DE')})`;
@@ -487,15 +498,32 @@ class DiscordBotService {
      * Build reply content for a pending (unmatched) transaction
      */
     buildPendingReply(referenceId, parsedData) {
-        const typeLabel = parsedData.type === 'abhebung' ? '📥 Einkauf' : '📤 Verkauf';
+        const actionLabel = parsedData.trade_action === 'ankauf' ? 'Ankauf' : (parsedData.trade_action === 'verkauf' ? 'Verkauf' : (parsedData.type === 'abhebung' ? 'Einkauf' : 'Verkauf'));
+        const typeEmoji = (parsedData.trade_action === 'ankauf' || parsedData.type === 'abhebung') ? '📥' : '📤';
+        const categorySuffix = parsedData.category_desc ? ` — ${parsedData.category_desc}` : '';
 
         let msg = `⏳ **Warte auf MET Buchung**`;
         if (referenceId) msg += ` — Ref: \`${referenceId}\``;
         msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
-        msg += `${typeLabel}\n`;
-        msg += `💵 **Discord Betrag:** $${Number(parsedData.amount || 0).toLocaleString('de-DE')}\n`;
-        msg += `👤 **Mitarbeiter:** ${parsedData.employee || 'Unbekannt'}\n`;
-        msg += `📝 **Grund:** ${parsedData.reason || '-'}\n`;
+        msg += `${typeEmoji} **${actionLabel}${categorySuffix}**\n`;
+        msg += `💵 **Betrag:** $${Number(parsedData.amount || 0).toLocaleString('de-DE')}\n`;
+        
+        if (parsedData.type === 'rechnung' || parsedData.trade_action === 'verkauf') {
+            msg += `👤 **Verkäufer:** ${parsedData.employee || 'Unbekannt'}\n`;
+            if (parsedData.customer) msg += `🧑 **Kunde:** ${parsedData.customer}\n`;
+            if (parsedData.ausgestellt_date) {
+                try {
+                    const date = new Date(parsedData.ausgestellt_date);
+                    const formattedDate = date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    msg += `📅 **Ausgestellt:** ${formattedDate}\n`;
+                } catch (e) {
+                    msg += `📅 **Ausgestellt:** ${parsedData.ausgestellt_date}\n`;
+                }
+            }
+        } else {
+            msg += `👤 **Mitarbeiter:** ${parsedData.employee || 'Unbekannt'}\n`;
+        }
+
         msg += `\n_Wird automatisch aktualisiert sobald die Buchung im System eingeht._`;
 
         return msg;
@@ -603,7 +631,7 @@ export async function updateReplyForTransaction(transactionId, systemLog) {
     try {
         const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
         const discordLog = await db.get(
-            `SELECT id, channel_id, bot_reply_id, amount, reason, employee_name, parsed_type 
+            `SELECT id, channel_id, bot_reply_id, amount, reason, employee_name, customer_name, parsed_type, raw_content
              FROM discord_logs 
              WHERE reference_id = ? AND created_at >= ? AND match_status = 'pending' 
              LIMIT 1`,
@@ -636,10 +664,14 @@ export async function updateReplyForTransaction(transactionId, systemLog) {
 
         // Edit the bot's pending reply if it exists
         if (discordLog.bot_reply_id && discordLog.channel_id) {
+            // Re-parse to get all detailed fields (trade_action, category_desc etc.)
+            const fullParsed = await parseLogWithAI(discordLog.raw_content);
             const parsedData = {
+                ...fullParsed,
                 type: discordLog.parsed_type,
                 amount: discordLog.amount,
                 employee: discordLog.employee_name,
+                customer: discordLog.customer_name,
                 reason: discordLog.reason
             };
             const updatedContent = bot.buildMatchedReply(transactionId, logsToUse, parsedData);
