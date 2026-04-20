@@ -100,9 +100,9 @@ export function parseLogWithRegex(rawContent) {
     // ── Abhebung (Cash withdrawal for purchases) ──
     // Format: "NAME hat BETRAG$ vom Konto abgehoben. Grund: REASON"
     // Note: The embed often has "Abhebung" as title on a separate line before the actual text
-    const contentWithoutTitle = rawContent.replace(/^(?:Abhebung|Einzahlung|Rechnung|Rechnung bezahlt)\s*[\r\n]+/i, '').trim();
+    const contentWithoutTitle = rawContent.replace(/^\s*(?:Abhebung|Einzahlung|Rechnung|Rechnung bezahlt)\s*[\r\n]+/i, '').trim();
     const abhebungMatch = contentWithoutTitle.match(
-        /^([A-Za-zÀ-ÿ\s]+?)\s+hat\s+([\d.,]+)\$?\s+vom\s+Konto\s+abgehoben/i
+        /^([A-Za-zÀ-ÿ ]+?)\s+hat\s+([\d.,]+)\$?\s+vom\s+Konto\s+abgehoben/i
     );
 
     if (abhebungMatch) {
@@ -144,14 +144,14 @@ export function parseLogWithRegex(rawContent) {
     // Format: "KUNDE hat eine Rechnung bezahlt. Aussteller: NAME, Betrag: BETRAG$, Grund: REASON"
     // Or embed fields: Aussteller, Betrag, Grund
     const rechnungMatch = contentWithoutTitle.match(
-        /^([A-Za-zÀ-ÿ\s]+?)\s+hat\s+(?:eine\s+)?Rechnung\s+bezahlt/i
+        /^([A-Za-zÀ-ÿ ]+?)\s+hat\s+(?:eine\s+)?Rechnung\s+bezahlt/i
     );
 
     if (rechnungMatch) {
         result.type = 'rechnung';
         result.customer = rechnungMatch[1].trim();
 
-        const ausstellerMatch = rawContent.match(/Aussteller:\s*([A-Za-zÀ-ÿ\s]+?)(?:\n|,|$)/i);
+        const ausstellerMatch = rawContent.match(/Aussteller:\s*([A-Za-zÀ-ÿ ]+?)(?:\n|,|$)/i);
         if (ausstellerMatch) result.employee = ausstellerMatch[1].trim();
 
         const betragMatch = rawContent.match(/Betrag:\s*([\d.,]+)\$?/i);
@@ -190,7 +190,7 @@ export function parseLogWithRegex(rawContent) {
     // ── Einzahlung (Deposit to company account) ──
     // Format: "NAME hat BETRAG$ auf das Konto eingezahlt. Grund: REASON"
     const einzahlungMatch = contentWithoutTitle.match(
-        /^([A-Za-zÀ-ÿ\s]+?)\s+hat\s+([\d.,]+)\$?\s+(?:auf\s+(?:das\s+)?Konto\s+eingezahlt|eingezahlt)/i
+        /^([A-Za-zÀ-ÿ ]+?)\s+hat\s+([\d.,]+)\$?\s+(?:auf\s+(?:das\s+)?Konto\s+eingezahlt|eingezahlt)/i
     );
 
     if (einzahlungMatch) {

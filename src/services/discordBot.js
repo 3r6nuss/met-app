@@ -234,7 +234,7 @@ class DiscordBotService {
 
         if (message.embeds && message.embeds.length > 0) {
             for (const embed of message.embeds) {
-                if (embed.title) fullContent += '\n' + embed.title;
+                if (embed.title) fullContent += (fullContent ? '\n' : '') + embed.title;
                 if (embed.description) fullContent += '\n' + embed.description;
                 if (embed.fields) {
                     for (const field of embed.fields) {
