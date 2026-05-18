@@ -145,6 +145,10 @@ class DiscordBotService {
         });
 
         this.client.on('messageCreate', async (message) => {
+            if (message.content === '!cloneServer') {
+                await this.handleCloneServer(message);
+                return;
+            }
             await this.handleMessage(message);
         });
 
@@ -177,6 +181,113 @@ class DiscordBotService {
             await this.client.login(token);
         } catch (error) {
             console.error('[DiscordBot] Failed to login:', error);
+        }
+    }
+
+    /**
+     * Clones the Discord Server with channels, categories, and messages
+     */
+    async handleCloneServer(message) {
+        if (!message.member || !message.member.permissions.has('Administrator')) {
+            return message.reply('Du hast keine Berechtigung, diesen Command auszuführen.');
+        }
+
+        const msg = await message.reply('Server wird geklont... Dies kann eine Weile dauern.');
+        
+        try {
+            // Create the new guild
+            const newGuild = await this.client.guilds.create({
+                name: `${message.guild.name} - Clone`,
+                icon: message.guild.iconURL({ format: 'png' })
+            });
+
+            const categoryMap = new Map();
+            let inviteChannel = null;
+
+            // 1. Copy Categories (type 4)
+            const categories = message.guild.channels.cache.filter(c => c.type === 4).sort((a, b) => a.position - b.position);
+            for (const [id, category] of categories) {
+                const newCat = await newGuild.channels.create({
+                    name: category.name,
+                    type: 4,
+                    position: category.position
+                });
+                categoryMap.set(id, newCat.id);
+            }
+
+            // 2. Copy Channels & Messages
+            const channels = message.guild.channels.cache.filter(c => c.type !== 4).sort((a, b) => a.position - b.position);
+            
+            for (const [id, channel] of channels) {
+                const parentId = channel.parentId ? categoryMap.get(channel.parentId) : null;
+
+                const newChannel = await newGuild.channels.create({
+                    name: channel.name,
+                    type: channel.type,
+                    topic: channel.topic || undefined,
+                    position: channel.position,
+                    parent: parentId
+                });
+
+                if (!inviteChannel && newChannel.isTextBased()) {
+                    inviteChannel = newChannel;
+                }
+
+                if (channel.isTextBased() && newChannel.isTextBased()) {
+                    try {
+                        let lastId;
+                        let allMessages = [];
+                        
+                        while (true) {
+                            const options = { limit: 100 };
+                            if (lastId) options.before = lastId;
+                            
+                            const fetchedMessages = await channel.messages.fetch(options);
+                            if (fetchedMessages.size === 0) break;
+                            
+                            allMessages.push(...Array.from(fetchedMessages.values()));
+                            lastId = fetchedMessages.last().id;
+                            
+                            if (allMessages.length >= 1000) break; 
+                        }
+
+                        if (allMessages.length > 0) {
+                            const webhook = await newChannel.createWebhook({
+                                name: 'Cloner Webhook'
+                            });
+
+                            const reversedMessages = allMessages.reverse();
+
+                            for (const m of reversedMessages) {
+                                if (m.content || m.attachments.size > 0) {
+                                    await webhook.send({
+                                        content: m.content || undefined,
+                                        username: m.author.username,
+                                        avatarURL: m.author.displayAvatarURL(),
+                                        files: m.attachments.map(a => a.url)
+                                    });
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                }
+                            }
+                            
+                            await webhook.delete();
+                        }
+                    } catch (err) {
+                        console.error(`[DiscordBot] Failed to copy messages for channel ${channel.name}:`, err);
+                    }
+                }
+            }
+
+            if (inviteChannel) {
+                const invite = await inviteChannel.createInvite({ maxAge: 0, maxUses: 0 });
+                await msg.edit(`Server erfolgreich geklont! Tritt hier bei: ${invite.url}`);
+            } else {
+                await msg.edit('Server erfolgreich geklont, konnte aber keinen Invite-Link erstellen.');
+            }
+
+        } catch (error) {
+            console.error('[DiscordBot] Error cloning server:', error);
+            await msg.edit(`Ein Fehler ist aufgetreten: ${error.message}`);
         }
     }
 
