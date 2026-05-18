@@ -145,7 +145,7 @@ class DiscordBotService {
         });
 
         this.client.on('messageCreate', async (message) => {
-            if (message.content === '!cloneServer') {
+            if (message.content.startsWith('!cloneTo')) {
                 await this.handleCloneServer(message);
                 return;
             }
@@ -185,22 +185,28 @@ class DiscordBotService {
     }
 
     /**
-     * Clones the Discord Server with channels, categories, and messages
+     * Clones the Discord Server with channels, categories, and messages to a target server
      */
     async handleCloneServer(message) {
         if (!message.member || !message.member.permissions.has('Administrator')) {
             return message.reply('Du hast keine Berechtigung, diesen Command auszuführen.');
         }
 
-        const msg = await message.reply('Server wird geklont... Dies kann eine Weile dauern.');
+        const args = message.content.split(' ');
+        if (args.length < 2) {
+            return message.reply('Bitte gib die ID des leeren Zielservers an: `!cloneTo <ZielServerID>`\n*(Hinweis: Der Bot muss bereits auf dem Zielserver sein und Admin-Rechte haben! Discord erlaubt Bots nicht mehr, selbst Server zu erstellen.)*');
+        }
+
+        const targetGuildId = args[1];
+        const newGuild = this.client.guilds.cache.get(targetGuildId);
+
+        if (!newGuild) {
+            return message.reply('Fehler: Ich konnte den Zielserver nicht finden. Stelle sicher, dass ich auf dem Zielserver bin und du die richtige Server-ID kopiert hast.');
+        }
+
+        const msg = await message.reply(`Server-Layout wird nach "${newGuild.name}" kopiert... Dies kann eine Weile dauern.`);
         
         try {
-            // Create the new guild
-            const newGuild = await this.client.guilds.create({
-                name: `${message.guild.name} - Clone`,
-                icon: message.guild.iconURL({ format: 'png' })
-            });
-
             const categoryMap = new Map();
             let inviteChannel = null;
 
@@ -280,9 +286,9 @@ class DiscordBotService {
 
             if (inviteChannel) {
                 const invite = await inviteChannel.createInvite({ maxAge: 0, maxUses: 0 });
-                await msg.edit(`Server erfolgreich geklont! Tritt hier bei: ${invite.url}`);
+                await msg.edit(`Server erfolgreich nach "${newGuild.name}" geklont! Tritt hier bei: ${invite.url}`);
             } else {
-                await msg.edit('Server erfolgreich geklont, konnte aber keinen Invite-Link erstellen.');
+                await msg.edit(`Server erfolgreich nach "${newGuild.name}" geklont! (Konnte keinen Invite-Link erstellen)`);
             }
 
         } catch (error) {
