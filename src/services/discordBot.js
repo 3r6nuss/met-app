@@ -265,12 +265,15 @@ class DiscordBotService {
                             const reversedMessages = allMessages.reverse();
 
                             for (const m of reversedMessages) {
-                                if (m.content || m.attachments.size > 0) {
+                                const validEmbeds = m.embeds ? m.embeds.map(e => e.toJSON()) : [];
+                                
+                                if (m.content || m.attachments.size > 0 || validEmbeds.length > 0) {
                                     await webhook.send({
                                         content: m.content || undefined,
                                         username: m.author.username,
                                         avatarURL: m.author.displayAvatarURL(),
-                                        files: m.attachments.map(a => a.url)
+                                        files: m.attachments.map(a => a.url),
+                                        embeds: validEmbeds
                                     });
                                     await new Promise(resolve => setTimeout(resolve, 500));
                                 }
