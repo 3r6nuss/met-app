@@ -14,6 +14,7 @@ import {
     Routes
 } from 'discord.js';
 import { getDb } from '../db/database.js';
+import { ticketCommands } from './ticketService.js';
 
 // ─── Config ──────────────────────────────────────────────
 const AUFTRAG_CHANNEL_ID = process.env.DISCORD_AUFTRAG_CHANNEL_ID;
@@ -44,9 +45,9 @@ export async function registerCommands(client) {
         console.log('[Auftrag] Registering /auftrag slash command...');
         await rest.put(
             Routes.applicationCommands(client.user.id),
-            { body: [auftragCommand.toJSON()] }
+            { body: [auftragCommand.toJSON(), ...ticketCommands.map(c => c.toJSON())] }
         );
-        console.log('[Auftrag] ✓ Slash command registered');
+        console.log('[Auftrag] ✓ Slash commands registered (/auftrag, /ticket-panel)');
     } catch (error) {
         console.error('[Auftrag] Failed to register slash command:', error);
     }

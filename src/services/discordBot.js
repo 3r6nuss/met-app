@@ -8,6 +8,7 @@ import { parseLogWithAI, validateParsedLog, extractReferenceId } from './geminiP
 import { getDb } from '../db/database.js';
 import { broadcastDiscordLog } from './broadcaster.js';
 import { registerCommands, handleAuftragCommand, handleAuftragButton } from './auftragService.js';
+import { handleTicketPanelCommand, handleTicketInteraction } from './ticketService.js';
 
 class DiscordBotService {
     constructor() {
@@ -152,15 +153,23 @@ class DiscordBotService {
             await this.handleMessage(message);
         });
 
-        // Handle slash commands and button interactions (Auftragssystem)
+        // Handle slash commands and button interactions (Auftragssystem + Ticketsystem)
         this.client.on('interactionCreate', async (interaction) => {
             try {
                 if (interaction.isChatInputCommand()) {
                     if (interaction.commandName === 'auftrag') {
                         await handleAuftragCommand(interaction);
+                    } else if (interaction.commandName === 'ticket-panel') {
+                        await handleTicketPanelCommand(interaction);
                     }
+                } else if (interaction.isStringSelectMenu()) {
+                    await handleTicketInteraction(interaction);
                 } else if (interaction.isButton()) {
-                    await handleAuftragButton(interaction);
+                    // Ticket-Buttons zuerst prüfen, sonst Auftrag-Buttons
+                    const handled = await handleTicketInteraction(interaction);
+                    if (!handled) {
+                        await handleAuftragButton(interaction);
+                    }
                 }
             } catch (error) {
                 console.error('[DiscordBot] Interaction error:', error);
@@ -726,6 +735,34 @@ class DiscordBotService {
             queueLength: this.messageQueue.length,
             username: this.client?.user?.tag || null
         };
+    }
+
+    /**
+     * Ermittelt den Haupt-Server (DISCORD_GUILD_ID oder erster Server)
+     */
+    getMainGuild() {
+        if (!this.client) return null;
+        const gid = process.env.DISCORD_GUILD_ID;
+        if (gid) return this.client.guilds.cache.get(gid) || null;
+        return this.client.guilds.cache.first() || null;
+    }
+
+    /**
+     * Liefert die Rollen des Haupt-Servers (für die Ticket-Konfiguration)
+     */
+    async getGuildRoles() {
+        const guild = this.getMainGuild();
+        if (!guild) return [];
+        try {
+            const roles = await guild.roles.fetch();
+            return [...roles.values()]
+                .filter(r => r.id !== guild.id && !r.managed) // @everyone & Bot-/Integrationsrollen ausblenden
+                .sort((a, b) => b.position - a.position)
+                .map(r => ({ id: r.id, name: r.name, color: r.hexColor }));
+        } catch (err) {
+            console.error('[DiscordBot] Konnte Rollen nicht laden:', err.message);
+            return [];
+        }
     }
 }
 

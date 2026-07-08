@@ -173,6 +173,57 @@ export async function getDb() {
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
+
+        -- Ticketsystem (Support Tickets via Discord Bot)
+        CREATE TABLE IF NOT EXISTS tickets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_number INTEGER,
+            category TEXT,
+            subject TEXT,
+            status TEXT DEFAULT 'open',
+            opener_id TEXT,
+            opener_name TEXT,
+            opener_avatar TEXT,
+            claimed_by_id TEXT,
+            claimed_by_name TEXT,
+            closed_by_id TEXT,
+            closed_by_name TEXT,
+            close_reason TEXT,
+            discord_channel_id TEXT,
+            guild_id TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            closed_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS ticket_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_id INTEGER,
+            discord_message_id TEXT,
+            author_id TEXT,
+            author_name TEXT,
+            author_avatar TEXT,
+            is_bot INTEGER DEFAULT 0,
+            content TEXT,
+            attachments TEXT,
+            created_at TEXT,
+            FOREIGN KEY(ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS ticket_categories (
+            value TEXT PRIMARY KEY,
+            label TEXT,
+            emoji TEXT,
+            description TEXT,
+            role_ids TEXT DEFAULT '[]',
+            sort_order INTEGER DEFAULT 0
+        );
+
+        INSERT OR IGNORE INTO ticket_categories (value, label, emoji, description, sort_order) VALUES
+            ('bewerbungen', 'Bewerbungen', '📝', 'Bewerbung bei MET', 1),
+            ('bestellungen', 'Bestellungen', '📦', 'Bestellungen aufgeben', 2),
+            ('support', 'Support', '❓', 'Allgemeine Hilfe & Fragen', 3),
+            ('ankauf', 'Ankauf', '💰', 'An- & Verkaufsanfragen', 4),
+            ('sonstiges', 'Sonstiges', '💬', 'Alles andere', 5);
     `);
 
     // Migration: Add isHaendler column if it doesn't exist

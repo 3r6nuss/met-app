@@ -30,6 +30,7 @@ import SammelEventPage from '../pages/SammelEventPage';
 import SammelEventConfigPage from '../pages/SammelEventConfigPage';
 import SystemPage from '../pages/SystemPage';
 import PricesPage from '../pages/PricesPage';
+import TicketsPage from '../pages/TicketsPage';
 
 // Protocols
 import DailyTradeLog from '../pages/protocols/DailyTradeLog';
@@ -252,6 +253,8 @@ export default function AppRoutes() {
                                 <SystemPage employees={employees} onUpdateEmployees={handleUpdateEmployees} logs={transactionLogs} onDeleteLog={handleDeleteLog} onReset={handleReset} user={user} inventory={inventory} />
                             </ErrorBoundary>
                         } />
+                        <Route path="/tickets" element={<ErrorBoundary><TicketsPage /></ErrorBoundary>} />
+                        <Route path="/tickets/:id" element={<ErrorBoundary><TicketsPage /></ErrorBoundary>} />
                     </>
                 )}
 
