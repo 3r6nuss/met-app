@@ -764,6 +764,25 @@ class DiscordBotService {
             return [];
         }
     }
+
+    /**
+     * Liefert die Discord-Kategorien (Channel-Gruppen) des Haupt-Servers,
+     * unter denen Ticket-Channels erstellt werden können.
+     */
+    async getGuildCategories() {
+        const guild = this.getMainGuild();
+        if (!guild) return [];
+        try {
+            const channels = await guild.channels.fetch();
+            return [...channels.values()]
+                .filter(c => c && c.type === 4) // ChannelType.GuildCategory
+                .sort((a, b) => a.rawPosition - b.rawPosition)
+                .map(c => ({ id: c.id, name: c.name }));
+        } catch (err) {
+            console.error('[DiscordBot] Konnte Kategorien nicht laden:', err.message);
+            return [];
+        }
+    }
 }
 
 // Singleton instance

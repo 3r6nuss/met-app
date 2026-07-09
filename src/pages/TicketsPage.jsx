@@ -312,7 +312,9 @@ function TicketDetail({ ticketId }) {
 // ─── Einstellungen: Rollen pro Kategorie ─────────────────
 function TicketSettings() {
     const [roles, setRoles] = useState([]);
+    const [parents, setParents] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [settings, setSettings] = useState({ panel_title: '', panel_description: '', welcome_title: '', welcome_message: '' });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -323,12 +325,26 @@ function TicketSettings() {
         (async () => {
             setLoading(true);
             try {
-                const [rolesRes, catsRes] = await Promise.all([
+                const [rolesRes, catsRes, settingsRes] = await Promise.all([
                     fetch('/api/tickets/config/roles', { credentials: 'include' }),
-                    fetch('/api/tickets/config/categories', { credentials: 'include' })
+                    fetch('/api/tickets/config/categories', { credentials: 'include' }),
+                    fetch('/api/tickets/config/settings', { credentials: 'include' })
                 ]);
-                if (active && rolesRes.ok) setRoles((await rolesRes.json()).roles || []);
+                if (active && rolesRes.ok) {
+                    const data = await rolesRes.json();
+                    setRoles(data.roles || []);
+                    setParents(data.parents || []);
+                }
                 if (active && catsRes.ok) setCategories((await catsRes.json()).categories || []);
+                if (active && settingsRes.ok) {
+                    const s = (await settingsRes.json()).settings || {};
+                    setSettings({
+                        panel_title: s.panel_title || '',
+                        panel_description: s.panel_description || '',
+                        welcome_title: s.welcome_title || '',
+                        welcome_message: s.welcome_message || ''
+                    });
+                }
             } catch (err) {
                 if (active) setError(err.message);
             } finally {
@@ -347,18 +363,42 @@ function TicketSettings() {
         }));
     };
 
+    const setParent = (catValue, parentId) => {
+        setSaved(false);
+        setCategories(prev => prev.map(c => c.value === catValue ? { ...c, discord_parent_id: parentId || null } : c));
+    };
+
+    const updateSetting = (key, value) => {
+        setSaved(false);
+        setSettings(prev => ({ ...prev, [key]: value }));
+    };
+
     const handleSave = async () => {
         setSaving(true);
         setError(null);
         try {
-            const res = await fetch('/api/tickets/config/categories', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ categories: categories.map(c => ({ value: c.value, role_ids: c.role_ids })) })
-            });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
+            const [catRes, setRes] = await Promise.all([
+                fetch('/api/tickets/config/categories', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        categories: categories.map(c => ({
+                            value: c.value,
+                            role_ids: c.role_ids,
+                            discord_parent_id: c.discord_parent_id || null
+                        }))
+                    })
+                }),
+                fetch('/api/tickets/config/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(settings)
+                })
+            ]);
+            if (!catRes.ok || !setRes.ok) {
+                const data = await (catRes.ok ? setRes : catRes).json().catch(() => ({}));
                 throw new Error(data.error || 'Speichern fehlgeschlagen');
             }
             setSaved(true);
@@ -370,16 +410,18 @@ function TicketSettings() {
         }
     };
 
+    const inputClass = 'w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-violet-500';
+
     return (
-        <div className="glass-panel rounded-2xl p-5 md:p-6 space-y-5">
+        <div className="glass-panel rounded-2xl p-5 md:p-6 space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
                         <Shield className="w-5 h-5 text-violet-400" />
-                        Sichtbarkeit der Ticket-Kategorien
+                        Ticket-Einstellungen
                     </h2>
                     <p className="text-slate-400 text-sm mt-1">
-                        Wähle pro Kategorie aus, welche Discord-Rollen den Ticket-Channel sehen und bearbeiten dürfen.
+                        Rollen &amp; Discord-Kategorie pro Ticket-Typ sowie die Embed-Texte anpassen.
                     </p>
                 </div>
                 <button
@@ -395,43 +437,110 @@ function TicketSettings() {
             {error && <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{error}</div>}
 
             {loading ? (
-                <div className="text-slate-500 py-6 text-center">Lade Kategorien & Rollen …</div>
-            ) : roles.length === 0 ? (
-                <div className="text-amber-400 text-sm bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
-                    Keine Server-Rollen gefunden. Läuft der Bot und ist er auf dem Server? (Ggf. DISCORD_GUILD_ID setzen.)
-                </div>
+                <div className="text-slate-500 py-6 text-center">Lade Konfiguration …</div>
             ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                    {categories.map(cat => (
-                        <div key={cat.value} className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-4">
-                            <div className="font-semibold text-white mb-3 flex items-center gap-2">
-                                {cat.emoji && <span>{cat.emoji}</span>}
-                                {cat.label}
+                <>
+                    {/* Embed-Texte */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Embed-Texte</h3>
+                        <p className="text-xs text-slate-500">
+                            Platzhalter im Willkommens-Text: <code className="text-violet-300">{'{user}'}</code> (Ersteller),{' '}
+                            <code className="text-violet-300">{'{category}'}</code> (Kategorie),{' '}
+                            <code className="text-violet-300">{'{ticket}'}</code> (Ticket-Nr.)
+                        </p>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-3">
+                                <div className="text-xs font-medium text-slate-400">Panel (Auswahl-Nachricht)</div>
+                                <input
+                                    className={inputClass}
+                                    placeholder="Panel-Titel"
+                                    value={settings.panel_title}
+                                    onChange={e => updateSetting('panel_title', e.target.value)}
+                                />
+                                <textarea
+                                    className={`${inputClass} min-h-[120px] resize-y`}
+                                    placeholder="Panel-Beschreibung"
+                                    value={settings.panel_description}
+                                    onChange={e => updateSetting('panel_description', e.target.value)}
+                                />
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                                {roles.map(role => {
-                                    const active = cat.role_ids.includes(role.id);
-                                    const color = role.color && role.color !== '#000000' ? role.color : '#94a3b8';
-                                    return (
-                                        <button
-                                            key={role.id}
-                                            onClick={() => toggleRole(cat.value, role.id)}
-                                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
-                                                active
-                                                    ? 'bg-violet-500/20 text-white border-violet-500/50'
-                                                    : 'bg-slate-800/60 text-slate-400 border-transparent hover:text-white'
-                                            }`}
-                                        >
-                                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                                            {role.name}
-                                            {active && <Check className="w-3 h-3" />}
-                                        </button>
-                                    );
-                                })}
+                            <div className="space-y-3">
+                                <div className="text-xs font-medium text-slate-400">Willkommens-Nachricht (im Ticket)</div>
+                                <input
+                                    className={inputClass}
+                                    placeholder="Willkommens-Titel"
+                                    value={settings.welcome_title}
+                                    onChange={e => updateSetting('welcome_title', e.target.value)}
+                                />
+                                <textarea
+                                    className={`${inputClass} min-h-[120px] resize-y`}
+                                    placeholder="Willkommens-Text"
+                                    value={settings.welcome_message}
+                                    onChange={e => updateSetting('welcome_message', e.target.value)}
+                                />
                             </div>
                         </div>
-                    ))}
-                </div>
+                    </div>
+
+                    {/* Kategorien */}
+                    <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Kategorien</h3>
+                        {roles.length === 0 && (
+                            <div className="text-amber-400 text-sm bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                                Keine Server-Rollen/Kategorien gefunden. Läuft der Bot und ist er auf dem Server? (Ggf. DISCORD_GUILD_ID setzen.)
+                            </div>
+                        )}
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {categories.map(cat => (
+                                <div key={cat.value} className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-4 space-y-3">
+                                    <div className="font-semibold text-white flex items-center gap-2">
+                                        {cat.emoji && <span>{cat.emoji}</span>}
+                                        {cat.label}
+                                    </div>
+
+                                    <div>
+                                        <div className="text-xs text-slate-500 mb-1">Discord-Kategorie (Channel wird hier erstellt)</div>
+                                        <select
+                                            className={inputClass}
+                                            value={cat.discord_parent_id || ''}
+                                            onChange={e => setParent(cat.value, e.target.value)}
+                                        >
+                                            <option value="">— Standard / keine —</option>
+                                            {parents.map(p => (
+                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-xs text-slate-500 mb-1">Sichtbar für Rollen</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {roles.map(role => {
+                                                const active = cat.role_ids.includes(role.id);
+                                                const color = role.color && role.color !== '#000000' ? role.color : '#94a3b8';
+                                                return (
+                                                    <button
+                                                        key={role.id}
+                                                        onClick={() => toggleRole(cat.value, role.id)}
+                                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                                                            active
+                                                                ? 'bg-violet-500/20 text-white border-violet-500/50'
+                                                                : 'bg-slate-800/60 text-slate-400 border-transparent hover:text-white'
+                                                        }`}
+                                                    >
+                                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                                                        {role.name}
+                                                        {active && <Check className="w-3 h-3" />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     );

@@ -224,7 +224,34 @@ export async function getDb() {
             ('support', 'Support', '❓', 'Allgemeine Hilfe & Fragen', 3),
             ('ankauf', 'Ankauf', '💰', 'An- & Verkaufsanfragen', 4),
             ('sonstiges', 'Sonstiges', '💬', 'Alles andere', 5);
+
+        CREATE TABLE IF NOT EXISTS ticket_settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            panel_title TEXT,
+            panel_description TEXT,
+            welcome_title TEXT,
+            welcome_message TEXT
+        );
+
+        INSERT OR IGNORE INTO ticket_settings (id, panel_title, panel_description, welcome_title, welcome_message) VALUES (
+            1,
+            '🎫 MET Support-Tickets',
+            'Du brauchst Hilfe oder hast ein Anliegen?\nWähle unten eine **Kategorie**, um ein privates Ticket zu öffnen.\n\nEin Teammitglied meldet sich so schnell wie möglich bei dir.',
+            '🎫 Ticket #{ticket} — {category}',
+            'Hallo {user}, willkommen in deinem Ticket!\n\nBeschreibe bitte dein Anliegen so genau wie möglich. Ein Teammitglied wird sich in Kürze bei dir melden.\n\nMit **🔒 Ticket schließen** kannst du (oder das Team) das Ticket beenden.'
+        );
     `);
+
+    // Migration: Add discord_parent_id column to ticket_categories if missing
+    try {
+        const catInfo = await dbInstance.all("PRAGMA table_info(ticket_categories)");
+        if (catInfo.length > 0 && !catInfo.some(col => col.name === 'discord_parent_id')) {
+            await dbInstance.run("ALTER TABLE ticket_categories ADD COLUMN discord_parent_id TEXT");
+            console.log("Migrated database: Added discord_parent_id column to ticket_categories table.");
+        }
+    } catch (error) {
+        console.error("Ticket category migration error:", error);
+    }
 
     // Migration: Add isHaendler column if it doesn't exist
     try {

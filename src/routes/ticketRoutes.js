@@ -43,8 +43,11 @@ function isAdminUser(req, res, next) {
 router.get('/config/roles', isStaffUser, async (req, res) => {
     try {
         const bot = getDiscordBot();
-        const roles = await bot.getGuildRoles();
-        res.json({ roles });
+        const [roles, parents] = await Promise.all([
+            bot.getGuildRoles(),
+            bot.getGuildCategories()
+        ]);
+        res.json({ roles, parents });
     } catch (error) {
         console.error('[TicketRoutes] roles error:', error);
         res.status(500).json({ error: error.message });
@@ -65,7 +68,8 @@ router.get('/config/categories', isStaffUser, async (req, res) => {
             emoji: r.emoji,
             description: r.description,
             sort_order: r.sort_order,
-            role_ids: safeParse(r.role_ids)
+            role_ids: safeParse(r.role_ids),
+            discord_parent_id: r.discord_parent_id || null
         }));
         res.json({ categories });
     } catch (error) {
@@ -76,8 +80,8 @@ router.get('/config/categories', isStaffUser, async (req, res) => {
 
 /**
  * PUT /api/tickets/config/categories
- * Speichert die Rollen-Zuordnung pro Kategorie.
- * Body: { categories: [{ value, role_ids: [] }] }
+ * Speichert die Rollen-Zuordnung und Discord-Parent-Kategorie pro Kategorie.
+ * Body: { categories: [{ value, role_ids: [], discord_parent_id }] }
  */
 router.put('/config/categories', isAdminUser, async (req, res) => {
     try {
@@ -86,9 +90,10 @@ router.put('/config/categories', isAdminUser, async (req, res) => {
         for (const cat of categories) {
             if (!cat?.value) continue;
             const roleIds = Array.isArray(cat.role_ids) ? cat.role_ids.filter(Boolean).map(String) : [];
+            const parentId = cat.discord_parent_id ? String(cat.discord_parent_id) : null;
             await db.run(
-                'UPDATE ticket_categories SET role_ids = ? WHERE value = ?',
-                JSON.stringify(roleIds), cat.value
+                'UPDATE ticket_categories SET role_ids = ?, discord_parent_id = ? WHERE value = ?',
+                JSON.stringify(roleIds), parentId, cat.value
             );
         }
         const rows = await db.all('SELECT * FROM ticket_categories ORDER BY sort_order ASC, label ASC');
@@ -97,11 +102,53 @@ router.put('/config/categories', isAdminUser, async (req, res) => {
             categories: rows.map(r => ({
                 value: r.value, label: r.label, emoji: r.emoji,
                 description: r.description, sort_order: r.sort_order,
-                role_ids: safeParse(r.role_ids)
+                role_ids: safeParse(r.role_ids),
+                discord_parent_id: r.discord_parent_id || null
             }))
         });
     } catch (error) {
         console.error('[TicketRoutes] save categories error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * GET /api/tickets/config/settings
+ * Liefert die Text-Einstellungen (Panel- & Willkommens-Embed).
+ */
+router.get('/config/settings', isStaffUser, async (req, res) => {
+    try {
+        const db = await getDb();
+        const row = await db.get('SELECT * FROM ticket_settings WHERE id = 1');
+        res.json({ settings: row || {} });
+    } catch (error) {
+        console.error('[TicketRoutes] settings error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * PUT /api/tickets/config/settings
+ * Speichert die Text-Einstellungen (Panel- & Willkommens-Embed).
+ */
+router.put('/config/settings', isAdminUser, async (req, res) => {
+    try {
+        const db = await getDb();
+        const { panel_title, panel_description, welcome_title, welcome_message } = req.body || {};
+        await db.run(
+            `INSERT INTO ticket_settings (id, panel_title, panel_description, welcome_title, welcome_message)
+             VALUES (1, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+                panel_title = excluded.panel_title,
+                panel_description = excluded.panel_description,
+                welcome_title = excluded.welcome_title,
+                welcome_message = excluded.welcome_message`,
+            panel_title || null, panel_description || null, welcome_title || null, welcome_message || null
+        );
+        const row = await db.get('SELECT * FROM ticket_settings WHERE id = 1');
+        res.json({ success: true, settings: row });
+    } catch (error) {
+        console.error('[TicketRoutes] save settings error:', error);
         res.status(500).json({ error: error.message });
     }
 });

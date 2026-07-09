@@ -66,7 +66,8 @@ async function getCategories() {
                 label: r.label || r.value,
                 emoji: r.emoji || undefined,
                 description: r.description || undefined,
-                role_ids: parseRoleIds(r.role_ids)
+                role_ids: parseRoleIds(r.role_ids),
+                discord_parent_id: r.discord_parent_id || null
             }));
         }
     } catch (err) {
@@ -85,6 +86,40 @@ async function categoryLabel(value) {
     return cat ? cat.label : value;
 }
 
+// ─── Einstellungen (Panel-/Willkommens-Text) ─────────────
+const DEFAULT_SETTINGS = {
+    panel_title: '🎫 MET Support-Tickets',
+    panel_description: 'Du brauchst Hilfe oder hast ein Anliegen?\nWähle unten eine **Kategorie**, um ein privates Ticket zu öffnen.\n\nEin Teammitglied meldet sich so schnell wie möglich bei dir.',
+    welcome_title: '🎫 Ticket #{ticket} — {category}',
+    welcome_message: 'Hallo {user}, willkommen in deinem Ticket!\n\nBeschreibe bitte dein Anliegen so genau wie möglich. Ein Teammitglied wird sich in Kürze bei dir melden.\n\nMit **🔒 Ticket schließen** kannst du (oder das Team) das Ticket beenden.'
+};
+
+async function getSettings() {
+    try {
+        const db = await getDb();
+        const row = await db.get('SELECT * FROM ticket_settings WHERE id = 1');
+        if (row) {
+            return {
+                panel_title: row.panel_title || DEFAULT_SETTINGS.panel_title,
+                panel_description: row.panel_description || DEFAULT_SETTINGS.panel_description,
+                welcome_title: row.welcome_title || DEFAULT_SETTINGS.welcome_title,
+                welcome_message: row.welcome_message || DEFAULT_SETTINGS.welcome_message
+            };
+        }
+    } catch (err) {
+        console.error('[Ticket] Einstellungen konnten nicht geladen werden:', err.message);
+    }
+    return { ...DEFAULT_SETTINGS };
+}
+
+// Ersetzt Platzhalter {user}, {category}, {ticket}
+function applyPlaceholders(text, { user, category, ticket }) {
+    return (text || '')
+        .replace(/\{user\}/g, user || '')
+        .replace(/\{category\}/g, category || '')
+        .replace(/\{ticket\}/g, ticket != null ? String(ticket) : '');
+}
+
 // ─── Slash-Command Definitionen ──────────────────────────
 export const ticketCommands = [
     new SlashCommandBuilder()
@@ -96,14 +131,11 @@ export const ticketCommands = [
 // ─── Panel-Nachricht bauen ───────────────────────────────
 async function buildPanel() {
     const categories = await getCategories();
+    const settings = await getSettings();
 
     const embed = new EmbedBuilder()
-        .setTitle('🎫 MET Support-Tickets')
-        .setDescription(
-            'Du brauchst Hilfe oder hast ein Anliegen?\n' +
-            'Wähle unten eine **Kategorie**, um ein privates Ticket zu öffnen.\n\n' +
-            'Ein Teammitglied meldet sich so schnell wie möglich bei dir.'
-        )
+        .setTitle(settings.panel_title)
+        .setDescription(settings.panel_description)
         .setColor(0x8B5CF6)
         .setFooter({ text: 'MET Ticketsystem' });
 
@@ -188,14 +220,21 @@ export async function handleTicketCreate(interaction) {
 
     const db = await getDb();
 
-    // Verhindern, dass ein User mehrere offene Tickets hat
+    // Kategorie-Konfiguration (Rollen + Discord-Parent-Kategorie)
+    const catConfig = await getCategory(category);
+    const catLabel = catConfig ? catConfig.label : category;
+    const categoryRoleIds = catConfig ? catConfig.role_ids : [];
+    const parentId = (catConfig && catConfig.discord_parent_id) || TICKET_PARENT_CATEGORY_ID || null;
+
+    // Verhindern, dass ein User mehrere offene Tickets DERSELBEN Kategorie hat
+    // (unterschiedliche Kategorien sind gleichzeitig erlaubt)
     const existing = await db.get(
-        `SELECT * FROM tickets WHERE opener_id = ? AND status = 'open'`,
-        interaction.user.id
+        `SELECT * FROM tickets WHERE opener_id = ? AND status = 'open' AND category = ?`,
+        interaction.user.id, category
     );
     if (existing && existing.discord_channel_id) {
         await interaction.editReply({
-            content: `⚠️ Du hast bereits ein offenes Ticket: <#${existing.discord_channel_id}>`
+            content: `⚠️ Du hast bereits ein offenes **${catLabel}**-Ticket: <#${existing.discord_channel_id}>`
         });
         return;
     }
@@ -203,11 +242,6 @@ export async function handleTicketCreate(interaction) {
     // Fortlaufende Ticketnummer
     const row = await db.get('SELECT COALESCE(MAX(ticket_number), 0) + 1 AS next FROM tickets');
     const ticketNumber = row.next;
-
-    // Kategorie-Konfiguration (welche Rollen dürfen den Channel sehen)
-    const catConfig = await getCategory(category);
-    const catLabel = catConfig ? catConfig.label : category;
-    const categoryRoleIds = catConfig ? catConfig.role_ids : [];
 
     // Permission-Overwrites: nur Ersteller + Bot + konfigurierte Rollen sehen das Ticket
     const overwrites = [
@@ -260,7 +294,7 @@ export async function handleTicketCreate(interaction) {
         channel = await guild.channels.create({
             name: `ticket-${String(ticketNumber).padStart(4, '0')}`,
             type: ChannelType.GuildText,
-            parent: TICKET_PARENT_CATEGORY_ID || undefined,
+            parent: parentId || undefined,
             topic: `Ticket #${ticketNumber} • ${catLabel} • ${interaction.user.tag}`,
             permissionOverwrites: overwrites
         });
@@ -281,14 +315,11 @@ export async function handleTicketCreate(interaction) {
     );
     const ticket = await db.get('SELECT * FROM tickets WHERE id = ?', result.lastID);
 
+    const settings = await getSettings();
+    const placeholderCtx = { user: `<@${interaction.user.id}>`, category: catLabel, ticket: ticketNumber };
     const welcome = new EmbedBuilder()
-        .setTitle(`🎫 Ticket #${ticketNumber} — ${catLabel}`)
-        .setDescription(
-            `Hallo <@${interaction.user.id}>, willkommen in deinem Ticket!\n\n` +
-            'Beschreibe bitte dein Anliegen so genau wie möglich. ' +
-            'Ein Teammitglied wird sich in Kürze bei dir melden.\n\n' +
-            'Mit **🔒 Ticket schließen** kannst du (oder das Team) das Ticket beenden.'
-        )
+        .setTitle(applyPlaceholders(settings.welcome_title, placeholderCtx))
+        .setDescription(applyPlaceholders(settings.welcome_message, placeholderCtx))
         .setColor(0x8B5CF6)
         .setTimestamp();
 
