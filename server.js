@@ -75,6 +75,33 @@ app.get('/api/version', (req, res) => {
     res.json({ version: SERVER_START_TIME });
 });
 
+app.get('/api/health', async (req, res) => {
+    const startedAt = new Date(SERVER_START_TIME).toISOString();
+    const health = {
+        status: 'ok',
+        service: 'met-app',
+        timestamp: new Date().toISOString(),
+        startedAt,
+        uptimeSeconds: Math.floor(process.uptime()),
+        checks: {
+            api: { status: 'up' },
+            database: { status: 'up' },
+            websocket: { status: 'up', clients: wss.clients.size },
+        },
+        memory: process.memoryUsage(),
+    };
+
+    try {
+        const db = await getDb();
+        await db.get('SELECT 1 AS healthy');
+        res.json(health);
+    } catch (error) {
+        health.status = 'degraded';
+        health.checks.database = { status: 'down', message: error.message };
+        res.status(503).json(health);
+    }
+});
+
 // Audit logging function
 const logAudit = async (action, userId, username, details, debugData = {}) => {
     try {
