@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Calculator, Save, TrendingUp, Search, Package, GitBranch } from 'lucide-react';
 import { recipes } from '../data/recipes';
-import { initialInventory } from '../data/initialData';
 
 // Counter for generating unique IDs
 let idCounter = 0;
@@ -51,19 +50,8 @@ export default function MarketingPage({ prices = [], inventory = [] }) {
             return { steps: [], total: 0 };
         }
 
-        // Robust ID Lookup:
-        // 1. Try finding ID in the passed 'inventory' (Live DB)
-        // 2. Fallback to 'initialInventory' (Static Seed Data) which matches recipes.js keys (ID based)
-        let itemId = null;
-
         const liveInvItem = inventory.find(i => i.name === itemName);
-        const staticInvItem = initialInventory.find(i => i.name === itemName);
-
-        if (staticInvItem) {
-            itemId = staticInvItem.id; // Preferred for recipes since recipes.js uses static IDs
-        } else if (liveInvItem) {
-            itemId = liveInvItem.id;
-        }
+        const itemId = liveInvItem?.id ?? null;
 
         const generatedSteps = [];
 

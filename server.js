@@ -44,7 +44,7 @@ const server = http.createServer(app);
 const SERVER_START_TIME = Date.now();
 
 // Setup WebSocket Server
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ noServer: true });
 
 // Initialize broadcaster for real-time notifications
 initBroadcaster(wss);
@@ -154,7 +154,7 @@ app.use(async (err, req, res, _next) => {
 });
 
 // Session Configuration
-app.use(session({
+const sessionMiddleware = session({
     secret: process.env.SESSION_SECRET || 'keyboard cat',
     resave: false,
     saveUninitialized: false,
@@ -162,10 +162,40 @@ app.use(session({
         secure: false, // Set to true if using HTTPS
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
-}));
+});
+app.use(sessionMiddleware);
 
 // Setup Passport
 setupPassport(app);
+
+server.on('upgrade', (req, socket, head) => {
+    sessionMiddleware(req, {}, async () => {
+        const userId = req.session?.passport?.user;
+        if (!userId) {
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
+            return;
+        }
+
+        try {
+            const db = await getDb();
+            const user = await db.get('SELECT role FROM users WHERE discordId = ?', userId);
+            if (!user || user.role === 'Pending') {
+                socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+                socket.destroy();
+                return;
+            }
+
+            wss.handleUpgrade(req, socket, head, ws => {
+                wss.emit('connection', ws, req);
+            });
+        } catch (error) {
+            console.error('[WebSocket] Authentication failed:', error);
+            socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+            socket.destroy();
+        }
+    });
+});
 
 app.use(cors({
     origin: ['http://localhost:5173', 'https://met.3r6nuss.de'],
@@ -178,8 +208,32 @@ app.use(logger);
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Mount Routes
+// Public authentication routes and session discovery
 app.use('/auth', authRoutes);
+app.get('/api/user', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.json(req.user);
+    } else {
+        res.status(401).json({ error: 'Not authenticated' });
+    }
+});
+
+const requireAuthenticatedUser = (req, res, next) => {
+    if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    if (req.user?.role === 'Pending') {
+        return res.status(403).json({ error: 'Account is pending approval' });
+    }
+
+    next();
+};
+
+// Everything below this point contains internal company data.
+app.use('/api', requireAuthenticatedUser);
+
+// Mount protected routes
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/logs', logRoutes); // Note: /api/logs route file handles /api/logs base
 app.use('/api', transactionRoutes); // Transaction routes likely have specific paths like /transaction
@@ -192,14 +246,6 @@ app.use('/api/discord', discordIntegrationRoutes);
 app.use('/api/sammel-event', sammelEventRoutes);
 app.use('/api/references', referenceRoutes);
 app.use('/api/tickets', ticketRoutes);
-
-app.get('/api/user', (req, res) => {
-    if (req.isAuthenticated()) {
-        res.json(req.user);
-    } else {
-        res.status(401).json({ error: 'Not authenticated' });
-    }
-});
 
 // Catch-all for SPA
 app.get(/.*/, (req, res) => {

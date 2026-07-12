@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { initialInventory } from '../data/initialData';
 import { api } from '../services/api';
 import { useDeveloperConsole } from './DeveloperConsoleContext';
 
@@ -13,7 +12,7 @@ export function useAppState() {
 
 export function AppStateProvider({ children }) {
     // ─── Core Data State ───────────────────────────────────────────────
-    const [inventory, setInventory] = useState(initialInventory);
+    const [inventory, setInventory] = useState([]);
     const [logs, setLogs] = useState([]); // Activity logs (short term)
     const [transactionLogs, setTransactionLogs] = useState([]); // Full history
     const [employees, setEmployees] = useState([]);
@@ -40,17 +39,16 @@ export function AppStateProvider({ children }) {
 
     // ─── Fetch Data Helper ─────────────────────────────────────────────
     const fetchData = (reason = 'Manual/Initial') => {
-        Promise.all([
+        return Promise.all([
             api.getInventory(),
             api.getLogs(),
             api.getEmployees(),
             api.getEmployeeInventory(),
             api.getPrices(),
             api.getOrders(),
-            api.getPersonnel(),
-            api.getUser()
+            api.getPersonnel()
         ])
-            .then(([invData, logsData, empData, empInvData, priceData, ordersData, personnelData, userData]) => {
+            .then(([invData, logsData, empData, empInvData, priceData, ordersData, personnelData]) => {
                 setInventory(invData);
                 setTransactionLogs(logsData);
                 setEmployees(empData);
@@ -58,20 +56,37 @@ export function AppStateProvider({ children }) {
                 setPrices(priceData);
                 setOrders(ordersData || []);
                 setPersonnel(personnelData || []);
-                if (userData) setUser(userData);
-                setLoading(false);
                 log('API', `Data Refreshed (${reason})`, { items: invData.length, logs: logsData.length });
             })
             .catch(err => {
                 console.error("Failed to fetch data:", err);
-                setLoading(false);
                 log('ERROR', `Failed to fetch data (${reason})`, err);
             });
     };
 
-    // ─── Initial Fetch & Version Check ─────────────────────────────────
+    // ─── Authenticate Before Loading Internal Data ─────────────────────
     useEffect(() => {
-        fetchData();
+        let isMounted = true;
+
+        api.getUser()
+            .then(userData => {
+                if (!isMounted) return;
+
+                setUser(userData);
+                if (!userData || userData.role === 'Pending') return;
+
+                return fetchData();
+            })
+            .finally(() => {
+                if (isMounted) setLoading(false);
+            });
+
+        return () => { isMounted = false; };
+    }, []);
+
+    // ─── Version Check For Authenticated Users ─────────────────────────
+    useEffect(() => {
+        if (!user || user.role === 'Pending') return undefined;
 
         api.getVersion().then(data => {
             if (data && data.version) {
@@ -90,13 +105,15 @@ export function AppStateProvider({ children }) {
         }, 60 * 60 * 1000);
 
         return () => clearInterval(versionInterval);
-    }, []);
+    }, [user]);
 
     // ─── WebSocket Connection ──────────────────────────────────────────
     const userRef = useRef(user);
     useEffect(() => { userRef.current = user; }, [user]);
 
     useEffect(() => {
+        if (!user || user.role === 'Pending') return undefined;
+
         let ws;
         let reconnectTimer;
         let isMounted = true;
@@ -190,7 +207,7 @@ export function AppStateProvider({ children }) {
             if (ws) ws.close();
             if (reconnectTimer) clearTimeout(reconnectTimer);
         };
-    }, []);
+    }, [user]);
 
     // ─── Save Helpers ──────────────────────────────────────────────────
     const saveInventory = (newData) => {

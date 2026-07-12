@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { initialPrices } from '../data/initialPrices';
 
 export default function BelegPage({ prices = [] }) {
-    // Use passed prices or fallback to initialPrices
-    const availableItems = prices.length > 0 ? prices : initialPrices;
+    const availableItems = prices;
     const [isViewMode, setIsViewMode] = useState(false);
 
     const [rows, setRows] = useState([
