@@ -1,11 +1,31 @@
-import React, { useState } from 'react';
-import { Save, AlertCircle } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Save, AlertCircle, Trash2 } from 'lucide-react';
+import { getBookingDraft, useBookingDraft } from '../hooks/useBookingDraft.jsx';
 
-export default function SpecialBookingPage({ employees, onAction }) {
-    const [selectedEmployee, setSelectedEmployee] = useState('');
-    const [reason, setReason] = useState('');
-    const [amount, setAmount] = useState('');
+export default function SpecialBookingPage({ employees, onAction, user }) {
+    const [initialDraft] = useState(() => getBookingDraft('sonderbuchung', user?.discordId || user?.id));
+    const [selectedEmployee, setSelectedEmployee] = useState(() => initialDraft?.selectedEmployee || '');
+    const [reason, setReason] = useState(() => initialDraft?.reason || '');
+    const [amount, setAmount] = useState(() => initialDraft?.amount || '');
     const [error, setError] = useState('');
+    const formRef = useRef(null);
+
+    const clearForm = () => {
+        setSelectedEmployee('');
+        setReason('');
+        setAmount('');
+        setError('');
+    };
+    const draft = { selectedEmployee, reason, amount };
+    const hasChanges = Boolean(selectedEmployee || reason || amount);
+    const { discardDraft, prompt: unsavedChangesPrompt } = useBookingDraft({
+        scope: 'sonderbuchung',
+        userId: user?.discordId || user?.id,
+        draft,
+        hasChanges,
+        onClear: clearForm,
+        formRef
+    });
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -38,10 +58,7 @@ export default function SpecialBookingPage({ employees, onAction }) {
                 reason: reason,
                 amount: parseFloat(amount)
             });
-            // Reset form
-            setReason('');
-            setAmount('');
-            setError('');
+            discardDraft();
         }
     };
 
@@ -53,7 +70,7 @@ export default function SpecialBookingPage({ employees, onAction }) {
                     Sonderbuchung
                 </h2>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
                     {/* Employee Selection */}
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-400">Mitarbeiter</label>
@@ -114,8 +131,19 @@ export default function SpecialBookingPage({ employees, onAction }) {
                     >
                         Buchen
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (window.confirm('Alle Angaben und den gespeicherten Entwurf löschen?')) discardDraft();
+                        }}
+                        className="w-full rounded-xl border border-red-500/40 px-4 py-3 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10"
+                    >
+                        <Trash2 className="mr-2 inline h-4 w-4" />
+                        Alles löschen
+                    </button>
                 </form>
             </div>
+            {unsavedChangesPrompt}
         </div>
     );
 }

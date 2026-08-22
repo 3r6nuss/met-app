@@ -233,7 +233,7 @@ class DiscordBotService {
             // 2. Copy Channels & Messages
             const channels = message.guild.channels.cache.filter(c => c.type !== 4).sort((a, b) => a.position - b.position);
             
-            for (const [id, channel] of channels) {
+            for (const [, channel] of channels) {
                 const parentId = channel.parentId ? categoryMap.get(channel.parentId) : null;
 
                 const newChannel = await newGuild.channels.create({
@@ -411,7 +411,7 @@ class DiscordBotService {
 
         // Filter: Only process messages related to trade (Einkauf/Verkauf)
         const tradeKeywords = ['AK', 'VK', 'ANKAUF', 'VERKAUF', 'AN- UND VERKAUF',
-                               'ABGEHOBEN', 'RECHNUNG', 'ABHEBUNG', 'EINGEZAHLT'];
+                       'ABGEHOBEN', 'RECHNUNG', 'ABHEBUNG', 'EINGEZAHLT', 'SONDERZAHLUNG'];
         const contentUpper = fullContent.toUpperCase();
         const isTradeMessage = tradeKeywords.some(kw => contentUpper.includes(kw));
 
@@ -480,8 +480,10 @@ class DiscordBotService {
             message.id
         );
 
-        // === Referenz-ID Auto-Match + Reply ===
-        let autoMatched = false;
+        // === Referenz-ID Vorschlag + Reply ===
+        // A matching reference is a strong hint, but the website user confirms it before
+        // the Discord log is finalized as matched.
+        let hasSuggestedMatch = false;
         let matchingLogs = [];
 
         if (referenceId && insertedLog) {
@@ -494,18 +496,18 @@ class DiscordBotService {
                 );
                 if (matchingLogs.length > 0) {
                     await db.run(
-                        `UPDATE discord_logs SET matched_log_id = ?, match_status = 'matched', 
+                        `UPDATE discord_logs SET matched_log_id = ?, match_status = 'suggested',
                          discrepancy_details = ? WHERE id = ?`,
                         matchingLogs[0].timestamp,
                         JSON.stringify({
-                            method: 'auto_reference_id',
+                            method: 'auto_reference_suggestion',
                             referenceId,
-                            matchedAt: new Date().toISOString()
+                            suggestedAt: new Date().toISOString()
                         }),
                         insertedLog.id
                     );
-                    autoMatched = true;
-                    console.log(`[DuplicateCheck] ✓ Auto-matched Discord log #${insertedLog.id} → ${matchingLogs.length} system log(s) via Ref-ID ${referenceId}`);
+                    hasSuggestedMatch = true;
+                    console.log(`[DuplicateCheck] ✓ Suggested Discord log #${insertedLog.id} → ${matchingLogs.length} system log(s) via Ref-ID ${referenceId}`);
                 }
             } catch (dupErr) {
                 console.error('[DuplicateCheck] Error:', dupErr);
@@ -514,9 +516,7 @@ class DiscordBotService {
 
         // === Send Reply Message in Discord ===
         try {
-            const replyContent = autoMatched && matchingLogs.length > 0
-                ? this.buildMatchedReply(referenceId, matchingLogs, parsedData)
-                : this.buildPendingReply(referenceId, parsedData);
+            const replyContent = this.buildPendingReply(referenceId, parsedData);
 
             const replyMsg = await this.sendReplyMessage(message.channelId, message.id, replyContent);
 
@@ -531,9 +531,15 @@ class DiscordBotService {
             console.error('[DiscordBot] Error sending reply:', replyErr);
         }
 
-        // Fully automatic — no manual confirmation popup
-        if (!autoMatched && referenceId) {
-            console.log(`[DiscordBot] Log #${insertedLog?.id} pending — will auto-match when system transaction arrives`);
+        if (insertedLog) {
+            broadcastDiscordLog({
+                ...insertedLog,
+                match_status: hasSuggestedMatch ? 'suggested' : 'pending'
+            });
+        }
+
+        if (referenceId) {
+            console.log(`[DiscordBot] Log #${insertedLog?.id} ${hasSuggestedMatch ? 'suggested for confirmation' : 'pending'} via Ref-ID ${referenceId}`);
         }
     }
 
@@ -637,7 +643,7 @@ class DiscordBotService {
         msg += `${typeEmoji} **${actionLabel}${categorySuffix}**\n`;
         msg += `💵 **Betrag:** $${Number(parsedData.amount || 0).toLocaleString('de-DE')}\n`;
         
-        if (parsedData.type === 'rechnung' || parsedData.trade_action === 'verkauf') {
+        if (parsedData.type === 'rechnung' || parsedData.type === 'rechnung_erstellt' || parsedData.trade_action === 'verkauf') {
             msg += `👤 **Verkäufer:** ${parsedData.employee || 'Unbekannt'}\n`;
             if (parsedData.customer) msg += `🧑 **Kunde:** ${parsedData.customer}\n`;
             if (parsedData.ausgestellt_date) {
@@ -645,7 +651,7 @@ class DiscordBotService {
                     const date = new Date(parsedData.ausgestellt_date);
                     const formattedDate = date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                     msg += `📅 **Ausgestellt:** ${formattedDate}\n`;
-                } catch (e) {
+                } catch (_error) {
                     msg += `📅 **Ausgestellt:** ${parsedData.ausgestellt_date}\n`;
                 }
             }

@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { PackagePlus, DollarSign, Copy, Check } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { PackagePlus, DollarSign, Copy, Check, Trash2 } from 'lucide-react';
 import { recipes } from '../data/recipes';
 import { generateTransactionId } from '../utils/transactionId';
+import { useBookingDraft } from '../hooks/useBookingDraft.jsx';
 
 export default function CheckInForm({
     inventory,
@@ -29,11 +30,57 @@ export default function CheckInForm({
     const [preTransactionId, setPreTransactionId] = useState('');
     const [copiedId, setCopiedId] = useState(false);
     const [copiedPrice, setCopiedPrice] = useState(false);
+    const formRef = useRef(null);
+
+    const clearForm = () => {
+        setSelectedId('');
+        setDepositor('');
+        setCustomName('');
+        setShowCustomInput(false);
+        setQuantity('');
+        setPrice('');
+        setIsReturn(false);
+        setIsSelfCollected(false);
+        setSkipInventory(false);
+        setCart([]);
+        setPreTransactionId(generateTransactionId());
+        localStorage.removeItem('met_depositor');
+    };
+
+    const draft = {
+        selectedId, depositor, customName, showCustomInput, quantity, price,
+        isReturn, isSelfCollected, skipInventory, selectedDate, cart, preTransactionId
+    };
+    const hasChanges = Boolean(selectedId || depositor || customName || quantity || price || cart.length || isReturn || isSelfCollected || skipInventory);
+    const { savedDraft, discardDraft, prompt: unsavedChangesPrompt } = useBookingDraft({
+        scope: title.toLowerCase(),
+        userId: user?.discordId || user?.id,
+        draft,
+        hasChanges,
+        onClear: clearForm,
+        formRef
+    });
 
     // Initialize ID on mount
     useEffect(() => {
         setPreTransactionId(generateTransactionId());
     }, []);
+
+    useEffect(() => {
+        if (!savedDraft) return;
+        setSelectedId(savedDraft.selectedId || '');
+        setDepositor(savedDraft.depositor || '');
+        setCustomName(savedDraft.customName || '');
+        setShowCustomInput(Boolean(savedDraft.showCustomInput));
+        setQuantity(savedDraft.quantity || '');
+        setPrice(savedDraft.price || '');
+        setIsReturn(Boolean(savedDraft.isReturn));
+        setIsSelfCollected(Boolean(savedDraft.isSelfCollected));
+        setSkipInventory(Boolean(savedDraft.skipInventory));
+        setSelectedDate(savedDraft.selectedDate || '');
+        setCart(Array.isArray(savedDraft.cart) ? savedDraft.cart : []);
+        setPreTransactionId(savedDraft.preTransactionId || generateTransactionId());
+    }, [savedDraft]);
 
 
     useEffect(() => {
@@ -195,17 +242,9 @@ export default function CheckInForm({
             );
         }
 
-        setQuantity('');
-        // setDepositor(''); // Keep depositor for convenience
-        // setCustomName('');
-        setPrice('');
-        setSelectedId('');
-        // setShowCustomInput(false);
+        discardDraft();
         setShowWarningModal(false);
         setPendingSubmission(null);
-        setIsSelfCollected(false);
-        setSkipInventory(false);
-        setCart([]);
     };
 
     const handleSubmit = (e) => {
@@ -271,7 +310,7 @@ export default function CheckInForm({
                 <PackagePlus className="w-5 h-5" />
                 {title}
             </h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <form ref={formRef} onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* LEFT COLUMN: Inputs & Controls */}
                 <div className="space-y-4">
                     <div className="space-y-1">
@@ -436,6 +475,16 @@ export default function CheckInForm({
                             <PackagePlus className="w-4 h-4" />
                             Zur Liste hinzufügen
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (window.confirm('Alle Angaben und den gespeicherten Entwurf löschen?')) discardDraft();
+                            }}
+                            className="w-full rounded-lg border border-red-500/40 px-3 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10"
+                        >
+                            <Trash2 className="mr-2 inline h-4 w-4" />
+                            Alles löschen
+                        </button>
                     </div>
 
                     {/* Skip Inventory Checkbox - Only for Buchhaltung/Admin */}
@@ -597,6 +646,7 @@ export default function CheckInForm({
                     </div>
                 )
             }
+            {unsavedChangesPrompt}
         </section >
     );
 }

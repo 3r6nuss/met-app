@@ -126,7 +126,7 @@ export default function AppRoutes() {
 
                 {userIsBuchhaltung && (
                     <Route path="/buchung/sonderbuchung" element={
-                        <SpecialBookingPage employees={employees} onAction={handleSpecialBooking} />
+                        <SpecialBookingPage employees={employees} onAction={handleSpecialBooking} user={user} />
                     } />
                 )}
 

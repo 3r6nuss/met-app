@@ -45,8 +45,9 @@ function parseGermanNumber(str) {
 function extractReferenceId(reason) {
     if (!reason) return null;
 
-    // Pattern 1: Prefixed with AK/VK/Ankauf/Verkauf + space + CODE
-    const prefixMatch = reason.match(/(?:AK|VK|Ankauf|Verkauf|An-\s*und\s*Verkauf)\s+([A-Z0-9]{4,8})/i);
+    // Pattern 1: Prefixed with AK/VK/Ankauf/Verkauf + space + CODE.
+    // Also accepts Discord bullet points such as "* VK ABC123".
+    const prefixMatch = reason.match(/(?:\*\s*)?(?:AK|VK|Ankauf|Verkauf|An-\s*und\s*Verkauf)\s*[:-]?\s+([A-Z0-9]{4,8})/i);
     if (prefixMatch) return prefixMatch[1].toUpperCase();
 
     // Pattern 2: Standalone code (4-8 alphanumeric chars, must contain at least one digit),
@@ -100,7 +101,35 @@ export function parseLogWithRegex(rawContent) {
     // ── Abhebung (Cash withdrawal for purchases) ──
     // Format: "NAME hat BETRAG$ vom Konto abgehoben. Grund: REASON"
     // Note: The embed often has "Abhebung" as title on a separate line before the actual text
-    const contentWithoutTitle = rawContent.replace(/^\s*(?:Abhebung|Einzahlung|Rechnung|Rechnung bezahlt)\s*[\r\n]+/i, '').trim();
+    const contentWithoutTitle = rawContent.replace(/^\s*(?:Abhebung|Einzahlung|Rechnung|Rechnung bezahlt|Rechnung erstellt|Sonderzahlung)\s*[\r\n]+/i, '').trim();
+
+    // ── Rechnung erstellt (new Bossmenü embed) ──
+    // Format: "NAME hat eine Rechnung erstellt\nPosition: ...\n• VK ABC123\nGesamt: BETRAG$\nRechnungs-ID: ...\nAn: KUNDE"
+    const rechnungErstelltMatch = contentWithoutTitle.match(
+        /^([A-Za-zÀ-ÿ ]+?)\s+hat\s+eine\s+Rechnung\s+erstellt/i
+    );
+
+    if (rechnungErstelltMatch) {
+        result.type = 'rechnung_erstellt';
+        result.employee = rechnungErstelltMatch[1].trim();
+
+        const recipientMatch = rawContent.match(/(?:^|\n)An:\s*([^\n]+)/i);
+        if (recipientMatch) result.customer = recipientMatch[1].trim();
+
+        const amountMatch = rawContent.match(/(?:Gesamt|Betrag|Amount):\s*\$?([\d.,]+)\$?/i);
+        if (amountMatch) result.amount = parseGermanNumber(amountMatch[1]);
+
+        const positionMatch = rawContent.match(/Position:\s*([^\n]+)/i);
+        const referenceMatch = rawContent.match(/(?:^|\n)\s*(?:[•*]\s*)?(?:Grund:\s*)?((?:AK|VK)\s*[:-]?\s*[A-Z0-9]{4,8})\b/i);
+        result.reason = positionMatch?.[1].trim() || referenceMatch?.[1].trim() || null;
+        result.reference_id = extractReferenceId(referenceMatch?.[1] || rawContent);
+        result.trade_action = 'verkauf';
+        if (result.reason) {
+            result.items.push({ name: result.reason, action: 'verkauf', quantity: null });
+        }
+
+        return result;
+    }
     const abhebungMatch = contentWithoutTitle.match(
         /^([A-Za-zÀ-ÿ ]+?)\s+hat\s+([\d.,]+)\$?\s+vom\s+Konto\s+abgehoben/i
     );
@@ -206,6 +235,24 @@ export function parseLogWithRegex(rawContent) {
 
         const zeitMatch = rawContent.match(/(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}:\d{2})/);
         if (zeitMatch) result.timestamp = zeitMatch[1];
+
+        return result;
+    }
+
+    // ── Sonderzahlung (new Bossmenü embed) ──
+    // Format: "NAME hat EMPFÄNGER eine Sonderzahlung in Höhe von BETRAG$ ausgezahlt! Grund: REASON"
+    const sonderzahlungMatch = contentWithoutTitle.match(
+        /^([A-Za-zÀ-ÿ ]+?)\s+hat\s+([A-Za-zÀ-ÿ ]+?)\s+eine\s+Sonderzahlung\s+in\s+Höhe\s+von\s+([\d.,]+)\$?\s+ausgezahlt/i
+    );
+
+    if (sonderzahlungMatch) {
+        result.type = 'sonderzahlung';
+        result.employee = sonderzahlungMatch[1].trim();
+        result.customer = sonderzahlungMatch[2].trim();
+        result.amount = parseGermanNumber(sonderzahlungMatch[3]);
+
+        const grundMatch = rawContent.match(/Grund:\s*(.+?)(?:\n|$)/i);
+        if (grundMatch) result.reason = grundMatch[1].trim();
 
         return result;
     }

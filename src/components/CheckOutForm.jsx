@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { PackageMinus, DollarSign, Copy, Check } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { PackageMinus, DollarSign, Copy, Check, Trash2 } from 'lucide-react';
 import { generateTransactionId } from '../utils/transactionId';
+import { useBookingDraft } from '../hooks/useBookingDraft.jsx';
 
 export default function CheckOutForm({
     inventory,
@@ -39,11 +40,53 @@ export default function CheckOutForm({
     const [preTransactionId, setPreTransactionId] = useState('');
     const [copiedId, setCopiedId] = useState(false);
     const [copiedPrice, setCopiedPrice] = useState(false);
+    const formRef = useRef(null);
+
+    const clearForm = () => {
+        setSelectedId('');
+        setDepositor('');
+        setCustomName('');
+        setShowCustomInput(false);
+        setQuantity('');
+        setPrice('');
+        setSkipInventory(false);
+        setCart([]);
+        setPreTransactionId(generateTransactionId());
+        localStorage.removeItem('met_depositor');
+    };
+
+    const draft = {
+        selectedId, depositor, customName, showCustomInput, quantity, price,
+        skipInventory, selectedDate, cart, preTransactionId
+    };
+    const hasChanges = Boolean(selectedId || depositor || customName || quantity || price || cart.length || skipInventory);
+    const { savedDraft, discardDraft, prompt: unsavedChangesPrompt } = useBookingDraft({
+        scope: title.toLowerCase(),
+        userId: user?.discordId || user?.id,
+        draft,
+        hasChanges,
+        onClear: clearForm,
+        formRef
+    });
 
     // Initialize ID on mount
     useEffect(() => {
         setPreTransactionId(generateTransactionId());
     }, []);
+
+    useEffect(() => {
+        if (!savedDraft) return;
+        setSelectedId(savedDraft.selectedId || '');
+        setDepositor(savedDraft.depositor || '');
+        setCustomName(savedDraft.customName || '');
+        setShowCustomInput(Boolean(savedDraft.showCustomInput));
+        setQuantity(savedDraft.quantity || '');
+        setPrice(savedDraft.price || '');
+        setSkipInventory(Boolean(savedDraft.skipInventory));
+        setSelectedDate(savedDraft.selectedDate || '');
+        setCart(Array.isArray(savedDraft.cart) ? savedDraft.cart : []);
+        setPreTransactionId(savedDraft.preTransactionId || generateTransactionId());
+    }, [savedDraft]);
 
     // Check if saved depositor needs custom input display (runs once on mount)
     useEffect(() => {
@@ -149,17 +192,9 @@ export default function CheckOutForm({
             );
         }
 
-        setQuantity('');
-        // setDepositor('');
-        // setCustomName('');
-        setPrice('');
-        setSelectedId('');
-        // setShowCustomInput(false);
+        discardDraft();
         setShowWarningModal(false);
         setPendingSubmission(null);
-        setSkipInventory(false);
-        setCart([]);
-        setPreTransactionId(generateTransactionId()); // Regenerate ID
     };
 
     const handleSubmit = (e) => {
@@ -223,7 +258,7 @@ export default function CheckOutForm({
                 <PackageMinus className="w-5 h-5" />
                 {title}
             </h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <form ref={formRef} onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* LEFT COLUMN: Inputs & Controls */}
                 <div className="space-y-4">
                     <div className="space-y-1">
@@ -356,6 +391,16 @@ export default function CheckOutForm({
                         >
                             <PackageMinus className="w-4 h-4" />
                             Zur Liste hinzufügen
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (window.confirm('Alle Angaben und den gespeicherten Entwurf löschen?')) discardDraft();
+                            }}
+                            className="w-full rounded-lg border border-red-500/40 px-3 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10"
+                        >
+                            <Trash2 className="mr-2 inline h-4 w-4" />
+                            Alles löschen
                         </button>
                     </div>
 
@@ -516,6 +561,7 @@ export default function CheckOutForm({
                     </div>
                 </div>
             )}
+            {unsavedChangesPrompt}
         </section>
     );
 }

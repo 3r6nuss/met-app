@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Check, AlertTriangle, DollarSign, User, Clock, FileText } from 'lucide-react';
 
 /**
@@ -75,7 +75,13 @@ export default function DiscordConfirmationModal({
                                     ? 'bg-red-500/20 text-red-400'
                                     : 'bg-green-500/20 text-green-400'
                                 }`}>
-                                {discordLog.parsedType === 'abhebung' ? '💰 Abhebung' : '🧾 Rechnung'}
+                                {discordLog.parsedType === 'abhebung'
+                                    ? '💰 Abhebung'
+                                    : discordLog.parsedType === 'einzahlung'
+                                        ? '🏦 Einzahlung'
+                                        : discordLog.parsedType === 'sonderzahlung'
+                                            ? '💸 Sonderzahlung'
+                                            : '🧾 Rechnung'}
                             </span>
                             <span className="text-2xl font-bold text-white">
                                 {formatAmount(discordLog.amount)}
