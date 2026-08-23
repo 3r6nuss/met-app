@@ -37,6 +37,7 @@ export default function CheckOutForm({
     const [warningMessage, setWarningMessage] = useState('');
     const [pendingSubmission, setPendingSubmission] = useState(null);
     const [cart, setCart] = useState([]);
+    const [skipInventory, setSkipInventory] = useState(false);
     const [preTransactionId, setPreTransactionId] = useState('');
     const [copiedId, setCopiedId] = useState(false);
     const [copiedPrice, setCopiedPrice] = useState(false);
@@ -138,11 +139,6 @@ export default function CheckOutForm({
             localStorage.setItem('met_depositor', value);
         }
     };
-
-
-
-    const [skipInventory, setSkipInventory] = useState(false);
-
     const addToCart = () => {
         if (!selectedId || !quantity) return;
 
