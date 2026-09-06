@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import Login from './components/Login';
 import AppLayout from './components/AppLayout';
 import AppRoutes from './components/AppRoutes';
+import OfflinePage from './components/OfflinePage';
 import { AppStateProvider, useAppState } from './context/AppStateContext';
 import { isPending } from './utils/permissions';
 
@@ -43,6 +44,12 @@ function AppInner() {
 }
 
 function App() {
+  const [systemOpened, setSystemOpened] = useState(false);
+
+  if (!systemOpened) {
+    return <OfflinePage onOpenSystem={() => setSystemOpened(true)} />;
+  }
+
   return (
     <AppStateProvider>
       <AppInner />
